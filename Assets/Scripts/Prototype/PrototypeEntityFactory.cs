@@ -24,7 +24,7 @@ namespace Game.Prototype
 
             CombatTarget combatTarget = unit.AddComponent<CombatTarget>();
             UnitCombat combat = unit.AddComponent<UnitCombat>();
-            combat.Configure(stats.AttackRange, stats.AttackDamage, stats.AttackCooldown, stats.AggroRange, 0.45f);
+            combat.Configure(stats.AttackRange, stats.AttackDamage, stats.AttackCooldown, stats.AggroRange, 0.55f);
 
             SelectableUnit selectableUnit = unit.AddComponent<SelectableUnit>();
 
@@ -44,7 +44,8 @@ namespace Game.Prototype
             baseObject.transform.SetParent(parent);
 
             UnitHealth health = baseObject.AddComponent<UnitHealth>();
-            health.Configure(220f, true, new Vector3(0f, 3.2f, 0f));
+            float baseHealth = team == UnitTeam.Player ? 300f : 220f;
+            health.Configure(baseHealth, true, new Vector3(0f, 3.2f, 0f));
 
             CombatTarget combatTarget = baseObject.AddComponent<CombatTarget>();
             BaseStructure baseStructure = baseObject.AddComponent<BaseStructure>();

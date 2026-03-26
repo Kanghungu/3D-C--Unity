@@ -19,3 +19,7 @@
 - Expanded the prototype with two unit roles (`Vanguard`, `Skirmisher`), enemy AI pressure, player production hotkeys, and win/lose flow.
 - Added lightweight HUD feedback and simple terrain features to better support playtesting.
 - Current focus is now balance tuning, longer play sessions, and documenting prototype findings against the planning docs.
+- Follow-up prototype pass: lowered difficulty further for testing by increasing player starting force, reducing enemy opening pressure, and boosting player base durability.
+- Added real player production queue flow with Shift queueing, queue preview, and queue cancellation.
+- Added selection-side QoL including double-click same-role selection and a live selection summary panel.
+- Fixed stale destroyed-unit references in HUD/selection handling and added lightweight unit separation to reduce overlap while moving.

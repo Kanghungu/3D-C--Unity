@@ -10,15 +10,23 @@ namespace Game.Selection
     /// </summary>
     public class PrototypeSelectionController : MonoBehaviour
     {
+        private const float DoubleClickThreshold = 0.3f;
+
         private Camera mainCamera;
         private readonly List<SelectableUnit> selectedUnits = new();
         private Vector2 dragStartScreenPosition;
         private bool isDraggingSelection;
         private Texture2D selectionTexture;
         private GameObject moveMarker;
+        private float lastClickTime;
+        private SelectableUnit lastClickedUnit;
+
+        public static PrototypeSelectionController Instance { get; private set; }
+        public IReadOnlyList<SelectableUnit> SelectedUnits => selectedUnits;
 
         private void Awake()
         {
+            Instance = this;
             mainCamera = Camera.main;
             selectionTexture = new Texture2D(1, 1);
             selectionTexture.SetPixel(0, 0, new Color(0.2f, 0.9f, 0.3f, 0.2f));
@@ -26,8 +34,18 @@ namespace Game.Selection
             CreateMoveMarker();
         }
 
+        private void OnDestroy()
+        {
+            if (Instance == this)
+            {
+                Instance = null;
+            }
+        }
+
         private void Update()
         {
+            RemoveDestroyedSelections();
+
             if (mainCamera == null)
             {
                 mainCamera = Camera.main;
@@ -58,6 +76,30 @@ namespace Game.Selection
             if (Mouse.current.rightButton.wasPressedThisFrame)
             {
                 TryIssueCommand();
+            }
+        }
+
+        public void RemoveDestroyedSelections()
+        {
+            bool removedAny = false;
+
+            for (int index = selectedUnits.Count - 1; index >= 0; index--)
+            {
+                if (selectedUnits[index] == null)
+                {
+                    selectedUnits.RemoveAt(index);
+                    removedAny = true;
+                }
+            }
+
+            if (lastClickedUnit == null)
+            {
+                lastClickedUnit = null;
+            }
+
+            if (removedAny && selectedUnits.Count == 0)
+            {
+                lastClickTime = 0f;
             }
         }
 
@@ -96,6 +138,16 @@ namespace Game.Selection
 
             if (hit.collider.TryGetComponent(out SelectableUnit unit) && unit.Team == UnitTeam.Player)
             {
+                bool isDoubleClick = lastClickedUnit == unit && Time.time - lastClickTime <= DoubleClickThreshold;
+                lastClickedUnit = unit;
+                lastClickTime = Time.time;
+
+                if (isDoubleClick)
+                {
+                    SelectAllMatchingArchetype(unit.Archetype);
+                    return;
+                }
+
                 SetSelection(new[] { unit });
                 return;
             }
@@ -103,11 +155,26 @@ namespace Game.Selection
             ClearSelection();
         }
 
+        private void SelectAllMatchingArchetype(UnitArchetype archetype)
+        {
+            List<SelectableUnit> matchingUnits = new();
+
+            foreach (SelectableUnit unit in FindObjectsByType<SelectableUnit>())
+            {
+                if (unit != null && unit.Team == UnitTeam.Player && unit.Archetype == archetype)
+                {
+                    matchingUnits.Add(unit);
+                }
+            }
+
+            SetSelection(matchingUnits);
+        }
+
         private void SelectUnitsInRect(Rect selectionRect)
         {
             List<SelectableUnit> unitsInRect = new();
 
-            foreach (SelectableUnit unit in FindObjectsByType<SelectableUnit>(FindObjectsSortMode.None))
+            foreach (SelectableUnit unit in FindObjectsByType<SelectableUnit>())
             {
                 if (unit == null || unit.Team != UnitTeam.Player)
                 {
@@ -160,7 +227,7 @@ namespace Game.Selection
 
             Vector3 targetPoint = hit.point;
             ShowMoveMarker(targetPoint);
-            List<Vector3> formationPoints = BuildFormationPoints(targetPoint, selectedUnits.Count, 2f);
+            List<Vector3> formationPoints = BuildFormationPoints(targetPoint, selectedUnits.Count, 2.4f);
 
             for (int index = 0; index < selectedUnits.Count; index++)
             {

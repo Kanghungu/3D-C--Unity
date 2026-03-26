@@ -1,4 +1,5 @@
 using Game.Units;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game.Prototype
@@ -8,26 +9,34 @@ namespace Game.Prototype
     /// </summary>
     public class BaseStructure : MonoBehaviour
     {
-        [SerializeField] private float autoSpawnInterval = 12f;
-        [SerializeField] private float playerProductionTime = 6f;
-        [SerializeField] private int maxTeamUnits = 14;
+        [SerializeField] private float enemyAutoSpawnInterval = 24f;
+        [SerializeField] private float playerProductionTime = 3.5f;
+        [SerializeField] private int playerMaxUnits = 24;
+        [SerializeField] private int enemyMaxUnits = 8;
+        [SerializeField] private int maxQueueLength = 6;
         [SerializeField] private float spawnRadius = 5f;
 
+        private readonly List<UnitArchetype> productionQueue = new();
         private CombatTarget combatTarget;
         private UnitHealth health;
         private Transform unitRoot;
         private float autoSpawnTimer;
         private float productionTimer;
-        private bool hasQueuedProduction;
-        private UnitArchetype queuedArchetype;
+        private bool isProducing;
+        private UnitArchetype currentProductionArchetype;
         private int reinforcementIndex;
 
         public UnitTeam Team => combatTarget != null ? combatTarget.Team : UnitTeam.Player;
         public bool IsAlive => health != null && health.IsAlive;
         public float HealthNormalized => health != null ? health.Normalized : 0f;
-        public bool HasQueuedProduction => hasQueuedProduction;
-        public float ProductionProgressNormalized => hasQueuedProduction ? Mathf.Clamp01(1f - (productionTimer / playerProductionTime)) : 0f;
-        public string QueueLabel => hasQueuedProduction ? queuedArchetype.ToString() : "Idle";
+        public bool HasQueuedProduction => productionQueue.Count > 0 || isProducing;
+        public int QueueCount => productionQueue.Count + (isProducing ? 1 : 0);
+        public float ProductionProgressNormalized => isProducing ? Mathf.Clamp01(1f - (productionTimer / CurrentProductionDuration)) : 0f;
+        public string QueueLabel => isProducing ? currentProductionArchetype.ToString() : "Idle";
+        public string QueuePreview => BuildQueuePreview();
+
+        private float CurrentProductionDuration => playerProductionTime + (currentProductionArchetype == UnitArchetype.Skirmisher ? 0.6f : 0f);
+        private int CurrentMaxUnits => Team == UnitTeam.Player ? playerMaxUnits : enemyMaxUnits;
 
         private void Awake()
         {
@@ -60,20 +69,37 @@ namespace Game.Prototype
         public void Initialize(Transform assignedUnitRoot)
         {
             unitRoot = assignedUnitRoot;
-            autoSpawnTimer = autoSpawnInterval;
+            autoSpawnTimer = enemyAutoSpawnInterval;
             ApplyVisuals();
         }
 
         public bool TryQueueProduction(UnitArchetype archetype)
         {
-            if (!IsAlive || Team != UnitTeam.Player || hasQueuedProduction || CountLivingUnitsForTeam() >= maxTeamUnits)
+            int reservedSlots = CountLivingUnitsForTeam() + productionQueue.Count + (isProducing ? 1 : 0);
+
+            if (!IsAlive || Team != UnitTeam.Player || productionQueue.Count >= maxQueueLength || reservedSlots >= CurrentMaxUnits)
             {
                 return false;
             }
 
-            queuedArchetype = archetype;
-            hasQueuedProduction = true;
-            productionTimer = playerProductionTime + (archetype == UnitArchetype.Skirmisher ? 1f : 0f);
+            productionQueue.Add(archetype);
+
+            if (!isProducing)
+            {
+                BeginNextProduction();
+            }
+
+            return true;
+        }
+
+        public bool TryCancelLastQueuedProduction()
+        {
+            if (Team != UnitTeam.Player || productionQueue.Count == 0)
+            {
+                return false;
+            }
+
+            productionQueue.RemoveAt(productionQueue.Count - 1);
             return true;
         }
 
@@ -86,21 +112,27 @@ namespace Game.Prototype
                 return;
             }
 
-            if (CountLivingUnitsForTeam() >= maxTeamUnits)
+            if (CountLivingUnitsForTeam() >= CurrentMaxUnits)
             {
-                autoSpawnTimer = 1.5f;
+                autoSpawnTimer = 3f;
                 return;
             }
 
-            UnitArchetype archetype = reinforcementIndex++ % 2 == 0 ? UnitArchetype.Vanguard : UnitArchetype.Skirmisher;
+            UnitArchetype archetype = reinforcementIndex % 4 == 0 ? UnitArchetype.Skirmisher : UnitArchetype.Vanguard;
+            reinforcementIndex++;
             SpawnUnit(archetype);
-            autoSpawnTimer = autoSpawnInterval;
+            autoSpawnTimer = enemyAutoSpawnInterval;
         }
 
         private void RunPlayerProduction()
         {
-            if (!hasQueuedProduction)
+            if (!isProducing)
             {
+                if (productionQueue.Count > 0)
+                {
+                    BeginNextProduction();
+                }
+
                 return;
             }
 
@@ -111,12 +143,31 @@ namespace Game.Prototype
                 return;
             }
 
-            if (CountLivingUnitsForTeam() < maxTeamUnits)
+            if (CountLivingUnitsForTeam() < CurrentMaxUnits)
             {
-                SpawnUnit(queuedArchetype);
+                SpawnUnit(currentProductionArchetype);
             }
 
-            hasQueuedProduction = false;
+            isProducing = false;
+
+            if (productionQueue.Count > 0)
+            {
+                BeginNextProduction();
+            }
+        }
+
+        private void BeginNextProduction()
+        {
+            if (productionQueue.Count == 0)
+            {
+                isProducing = false;
+                return;
+            }
+
+            currentProductionArchetype = productionQueue[0];
+            productionQueue.RemoveAt(0);
+            isProducing = true;
+            productionTimer = CurrentProductionDuration;
         }
 
         private void SpawnUnit(UnitArchetype archetype)
@@ -131,7 +182,7 @@ namespace Game.Prototype
         {
             int count = 0;
 
-            foreach (SelectableUnit unit in FindObjectsByType<SelectableUnit>(FindObjectsSortMode.None))
+            foreach (SelectableUnit unit in FindObjectsByType<SelectableUnit>())
             {
                 if (unit != null && unit.Team == Team)
                 {
@@ -140,6 +191,28 @@ namespace Game.Prototype
             }
 
             return count;
+        }
+
+        private string BuildQueuePreview()
+        {
+            if (!isProducing && productionQueue.Count == 0)
+            {
+                return "Idle";
+            }
+
+            List<string> labels = new();
+
+            if (isProducing)
+            {
+                labels.Add($"> {currentProductionArchetype}");
+            }
+
+            foreach (UnitArchetype archetype in productionQueue)
+            {
+                labels.Add(archetype.ToString());
+            }
+
+            return string.Join(", ", labels);
         }
 
         private void ApplyVisuals()

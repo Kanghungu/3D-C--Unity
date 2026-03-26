@@ -12,7 +12,7 @@ namespace Game.Prototype
 
         public static BaseStructure FindBase(UnitTeam team)
         {
-            foreach (BaseStructure baseStructure in Object.FindObjectsByType<BaseStructure>(FindObjectsSortMode.None))
+            foreach (BaseStructure baseStructure in Object.FindObjectsByType<BaseStructure>())
             {
                 if (baseStructure != null && baseStructure.Team == team)
                 {
@@ -27,7 +27,7 @@ namespace Game.Prototype
         {
             int count = 0;
 
-            foreach (SelectableUnit unit in Object.FindObjectsByType<SelectableUnit>(FindObjectsSortMode.None))
+            foreach (SelectableUnit unit in Object.FindObjectsByType<SelectableUnit>())
             {
                 if (unit != null && unit.Team == team)
                 {
@@ -39,3 +39,4 @@ namespace Game.Prototype
         }
     }
 }
+

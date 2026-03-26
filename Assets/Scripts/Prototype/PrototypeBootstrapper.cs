@@ -20,10 +20,10 @@ namespace Game.Prototype
         [SerializeField] private Vector3 cameraRotation = new(50f, 0f, 0f);
 
         [Header("Army Setup")]
-        [SerializeField] private Vector3 friendlyStart = new(-10f, 1f, -4f);
-        [SerializeField] private Vector2Int friendlyGrid = new(3, 2);
-        [SerializeField] private Vector3 enemyStart = new(8f, 1f, 6f);
-        [SerializeField] private Vector2Int enemyGrid = new(3, 2);
+        [SerializeField] private Vector3 friendlyStart = new(-12f, 1f, -5f);
+        [SerializeField] private Vector2Int friendlyGrid = new(4, 2);
+        [SerializeField] private Vector3 enemyStart = new(9f, 1f, 7f);
+        [SerializeField] private Vector2Int enemyGrid = new(2, 2);
         [SerializeField] private float unitSpacing = 3f;
 
         [Header("Bases")]
@@ -101,6 +101,8 @@ namespace Game.Prototype
             CreateTerrainBlock("South Ridge", new Vector3(0f, 0.75f, -14f), new Vector3(9f, 1.5f, 2f), terrainRoot, new Color(0.28f, 0.28f, 0.32f));
             CreateTerrainBlock("West Cover", new Vector3(-13f, 1f, 1f), new Vector3(2.2f, 2f, 2.2f), terrainRoot, new Color(0.24f, 0.24f, 0.28f));
             CreateTerrainBlock("East Cover", new Vector3(13f, 1f, -1f), new Vector3(2.2f, 2f, 2.2f), terrainRoot, new Color(0.24f, 0.24f, 0.28f));
+            CreateTerrainBlock("Mid Cover A", new Vector3(-4f, 0.8f, 4f), new Vector3(3f, 1.6f, 1.8f), terrainRoot, new Color(0.3f, 0.32f, 0.36f));
+            CreateTerrainBlock("Mid Cover B", new Vector3(5f, 0.8f, -5f), new Vector3(3f, 1.6f, 1.8f), terrainRoot, new Color(0.3f, 0.32f, 0.36f));
         }
 
         private void SetupPrototypeSystems()
@@ -133,7 +135,7 @@ namespace Game.Prototype
 
         private void SetupBases()
         {
-            if (FindObjectsByType<BaseStructure>(FindObjectsSortMode.None).Length > 0)
+            if (FindObjectsByType<BaseStructure>().Length > 0)
             {
                 return;
             }
@@ -155,6 +157,7 @@ namespace Game.Prototype
 
             CreateFormation(friendlyStart, friendlyGrid, UnitTeam.Player, playerUnitRoot);
             CreateFormation(enemyStart, enemyGrid, UnitTeam.Enemy, enemyUnitRoot);
+            CreateFormation(new Vector3(-16f, 1f, -8f), new Vector2Int(1, 2), UnitTeam.Player, playerUnitRoot);
         }
 
         private void CreateFormation(Vector3 origin, Vector2Int grid, UnitTeam team, Transform parent)

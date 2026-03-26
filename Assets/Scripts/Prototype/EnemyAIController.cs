@@ -8,7 +8,7 @@ namespace Game.Prototype
     /// </summary>
     public class EnemyAIController : MonoBehaviour
     {
-        [SerializeField] private float thinkInterval = 1.5f;
+        [SerializeField] private float thinkInterval = 2.4f;
 
         private float thinkTimer;
 
@@ -27,8 +27,8 @@ namespace Game.Prototype
 
         private void IssueEnemyOrders()
         {
-            CombatTarget[] allTargets = FindObjectsByType<CombatTarget>(FindObjectsSortMode.None);
-            SelectableUnit[] enemyUnits = FindObjectsByType<SelectableUnit>(FindObjectsSortMode.None);
+            CombatTarget[] allTargets = FindObjectsByType<CombatTarget>();
+            SelectableUnit[] enemyUnits = FindObjectsByType<SelectableUnit>();
 
             foreach (SelectableUnit enemyUnit in enemyUnits)
             {

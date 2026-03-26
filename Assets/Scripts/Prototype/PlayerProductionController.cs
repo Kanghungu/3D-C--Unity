@@ -1,3 +1,4 @@
+using Game.Units;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -22,14 +23,32 @@ namespace Game.Prototype
                 return;
             }
 
+            int queueAmount = Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed ? 3 : 1;
+
             if (Keyboard.current.digit1Key.wasPressedThisFrame)
             {
-                playerBase.TryQueueProduction(Game.Units.UnitArchetype.Vanguard);
+                QueueUnits(playerBase, UnitArchetype.Vanguard, queueAmount);
             }
 
             if (Keyboard.current.digit2Key.wasPressedThisFrame)
             {
-                playerBase.TryQueueProduction(Game.Units.UnitArchetype.Skirmisher);
+                QueueUnits(playerBase, UnitArchetype.Skirmisher, queueAmount);
+            }
+
+            if (Keyboard.current.backspaceKey.wasPressedThisFrame)
+            {
+                playerBase.TryCancelLastQueuedProduction();
+            }
+        }
+
+        private static void QueueUnits(BaseStructure playerBase, UnitArchetype archetype, int amount)
+        {
+            for (int index = 0; index < amount; index++)
+            {
+                if (!playerBase.TryQueueProduction(archetype))
+                {
+                    break;
+                }
             }
         }
     }

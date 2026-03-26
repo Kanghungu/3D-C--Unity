@@ -117,7 +117,7 @@ namespace Game.Units
             CombatTarget bestTarget = null;
             float bestDistance = aggroRange;
 
-            foreach (CombatTarget target in FindObjectsByType<CombatTarget>(FindObjectsSortMode.None))
+            foreach (CombatTarget target in FindObjectsByType<CombatTarget>())
             {
                 if (target == null || target == owner || !target.IsAlive || target.Team == owner.Team)
                 {
@@ -153,3 +153,4 @@ namespace Game.Units
         }
     }
 }
+
