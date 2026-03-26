@@ -1,3 +1,4 @@
+using Game.Prototype;
 using Game.Units;
 using System.Collections.Generic;
 using UnityEngine;
@@ -207,7 +208,31 @@ namespace Game.Selection
 
         private void TryIssueCommand()
         {
-            if (selectedUnits.Count == 0 || !TryGetMouseRaycastHit(out RaycastHit hit))
+            if (!TryGetMouseRaycastHit(out RaycastHit hit))
+            {
+                return;
+            }
+
+            if (IsRallyModifierPressed())
+            {
+                BaseStructure playerBase = PrototypeRuntimeQuery.FindPlayerBase();
+                ProductionStructure playerProduction = PrototypeRuntimeQuery.FindPlayerProductionStructure();
+
+                if (playerBase != null && playerBase.IsAlive)
+                {
+                    playerBase.SetRallyPoint(hit.point);
+                }
+
+                if (playerProduction != null && playerProduction.IsAlive)
+                {
+                    playerProduction.SetRallyPoint(hit.point);
+                }
+
+                ShowMoveMarker(hit.point, new Color(1f, 0.9f, 0.25f, 0.9f));
+                return;
+            }
+
+            if (selectedUnits.Count == 0)
             {
                 return;
             }
@@ -222,12 +247,29 @@ namespace Game.Selection
                     }
                 }
 
+                ShowMoveMarker(hit.point, new Color(1f, 0.45f, 0.25f, 0.9f));
                 return;
             }
 
             Vector3 targetPoint = hit.point;
-            ShowMoveMarker(targetPoint);
             List<Vector3> formationPoints = BuildFormationPoints(targetPoint, selectedUnits.Count, 2.4f);
+
+            if (IsAttackMoveModifierPressed())
+            {
+                ShowMoveMarker(targetPoint, new Color(1f, 0.65f, 0.2f, 0.9f));
+
+                for (int index = 0; index < selectedUnits.Count; index++)
+                {
+                    if (selectedUnits[index] != null)
+                    {
+                        selectedUnits[index].AttackMoveTo(formationPoints[index]);
+                    }
+                }
+
+                return;
+            }
+
+            ShowMoveMarker(targetPoint, new Color(0.2f, 0.8f, 1f, 0.8f));
 
             for (int index = 0; index < selectedUnits.Count; index++)
             {
@@ -273,6 +315,16 @@ namespace Game.Selection
             selectedUnits.Clear();
         }
 
+        private static bool IsRallyModifierPressed()
+        {
+            return Keyboard.current != null && (Keyboard.current.leftAltKey.isPressed || Keyboard.current.rightAltKey.isPressed);
+        }
+
+        private static bool IsAttackMoveModifierPressed()
+        {
+            return Keyboard.current != null && Keyboard.current.aKey.isPressed;
+        }
+
         private static Rect GetScreenRect(Vector2 start, Vector2 end)
         {
             start.y = Screen.height - start.y;
@@ -306,18 +358,17 @@ namespace Game.Selection
             moveMarker.transform.localScale = new Vector3(0.5f, 0.03f, 0.5f);
             moveMarker.GetComponent<Collider>().enabled = false;
             moveMarker.SetActive(false);
-
-            Renderer markerRenderer = moveMarker.GetComponent<Renderer>();
-            markerRenderer.material.color = new Color(0.2f, 0.8f, 1f, 0.8f);
         }
 
-        private void ShowMoveMarker(Vector3 position)
+        private void ShowMoveMarker(Vector3 position, Color color)
         {
             if (moveMarker == null)
             {
                 return;
             }
 
+            Renderer markerRenderer = moveMarker.GetComponent<Renderer>();
+            markerRenderer.material.color = color;
             moveMarker.transform.position = new Vector3(position.x, 0.1f, position.z);
             moveMarker.SetActive(true);
             CancelInvoke(nameof(HideMoveMarker));
@@ -333,3 +384,4 @@ namespace Game.Selection
         }
     }
 }
+

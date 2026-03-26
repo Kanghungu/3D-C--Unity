@@ -1,25 +1,81 @@
-# DEVLOG.md
+﻿# DEVLOG.md
 
 ## 2026-03-26
-- 프로젝트 문서 구조 생성
-- `AGENTS.md` 작성
-- 기본 기획 문서 초안 작성
-- GitHub 저장소 연결 및 첫 푸시 완료
-- 시점, 전투 규모, 분위기, 생산 방향에 대한 초기 의사결정 반영
-- 종교 대립, 자원 쟁탈, 행성 구조, 약탈, 반란, 함대전 방향 반영
-- `TODO.md`를 실제 구현 순서 기준의 세부 작업 목록으로 재정리
-- 첫 프로토타입 맵과 양 진영 방향을 사막 성지 / 중장갑 성전 제국 / 정면 화력형으로 확정
 
-## 기록 규칙
-- 날짜 기준으로 짧게 적는다.
-- 한 작업 항목은 한 줄로 정리한다.
-- 구현, 수정, 문제, 다음 액션을 분리해 적으면 좋다.
-- 1인 개발이므로 회의록보다 실제 작업 로그 중심으로 남긴다.
-- Added a playable Unity RTS prototype loop with camera control, multi-unit selection, movement, combat, health bars, and base objectives.
-- Expanded the prototype with two unit roles (`Vanguard`, `Skirmisher`), enemy AI pressure, player production hotkeys, and win/lose flow.
-- Added lightweight HUD feedback and simple terrain features to better support playtesting.
-- Current focus is now balance tuning, longer play sessions, and documenting prototype findings against the planning docs.
-- Follow-up prototype pass: lowered difficulty further for testing by increasing player starting force, reducing enemy opening pressure, and boosting player base durability.
-- Added real player production queue flow with Shift queueing, queue preview, and queue cancellation.
-- Added selection-side QoL including double-click same-role selection and a live selection summary panel.
-- Fixed stale destroyed-unit references in HUD/selection handling and added lightweight unit separation to reduce overlap while moving.
+### 문서 및 프로젝트 시작
+- 프로젝트 문서 구조를 만들고 기본 방향을 정리했다.
+- `AGENTS.md`를 작성해 작업 원칙, 우선순위, 테스트 기준을 정리했다.
+- 기본 기획 문서 초안을 만들고 장기 방향을 문서에 반영했다.
+- GitHub 저장소 연결과 초기 동기화를 마쳤다.
+
+### 방향성 정리
+- 현재 목표를 완성작이 아닌 전투 프로토타입으로 확정했다.
+- 지상전 중심의 3D SF 싱글플레이 RTS를 우선 구현하기로 했다.
+- 분위기는 우주 문명 간 종교 전쟁, 성전, 자원 쟁탈 중심으로 잡았다.
+- 플레이어 문명은 중장갑 성전 제국 느낌, 적 문명은 정면 화력형으로 임시 확정했다.
+- 첫 맵 테마는 사막 성지 행성으로 잡았다.
+
+### Unity 프로젝트 세팅
+- Unity 프로젝트를 현재 저장소 구조에 맞게 정리했다.
+- Unity 기본 폴더와 Git 추적 대상 구조를 정리했다.
+- Unity 캐시가 저장소에 섞이지 않도록 `.gitignore`를 정리했다.
+
+### 첫 전투 프로토타입 구현
+- RTS 카메라 이동, 회전, 줌을 구현했다.
+- 아군 유닛 선택, 드래그 선택, 이동 명령, 공격 명령을 구현했다.
+- 아군과 적군을 구분하고 자동 전투가 성립하도록 만들었다.
+- 체력, 피해, 사망 처리와 체력바를 추가했다.
+- 기지 파괴와 전멸 기준의 승리/패배 흐름을 넣었다.
+
+### 유닛과 전장 확장
+- `Vanguard`, `Skirmisher` 두 역할 유닛으로 전투 테스트를 확장했다.
+- 적 AI가 일정 주기로 플레이어 진영을 압박하도록 만들었다.
+- 간단한 지형 구조물과 엄폐처럼 보이는 전장 블록을 추가했다.
+- 다수 유닛 이동 시 너무 심하게 겹치지 않도록 간단한 separation 로직을 넣었다.
+
+### 생산과 전투 루프 확장
+- 플레이어 기지 생산과 적 자동 증원 흐름을 만들었다.
+- `1`, `2`, `3` 생산 단축키와 생산 대기열을 만들었다.
+- `Shift` 대량 예약, `Backspace` 마지막 예약 취소를 추가했다.
+- 새로 생산된 유닛도 기존 선택, 이동, 전투 흐름에 자연스럽게 들어오도록 연결했다.
+
+### HUD 및 조작 편의성
+- 전황 확인용 HUD를 추가했다.
+- 선택된 유닛 요약, 생산 대기열, 현재 생산 상태를 표시하도록 만들었다.
+- 더블클릭으로 같은 병종 전체 선택이 가능하게 했다.
+- HUD에서 죽은 유닛 참조로 발생하던 오류를 정리했다.
+
+### 데이터 구조 정리
+- 유닛 스탯을 코드 상수 대신 `UnitDefinition` 기반으로 다루기 시작했다.
+- `PrototypeGameDatabase`를 통해 병종 정의를 한곳에서 관리하도록 바꿨다.
+- 세 번째 병종인 `Artillery`를 추가했다.
+- 생산, 생성, HUD, 선택 요약이 공통 유닛 정의를 사용하도록 정리했다.
+
+### 전투 가독성 강화
+- 스커미셔와 포병이 눈에 보이는 발사체를 발사하도록 만들었다.
+- 포병은 착탄 지점에 범위 피해를 주도록 만들었다.
+- 피격 지점에 간단한 충돌 이펙트를 추가해 전투 반응을 더 잘 보이게 했다.
+- 전장 중앙에 추가 구조물을 배치해 전선이 더 뚜렷하게 보이도록 했다.
+
+### 생산 흐름과 전선 합류 개선
+- 기지에 랠리 포인트를 추가했다.
+- 새로 생산된 유닛이 랠리 포인트로 자동 이동하게 만들었다.
+- `Alt + 우클릭`으로 플레이어 기지 랠리 포인트를 바꿀 수 있게 했다.
+- HUD에 랠리 포인트 정보를 표시하도록 했다.
+
+### 전투 감각 개선
+- HUD를 더 작고 단순한 형태로 줄여 전장을 덜 가리도록 수정했다.
+- `A + 우클릭` 공격 이동을 추가해 이동과 전투를 더 RTS답게 만들었다.
+- 각 기지 주변에 간단한 방어 포탑을 배치해 전선 압박과 방어 구도를 만들었다.
+
+### 현재 상태 요약
+- 지금 빌드는 카메라, 선택, 이동, 공격, 사망, 생산, 증원, 승패, HUD까지 한 흐름으로 플레이 가능하다.
+- 유닛 역할 차이와 전선 구도, 기지 압박 흐름이 이전보다 더 잘 보이는 상태다.
+- 다음 단계에서는 생산 건물 분리, 특수 무기/스킬, 맵 목표물 같은 시스템을 확장하기 좋다.
+
+### 생산 건물과 전장 목표물 확장
+- 플레이어 생산을 기지에서 분리해 `Foundry` 전용 건물로 옮겼다.
+- 이제 플레이어 생산 HUD와 단축키는 기지가 아니라 생산 건물을 기준으로 동작한다.
+- 중앙 `Control Node`를 추가해 전장 한가운데를 점령할 이유를 만들었다.
+- 중앙 노드를 점령한 팀은 생산 속도 보너스를 받아 단순 난전보다 전장 장악의 의미가 커졌다.
+- 다음 단계에서는 생산 건물 추가 분화, 점령 규칙 확장, 특수 스킬 쪽으로 연결하기 좋다.

@@ -16,9 +16,10 @@ namespace Game.Prototype
                 return;
             }
 
-            BaseStructure playerBase = PrototypeRuntimeQuery.FindPlayerBase();
+            ProductionStructure playerProduction = PrototypeRuntimeQuery.FindPlayerProductionStructure();
+            PrototypeGameDatabase database = PrototypeRuntimeQuery.FindDatabase();
 
-            if (playerBase == null || !playerBase.IsAlive)
+            if (playerProduction == null || !playerProduction.IsAlive || database == null)
             {
                 return;
             }
@@ -27,25 +28,35 @@ namespace Game.Prototype
 
             if (Keyboard.current.digit1Key.wasPressedThisFrame)
             {
-                QueueUnits(playerBase, UnitArchetype.Vanguard, queueAmount);
+                QueueUnits(playerProduction, database.GetDefinition(UnitArchetype.Vanguard), queueAmount);
             }
 
             if (Keyboard.current.digit2Key.wasPressedThisFrame)
             {
-                QueueUnits(playerBase, UnitArchetype.Skirmisher, queueAmount);
+                QueueUnits(playerProduction, database.GetDefinition(UnitArchetype.Skirmisher), queueAmount);
+            }
+
+            if (Keyboard.current.digit3Key.wasPressedThisFrame)
+            {
+                QueueUnits(playerProduction, database.GetDefinition(UnitArchetype.Artillery), queueAmount);
             }
 
             if (Keyboard.current.backspaceKey.wasPressedThisFrame)
             {
-                playerBase.TryCancelLastQueuedProduction();
+                playerProduction.TryCancelLastQueuedProduction();
             }
         }
 
-        private static void QueueUnits(BaseStructure playerBase, UnitArchetype archetype, int amount)
+        private static void QueueUnits(ProductionStructure playerProduction, UnitDefinition definition, int amount)
         {
+            if (definition == null)
+            {
+                return;
+            }
+
             for (int index = 0; index < amount; index++)
             {
-                if (!playerBase.TryQueueProduction(archetype))
+                if (!playerProduction.TryQueueProduction(definition))
                 {
                     break;
                 }

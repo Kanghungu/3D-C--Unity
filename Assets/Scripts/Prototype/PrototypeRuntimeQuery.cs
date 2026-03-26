@@ -23,6 +23,34 @@ namespace Game.Prototype
             return null;
         }
 
+        public static ProductionStructure FindPlayerProductionStructure()
+        {
+            return FindProductionStructure(UnitTeam.Player);
+        }
+
+        public static ProductionStructure FindProductionStructure(UnitTeam team)
+        {
+            foreach (ProductionStructure structure in Object.FindObjectsByType<ProductionStructure>())
+            {
+                if (structure != null && structure.Team == team)
+                {
+                    return structure;
+                }
+            }
+
+            return null;
+        }
+
+        public static ControlNode FindControlNode()
+        {
+            return Object.FindAnyObjectByType<ControlNode>();
+        }
+
+        public static PrototypeGameDatabase FindDatabase()
+        {
+            return Object.FindAnyObjectByType<PrototypeGameDatabase>();
+        }
+
         public static int CountUnits(UnitTeam team)
         {
             int count = 0;
@@ -39,4 +67,3 @@ namespace Game.Prototype
         }
     }
 }
-

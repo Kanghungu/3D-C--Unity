@@ -4,6 +4,7 @@ namespace Game.Units
 {
     /// <summary>
     /// Very lightweight combat loop for prototype testing.
+    /// Supports direct attacks, ranged projectiles, and attack-move orders.
     /// </summary>
     [RequireComponent(typeof(SimpleUnitMover))]
     [RequireComponent(typeof(CombatTarget))]
@@ -15,6 +16,11 @@ namespace Game.Units
         [SerializeField] private float attackCooldown = 0.8f;
         [SerializeField] private float aggroRange = 7f;
         [SerializeField] private float retargetInterval = 0.6f;
+        [SerializeField] private bool usesProjectile;
+        [SerializeField] private float projectileSpeed = 18f;
+        [SerializeField] private float projectileArc = 1f;
+        [SerializeField] private float splashRadius;
+        [SerializeField] private float impactEffectScale = 0.7f;
 
         private CombatTarget owner;
         private UnitHealth health;
@@ -22,8 +28,11 @@ namespace Game.Units
         private CombatTarget currentTarget;
         private float cooldownTimer;
         private float retargetTimer;
+        private bool hasAttackMoveDestination;
+        private Vector3 attackMoveDestination;
 
         public CombatTarget CurrentTarget => currentTarget;
+        public bool HasAttackMoveDestination => hasAttackMoveDestination;
 
         private void Awake()
         {
@@ -57,6 +66,7 @@ namespace Game.Units
 
             if (currentTarget == null)
             {
+                RunAttackMoveIfNeeded();
                 return;
             }
 
@@ -77,17 +87,40 @@ namespace Game.Units
                 return;
             }
 
-            currentTarget.Health.ApplyDamage(attackDamage);
+            if (usesProjectile)
+            {
+                LaunchProjectile(currentTarget);
+            }
+            else
+            {
+                ApplyDirectDamage(currentTarget);
+            }
+
             cooldownTimer = attackCooldown;
         }
 
-        public void Configure(float newAttackRange, float newAttackDamage, float newAttackCooldown, float newAggroRange, float newRetargetInterval)
+        public void Configure(
+            float newAttackRange,
+            float newAttackDamage,
+            float newAttackCooldown,
+            float newAggroRange,
+            float newRetargetInterval,
+            bool newUsesProjectile,
+            float newProjectileSpeed,
+            float newProjectileArc,
+            float newSplashRadius,
+            float newImpactEffectScale)
         {
             attackRange = newAttackRange;
             attackDamage = newAttackDamage;
             attackCooldown = newAttackCooldown;
             aggroRange = newAggroRange;
             retargetInterval = newRetargetInterval;
+            usesProjectile = newUsesProjectile;
+            projectileSpeed = newProjectileSpeed;
+            projectileArc = newProjectileArc;
+            splashRadius = newSplashRadius;
+            impactEffectScale = newImpactEffectScale;
         }
 
         public void Initialize(CombatTarget assignedTarget, UnitHealth assignedHealth)
@@ -104,12 +137,41 @@ namespace Game.Units
                 return;
             }
 
+            hasAttackMoveDestination = false;
             currentTarget = target;
+        }
+
+        public void SetAttackMoveDestination(Vector3 destination)
+        {
+            hasAttackMoveDestination = true;
+            attackMoveDestination = new Vector3(destination.x, transform.position.y, destination.z);
+            currentTarget = null;
+            mover.SetDestination(attackMoveDestination);
         }
 
         public void ClearTarget()
         {
             currentTarget = null;
+            hasAttackMoveDestination = false;
+        }
+
+        public static void SpawnImpactEffect(Vector3 position, float scale, Color color)
+        {
+            GameObject effect = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            effect.name = "Impact Effect";
+            effect.transform.position = position;
+            effect.transform.localScale = Vector3.one * Mathf.Max(0.2f, scale);
+
+            Collider effectCollider = effect.GetComponent<Collider>();
+
+            if (effectCollider != null)
+            {
+                effectCollider.enabled = false;
+            }
+
+            Renderer rendererComponent = effect.GetComponent<Renderer>();
+            rendererComponent.material.color = color;
+            Destroy(effect, 0.22f);
         }
 
         private CombatTarget FindClosestEnemyTarget()
@@ -136,6 +198,69 @@ namespace Game.Units
             return bestTarget;
         }
 
+        private void RunAttackMoveIfNeeded()
+        {
+            if (!hasAttackMoveDestination)
+            {
+                return;
+            }
+
+            Vector3 flatDestination = new Vector3(attackMoveDestination.x, transform.position.y, attackMoveDestination.z);
+            float remainingDistance = Vector3.Distance(transform.position, flatDestination);
+
+            if (remainingDistance <= Mathf.Max(0.35f, attackRange * 0.2f))
+            {
+                hasAttackMoveDestination = false;
+                mover.Stop();
+                return;
+            }
+
+            mover.SetDestination(flatDestination);
+        }
+
+        private void ApplyDirectDamage(CombatTarget target)
+        {
+            if (target == null || !target.IsAlive)
+            {
+                return;
+            }
+
+            target.Health.ApplyDamage(attackDamage);
+            SpawnImpactEffect(target.transform.position + Vector3.up * 0.6f, impactEffectScale, GetAttackColor());
+        }
+
+        private void LaunchProjectile(CombatTarget target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            GameObject projectileObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            projectileObject.name = usesProjectile && splashRadius > 0.01f ? "Shell" : "Projectile";
+            projectileObject.transform.position = transform.position + Vector3.up * 0.8f;
+            projectileObject.transform.localScale = Vector3.one * Mathf.Clamp(0.22f + splashRadius * 0.08f, 0.2f, 0.55f);
+
+            Collider projectileCollider = projectileObject.GetComponent<Collider>();
+
+            if (projectileCollider != null)
+            {
+                projectileCollider.enabled = false;
+            }
+
+            Renderer rendererComponent = projectileObject.GetComponent<Renderer>();
+            rendererComponent.material.color = GetAttackColor();
+
+            UnitProjectile projectile = projectileObject.AddComponent<UnitProjectile>();
+            projectile.Initialize(target, owner.Team, attackDamage, projectileSpeed, projectileArc, splashRadius, impactEffectScale, rendererComponent.material.color);
+        }
+
+        private Color GetAttackColor()
+        {
+            Renderer rendererComponent = GetComponentInChildren<Renderer>();
+            return rendererComponent != null ? rendererComponent.material.color : Color.white;
+        }
+
         private void FaceTarget(Vector3 targetPosition)
         {
             Vector3 direction = targetPosition - transform.position;
@@ -153,4 +278,3 @@ namespace Game.Units
         }
     }
 }
-

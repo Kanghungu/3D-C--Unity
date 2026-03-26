@@ -1,10 +1,10 @@
-# ROADMAP.md
+﻿# ROADMAP.md
 
 ## 기준
-- 목표는 완성작이 아니라 전투 프로토타입
-- 일정은 1인 개발 기준이며, 과한 범위 확장은 금지
-- 주차 계획은 고정 약속이 아니라 우선순위 확인용 기준이다
-- 장기 비전은 행성 전쟁, 약탈, 반란, 함대전까지 포함하지만 초기 구현은 작은 단위로 검증한다
+- 목표는 완성작이 아니라 전투 프로토타입이다.
+- 일정은 1인 개발 기준이며, 과한 범위 확장은 금지한다.
+- 주차 계획은 고정 약속이 아니라 우선순위 확인용 기준이다.
+- 장기 비전은 행성 전쟁, 약탈, 반란, 함대전까지 포함하지만 초기 구현은 작은 단위로 검증한다.
 
 ## 8주 계획
 ### 1-2주
@@ -63,9 +63,3 @@
 - 8주차: 전투가 끝까지 진행되어야 함
 - 12주차: 중간 규모 전투와 간단한 생산 의도가 보여야 함
 - 이후 확장 기준: 함대전, 행성 점령, 원주민 변수는 프로토타입이 안정화된 뒤 순차 추가
-
-## 2026-03-26 Prototype Milestone
-- Current playable build covers camera control, unit selection, movement, attack, base destruction, reinforcement flow, and basic production.
-- The current implementation now touches the 3-8 week roadmap goals in a compressed prototype form for validation.
-- Short-term focus stays on balance tuning, cleaner battlefield readability, and stabilizing the playable combat loop.
-- Longer-term features such as richer AI, economy depth, diplomacy, and large-scale expansion remain intentionally deferred.

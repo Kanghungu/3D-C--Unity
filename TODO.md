@@ -1,4 +1,4 @@
-# TODO.md
+﻿# TODO.md
 
 ## 기준
 - 지금 목표는 지상 전투 프로토타입 완성이다.
@@ -131,17 +131,3 @@
 - 혼자 오래 붙잡아야 하는 대형 리팩터링
 - 행성 전체 전략 시뮬레이션 완성
 - 4개 이상 문명 전부 동시 구현
-
-## 2026-03-26 Progress Update
-- Unity project bootstrapped and repository structure prepared.
-- RTS camera, drag selection, movement orders, and attack orders are implemented.
-- Friendly and enemy armies spawn with two roles: Vanguard and Skirmisher.
-- Bases exist for both sides, enemy auto-reinforces, and the player can queue production with `1` and `2`.
-- Health bars, victory/defeat flow, restart flow, and a lightweight HUD are in place.
-- Simple terrain features were added while keeping the main battlefield readable.
-
-## Next Focus
-- Tune combat pacing and unit role balance.
-- Improve battlefield readability and production feedback.
-- Add a clearer distinction between front-line and flank play.
-- Record playtest findings in `DEVLOG.md` after longer sessions.

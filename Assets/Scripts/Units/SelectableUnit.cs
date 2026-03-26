@@ -15,14 +15,14 @@ namespace Game.Units
         private CombatTarget combatTarget;
         private GameObject selectionRing;
         private UnitTeam team;
-        private UnitArchetype archetype;
-        private string displayName = "Unit";
+        private UnitDefinition definition;
         private Color defaultColor;
         private Color selectedColor;
 
         public UnitTeam Team => team;
-        public UnitArchetype Archetype => archetype;
-        public string DisplayName => displayName;
+        public UnitArchetype Archetype => definition != null ? definition.Archetype : UnitArchetype.Vanguard;
+        public string DisplayName => definition != null ? definition.DisplayName : "Unit";
+        public UnitDefinition Definition => definition;
 
         private void Awake()
         {
@@ -34,11 +34,10 @@ namespace Game.Units
             ApplyTeamColors();
         }
 
-        public void Initialize(UnitTeam assignedTeam, UnitArchetype assignedArchetype, string assignedDisplayName, SimpleUnitMover mover, UnitCombat unitCombat)
+        public void Initialize(UnitTeam assignedTeam, UnitDefinition assignedDefinition, SimpleUnitMover mover, UnitCombat unitCombat)
         {
             team = assignedTeam;
-            archetype = assignedArchetype;
-            displayName = assignedDisplayName;
+            definition = assignedDefinition;
             unitMover = mover;
             combat = unitCombat;
             ApplyTeamColors();
@@ -48,6 +47,11 @@ namespace Game.Units
         {
             combat?.ClearTarget();
             unitMover.SetDestination(destination);
+        }
+
+        public void AttackMoveTo(Vector3 destination)
+        {
+            combat?.SetAttackMoveDestination(destination);
         }
 
         public void Attack(CombatTarget target)
@@ -80,9 +84,14 @@ namespace Game.Units
         {
             team = combatTarget != null ? combatTarget.Team : team;
 
-            defaultColor = team == UnitTeam.Player
-                ? (archetype == UnitArchetype.Vanguard ? new Color(0.55f, 0.75f, 1f) : new Color(0.72f, 0.92f, 1f))
-                : (archetype == UnitArchetype.Vanguard ? new Color(0.88f, 0.35f, 0.35f) : new Color(1f, 0.58f, 0.32f));
+            if (definition == null)
+            {
+                defaultColor = team == UnitTeam.Player ? new Color(0.7f, 0.8f, 1f) : new Color(0.9f, 0.35f, 0.35f);
+            }
+            else
+            {
+                defaultColor = team == UnitTeam.Player ? definition.PlayerColor : definition.EnemyColor;
+            }
 
             selectedColor = team == UnitTeam.Player ? new Color(0.2f, 0.95f, 0.3f) : new Color(1f, 0.75f, 0.2f);
 

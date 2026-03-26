@@ -29,15 +29,18 @@ namespace Game.Prototype
         [Header("Bases")]
         [SerializeField] private Vector3 playerBasePosition = new(-18f, 1f, -14f);
         [SerializeField] private Vector3 enemyBasePosition = new(18f, 1f, 14f);
+        [SerializeField] private Vector3 playerFoundryPosition = new(-11f, 1f, -16f);
 
         private Transform playerUnitRoot;
         private Transform enemyUnitRoot;
+        private PrototypeGameDatabase database;
 
         private void Awake()
         {
             SetupGround();
             SetupCamera();
             SetupRoots();
+            SetupDatabase();
             SetupTerrainFeatures();
             SetupPrototypeSystems();
             SetupBases();
@@ -88,6 +91,16 @@ namespace Game.Prototype
             GetOrCreateRoot("Terrain Features");
         }
 
+        private void SetupDatabase()
+        {
+            database = FindAnyObjectByType<PrototypeGameDatabase>();
+
+            if (database == null)
+            {
+                database = gameObject.AddComponent<PrototypeGameDatabase>();
+            }
+        }
+
         private void SetupTerrainFeatures()
         {
             Transform terrainRoot = GetOrCreateRoot("Terrain Features");
@@ -103,6 +116,7 @@ namespace Game.Prototype
             CreateTerrainBlock("East Cover", new Vector3(13f, 1f, -1f), new Vector3(2.2f, 2f, 2.2f), terrainRoot, new Color(0.24f, 0.24f, 0.28f));
             CreateTerrainBlock("Mid Cover A", new Vector3(-4f, 0.8f, 4f), new Vector3(3f, 1.6f, 1.8f), terrainRoot, new Color(0.3f, 0.32f, 0.36f));
             CreateTerrainBlock("Mid Cover B", new Vector3(5f, 0.8f, -5f), new Vector3(3f, 1.6f, 1.8f), terrainRoot, new Color(0.3f, 0.32f, 0.36f));
+            CreateTerrainBlock("Central Battery", new Vector3(0.5f, 0.9f, 0.5f), new Vector3(2.4f, 1.8f, 2.4f), terrainRoot, new Color(0.34f, 0.34f, 0.38f));
         }
 
         private void SetupPrototypeSystems()
@@ -143,9 +157,20 @@ namespace Game.Prototype
             Transform structuresRoot = GetOrCreateRoot("Structures");
             BaseStructure playerBase = PrototypeEntityFactory.CreateBase("Player Base", playerBasePosition, UnitTeam.Player, structuresRoot);
             BaseStructure enemyBase = PrototypeEntityFactory.CreateBase("Enemy Base", enemyBasePosition, UnitTeam.Enemy, structuresRoot);
+            ProductionStructure playerFoundry = PrototypeEntityFactory.CreateProductionStructure("Player Foundry", playerFoundryPosition, UnitTeam.Player, structuresRoot);
 
-            playerBase.Initialize(playerUnitRoot);
-            enemyBase.Initialize(enemyUnitRoot);
+            PrototypeEntityFactory.CreateTurret("Player Turret Left", new Vector3(-12f, 1f, -10f), UnitTeam.Player, structuresRoot);
+            PrototypeEntityFactory.CreateTurret("Player Turret Right", new Vector3(-21f, 1f, -6f), UnitTeam.Player, structuresRoot);
+            PrototypeEntityFactory.CreateTurret("Enemy Turret Left", new Vector3(12f, 1f, 10f), UnitTeam.Enemy, structuresRoot);
+            PrototypeEntityFactory.CreateTurret("Enemy Turret Right", new Vector3(21f, 1f, 6f), UnitTeam.Enemy, structuresRoot);
+            PrototypeEntityFactory.CreateControlNode("Central Control Node", new Vector3(0f, 0.35f, 0f), structuresRoot);
+
+            playerBase.Initialize(playerUnitRoot, database);
+            enemyBase.Initialize(enemyUnitRoot, database);
+
+            CombatTarget foundryTarget = playerFoundry.GetComponent<CombatTarget>();
+            UnitHealth foundryHealth = playerFoundry.GetComponent<UnitHealth>();
+            playerFoundry.Initialize(foundryTarget, foundryHealth, playerUnitRoot, database, playerBase);
         }
 
         private void SetupUnits()
@@ -157,7 +182,9 @@ namespace Game.Prototype
 
             CreateFormation(friendlyStart, friendlyGrid, UnitTeam.Player, playerUnitRoot);
             CreateFormation(enemyStart, enemyGrid, UnitTeam.Enemy, enemyUnitRoot);
-            CreateFormation(new Vector3(-16f, 1f, -8f), new Vector2Int(1, 2), UnitTeam.Player, playerUnitRoot);
+            CreateSingleUnit(new Vector3(-16f, 1f, -8f), UnitTeam.Player, playerUnitRoot, UnitArchetype.Artillery);
+            CreateSingleUnit(new Vector3(-13f, 1f, -10f), UnitTeam.Player, playerUnitRoot, UnitArchetype.Skirmisher);
+            CreateSingleUnit(new Vector3(15f, 1f, 10f), UnitTeam.Enemy, enemyUnitRoot, UnitArchetype.Artillery);
         }
 
         private void CreateFormation(Vector3 origin, Vector2Int grid, UnitTeam team, Transform parent)
@@ -168,8 +195,18 @@ namespace Game.Prototype
                 {
                     Vector3 spawnPosition = origin + new Vector3(column * unitSpacing, 0f, row * unitSpacing);
                     UnitArchetype archetype = row == 0 ? UnitArchetype.Vanguard : UnitArchetype.Skirmisher;
-                    PrototypeEntityFactory.CreateUnit(team, archetype, spawnPosition, parent);
+                    CreateSingleUnit(spawnPosition, team, parent, archetype);
                 }
+            }
+        }
+
+        private void CreateSingleUnit(Vector3 position, UnitTeam team, Transform parent, UnitArchetype archetype)
+        {
+            UnitDefinition definition = database.GetDefinition(archetype);
+
+            if (definition != null)
+            {
+                PrototypeEntityFactory.CreateUnit(team, definition, position, parent);
             }
         }
 
