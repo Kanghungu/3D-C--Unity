@@ -15,3 +15,7 @@
 - 한 작업 항목은 한 줄로 정리한다.
 - 구현, 수정, 문제, 다음 액션을 분리해 적으면 좋다.
 - 1인 개발이므로 회의록보다 실제 작업 로그 중심으로 남긴다.
+- Added a playable Unity RTS prototype loop with camera control, multi-unit selection, movement, combat, health bars, and base objectives.
+- Expanded the prototype with two unit roles (`Vanguard`, `Skirmisher`), enemy AI pressure, player production hotkeys, and win/lose flow.
+- Added lightweight HUD feedback and simple terrain features to better support playtesting.
+- Current focus is now balance tuning, longer play sessions, and documenting prototype findings against the planning docs.
