@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Game.Units
 {
@@ -26,6 +26,7 @@ namespace Game.Units
         private UnitHealth health;
         private SimpleUnitMover mover;
         private CombatTarget currentTarget;
+        private UnitAbilityState abilityState;
         private float cooldownTimer;
         private float retargetTimer;
         private bool hasAttackMoveDestination;
@@ -39,6 +40,7 @@ namespace Game.Units
             mover = GetComponent<SimpleUnitMover>();
             owner = GetComponent<CombatTarget>();
             health = GetComponent<UnitHealth>();
+            abilityState = GetComponent<UnitAbilityState>();
         }
 
         private void Update()
@@ -96,7 +98,8 @@ namespace Game.Units
                 ApplyDirectDamage(currentTarget);
             }
 
-            cooldownTimer = attackCooldown;
+            float cooldownMultiplier = abilityState != null ? abilityState.GetAttackCooldownMultiplier() : 1f;
+            cooldownTimer = attackCooldown * cooldownMultiplier;
         }
 
         public void Configure(
@@ -128,6 +131,7 @@ namespace Game.Units
             owner = assignedTarget;
             health = assignedHealth;
             mover = GetComponent<SimpleUnitMover>();
+            abilityState = GetComponent<UnitAbilityState>();
         }
 
         public void SetTarget(CombatTarget target)
@@ -225,7 +229,8 @@ namespace Game.Units
                 return;
             }
 
-            target.Health.ApplyDamage(attackDamage);
+            float damageMultiplier = abilityState != null ? abilityState.GetAttackDamageMultiplier() : 1f;
+            target.Health.ApplyDamage(attackDamage * damageMultiplier);
             SpawnImpactEffect(target.transform.position + Vector3.up * 0.6f, impactEffectScale, GetAttackColor());
         }
 
@@ -251,8 +256,9 @@ namespace Game.Units
             Renderer rendererComponent = projectileObject.GetComponent<Renderer>();
             rendererComponent.material.color = GetAttackColor();
 
+            float damageMultiplier = abilityState != null ? abilityState.GetAttackDamageMultiplier() : 1f;
             UnitProjectile projectile = projectileObject.AddComponent<UnitProjectile>();
-            projectile.Initialize(target, owner.Team, attackDamage, projectileSpeed, projectileArc, splashRadius, impactEffectScale, rendererComponent.material.color);
+            projectile.Initialize(target, owner.Team, attackDamage * damageMultiplier, projectileSpeed, projectileArc, splashRadius, impactEffectScale, rendererComponent.material.color);
         }
 
         private Color GetAttackColor()

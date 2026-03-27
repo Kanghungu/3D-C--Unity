@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Game.Units
 {
@@ -14,6 +14,7 @@ namespace Game.Units
         private float currentHealth;
         private Transform healthBarRoot;
         private Transform healthBarFill;
+        private UnitAbilityState abilityState;
 
         public bool IsAlive => currentHealth > 0f;
         public float Normalized => maxHealth <= 0f ? 0f : Mathf.Clamp01(currentHealth / maxHealth);
@@ -22,6 +23,7 @@ namespace Game.Units
 
         private void Awake()
         {
+            abilityState = GetComponent<UnitAbilityState>();
             currentHealth = maxHealth;
 
             if (createHealthBar)
@@ -46,6 +48,11 @@ namespace Game.Units
                 return;
             }
 
+            if (abilityState != null)
+            {
+                damage = abilityState.ModifyIncomingDamage(damage);
+            }
+
             currentHealth -= damage;
             UpdateHealthBar();
 
@@ -66,6 +73,7 @@ namespace Game.Units
             }
 
             currentHealth = maxHealth;
+            abilityState = GetComponent<UnitAbilityState>();
 
             if (createHealthBar)
             {

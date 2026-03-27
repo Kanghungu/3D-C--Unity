@@ -1,4 +1,4 @@
-using Game.Units;
+﻿using Game.Units;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -50,64 +50,64 @@ namespace Game.Prototype
                 UnitArchetype.Vanguard,
                 "Vanguard",
                 PrimitiveType.Capsule,
-                new Vector3(1.12f, 1.12f, 1.12f),
-                78f,
-                5.4f,
+                new Vector3(1.18f, 1.24f, 1.18f),
+                82f,
+                5.1f,
                 0.22f,
                 2.4f,
-                18f,
-                0.92f,
+                17f,
+                0.95f,
                 7.8f,
-                3.4f,
+                3.6f,
                 false,
                 0f,
                 0f,
                 0f,
                 0.6f,
-                new Color(0.5f, 0.75f, 1f),
-                new Color(0.9f, 0.35f, 0.35f)));
+                new Color(0.72f, 0.76f, 0.88f),
+                new Color(0.87f, 0.34f, 0.26f)));
 
             unitDefinitions.Add(CreateDefinition(
                 UnitArchetype.Skirmisher,
                 "Skirmisher",
                 PrimitiveType.Sphere,
-                new Vector3(1.04f, 1.04f, 1.04f),
-                44f,
-                7.1f,
+                new Vector3(1.02f, 1.02f, 1.02f),
+                46f,
+                6.9f,
                 0.15f,
-                8.8f,
+                8.6f,
                 10f,
                 0.62f,
                 11f,
-                4.2f,
+                4.1f,
                 true,
                 23f,
                 0.65f,
                 0f,
                 0.45f,
-                new Color(0.72f, 0.92f, 1f),
-                new Color(1f, 0.58f, 0.32f)));
+                new Color(0.88f, 0.87f, 0.75f),
+                new Color(0.98f, 0.55f, 0.24f)));
 
             unitDefinitions.Add(CreateDefinition(
                 UnitArchetype.Artillery,
                 "Artillery",
                 PrimitiveType.Cylinder,
-                new Vector3(1.3f, 0.9f, 1.3f),
-                55f,
-                4.6f,
+                new Vector3(1.34f, 0.95f, 1.34f),
+                56f,
+                4.5f,
                 0.18f,
-                12.5f,
+                12.4f,
                 22f,
                 1.6f,
                 15f,
-                6.5f,
+                6.4f,
                 true,
                 14f,
                 3.4f,
                 2.8f,
                 1.25f,
-                new Color(0.82f, 0.78f, 1f),
-                new Color(1f, 0.45f, 0.68f)));
+                new Color(0.74f, 0.72f, 0.8f),
+                new Color(0.96f, 0.42f, 0.3f)));
         }
 
         private static UnitDefinition CreateDefinition(

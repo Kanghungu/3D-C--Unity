@@ -341,7 +341,7 @@ GameObject:
   - component: {fileID: 2071904305}
   - component: {fileID: 2071904306}
   m_Layer: 0
-  m_Name: PrototypeBootstrap
+  m_Name: FleetExperimentBootstrap
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -371,21 +371,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 2071904304}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8250894f8528ba44da7fce432f345a55, type: 3}
+  m_Script: {fileID: 11500000, guid: 6a32b271cc93478bbce2599542fc2dc4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Game.Prototype.PrototypeBootstrapper
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Fleet.FleetExperimentBootstrapper
   groundScale: {x: 8, y: 1, z: 8}
   groundPosition: {x: 0, y: 0, z: 0}
   cameraPosition: {x: 0, y: 25, z: -20}
   cameraRotation: {x: 45, y: 0, z: 0}
-  friendlyStart: {x: -8, y: 1, z: -3}
-  friendlyGrid: {x: 3, y: 2}
-  enemyStart: {x: 8, y: 1, z: 5}
-  enemyGrid: {x: 3, y: 2}
-  unitSpacing: 3
-  playerBasePosition: {x: -18, y: 1, z: -14}
-  enemyBasePosition: {x: 18, y: 1, z: 14}
-  playerFoundryPosition: {x: -11, y: 1, z: -16}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

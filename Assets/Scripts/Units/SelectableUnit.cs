@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Game.Units
 {
@@ -13,6 +13,7 @@ namespace Game.Units
         private SimpleUnitMover unitMover;
         private UnitCombat combat;
         private CombatTarget combatTarget;
+        private UnitAbilityState abilityState;
         private GameObject selectionRing;
         private UnitTeam team;
         private UnitDefinition definition;
@@ -23,6 +24,7 @@ namespace Game.Units
         public UnitArchetype Archetype => definition != null ? definition.Archetype : UnitArchetype.Vanguard;
         public string DisplayName => definition != null ? definition.DisplayName : "Unit";
         public UnitDefinition Definition => definition;
+        public string AbilityStatus => abilityState != null ? abilityState.StatusLabel : "None";
 
         private void Awake()
         {
@@ -30,6 +32,7 @@ namespace Game.Units
             unitMover = GetComponent<SimpleUnitMover>();
             combat = GetComponent<UnitCombat>();
             combatTarget = GetComponent<CombatTarget>();
+            abilityState = GetComponent<UnitAbilityState>();
             CreateSelectionRing();
             ApplyTeamColors();
         }
@@ -40,6 +43,7 @@ namespace Game.Units
             definition = assignedDefinition;
             unitMover = mover;
             combat = unitCombat;
+            abilityState = GetComponent<UnitAbilityState>();
             ApplyTeamColors();
         }
 
@@ -57,6 +61,11 @@ namespace Game.Units
         public void Attack(CombatTarget target)
         {
             combat?.SetTarget(target);
+        }
+
+        public bool TryActivateAbility()
+        {
+            return abilityState != null && abilityState.TryActivateRoleAbility();
         }
 
         public void SetSelected(bool isSelected)

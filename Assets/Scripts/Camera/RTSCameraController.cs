@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace Game.CameraSystem
@@ -42,6 +42,7 @@ namespace Game.CameraSystem
         private void HandleMovement()
         {
             Vector3 inputDirection = Vector3.zero;
+            bool isAttackMoveChord = Keyboard.current.aKey.isPressed && Mouse.current.rightButton.isPressed;
 
             if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed)
             {
@@ -58,7 +59,7 @@ namespace Game.CameraSystem
                 inputDirection += Vector3.right;
             }
 
-            if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed)
+            if (!isAttackMoveChord && (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed))
             {
                 inputDirection += Vector3.left;
             }

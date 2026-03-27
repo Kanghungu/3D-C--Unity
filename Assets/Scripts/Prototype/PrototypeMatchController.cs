@@ -1,4 +1,4 @@
-using Game.Units;
+﻿using Game.Units;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -49,8 +49,13 @@ namespace Game.Prototype
             int playerUnits = PrototypeRuntimeQuery.CountUnits(UnitTeam.Player);
             int enemyUnits = PrototypeRuntimeQuery.CountUnits(UnitTeam.Enemy);
 
-            bool playerLost = (playerBase == null || !playerBase.IsAlive) && playerUnits == 0;
-            bool enemyLost = (enemyBase == null || !enemyBase.IsAlive) && enemyUnits == 0;
+            bool playerBaseDestroyed = playerBase == null || !playerBase.IsAlive;
+            bool enemyBaseDestroyed = enemyBase == null || !enemyBase.IsAlive;
+            bool playerArmyDestroyed = playerUnits == 0;
+            bool enemyArmyDestroyed = enemyUnits == 0;
+
+            bool playerLost = playerBaseDestroyed || playerArmyDestroyed;
+            bool enemyLost = enemyBaseDestroyed || enemyArmyDestroyed;
 
             if (enemyLost)
             {

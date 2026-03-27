@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Game.Units
 {
@@ -16,9 +16,15 @@ namespace Game.Units
 
         private bool hasDestination;
         private Vector3 destination;
+        private UnitAbilityState abilityState;
 
         public bool IsMoving => hasDestination;
         public float MoveSpeed => moveSpeed;
+
+        private void Awake()
+        {
+            abilityState = GetComponent<UnitAbilityState>();
+        }
 
         private void Update()
         {
@@ -49,7 +55,8 @@ namespace Game.Units
             Quaternion targetRotation = Quaternion.LookRotation(finalDirection, Vector3.up);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
 
-            Vector3 nextPosition = currentPosition + finalDirection * (moveSpeed * Time.deltaTime);
+            float effectiveMoveSpeed = moveSpeed * (abilityState != null ? abilityState.GetMoveSpeedMultiplier() : 1f);
+            Vector3 nextPosition = currentPosition + finalDirection * (effectiveMoveSpeed * Time.deltaTime);
             nextPosition.y = currentPosition.y;
             transform.position = nextPosition;
         }

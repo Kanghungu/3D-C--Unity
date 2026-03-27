@@ -1,4 +1,4 @@
-using Game.Units;
+﻿using Game.Units;
 using Game.Selection;
 using System.Collections.Generic;
 using System.Text;
@@ -36,7 +36,7 @@ namespace Game.Prototype
 
             if (matchController != null && matchController.IsFinished)
             {
-                DrawMatchOverlay(matchController.Result);
+                DrawMatchOverlay(matchController.Result, playerBase, enemyBase, playerUnits, enemyUnits);
             }
         }
 
@@ -50,27 +50,28 @@ namespace Game.Prototype
             int enemyUnits,
             PrototypeMatchController matchController)
         {
-            Rect panel = new Rect(10f, 10f, 430f, 188f);
+            Rect panel = new Rect(10f, 10f, 520f, 208f);
             GUI.Box(panel, GUIContent.none, panelStyle);
 
             string status = BuildStatus(matchController, playerBase, enemyBase, playerUnits, enemyUnits);
             string production = playerProduction == null ? "Unavailable" : playerProduction.QueueLabel;
             string progress = playerProduction == null ? "0%" : $"{Mathf.RoundToInt(playerProduction.ProductionProgressNormalized * 100f)}%";
-            string queuePreview = playerProduction == null ? "Idle" : Shorten(playerProduction.QueuePreview, 46);
+            string queuePreview = playerProduction == null ? "Idle" : Shorten(playerProduction.QueuePreview, 58);
             string rally = playerProduction == null ? "Unavailable" : playerProduction.RallyLabel;
             string options = BuildProductionOptions(database);
             string nodeLabel = controlNode == null ? "None" : controlNode.OwnerLabel;
             string bonusLabel = controlNode == null ? "x1.00" : $"x{controlNode.BonusMultiplier:0.00}";
 
             GUI.Label(new Rect(20f, 18f, 220f, 20f), "Battle HUD", titleStyle);
-            GUI.Label(new Rect(20f, 40f, 390f, 18f), $"Units  P:{playerUnits}  E:{enemyUnits}", labelStyle);
-            GUI.Label(new Rect(20f, 58f, 390f, 18f), $"Base   P:{ToPercent(playerBase)}  E:{ToPercent(enemyBase)}", labelStyle);
-            GUI.Label(new Rect(20f, 76f, 390f, 18f), $"Foundry {production} ({progress})", labelStyle);
-            GUI.Label(new Rect(20f, 94f, 390f, 18f), $"Queue  {queuePreview}", labelStyle);
-            GUI.Label(new Rect(20f, 112f, 390f, 18f), $"Rally  {rally}", labelStyle);
-            GUI.Label(new Rect(20f, 130f, 390f, 18f), $"Node   {nodeLabel}  Bonus {bonusLabel}", labelStyle);
-            GUI.Label(new Rect(20f, 148f, 390f, 18f), status, labelStyle);
-            GUI.Label(new Rect(20f, 166f, 400f, 18f), $"[1][2][3] Build | [A+RMB] Attack Move | [Alt+RMB] Rally | {options}", labelStyle);
+            GUI.Label(new Rect(20f, 40f, 470f, 18f), $"Units  P:{playerUnits}  E:{enemyUnits}", labelStyle);
+            GUI.Label(new Rect(20f, 58f, 470f, 18f), $"Victory rule: destroy enemy base OR wipe enemy army. Lose if your base OR army falls.", labelStyle);
+            GUI.Label(new Rect(20f, 76f, 470f, 18f), $"Base   P:{ToPercent(playerBase)}  E:{ToPercent(enemyBase)}", labelStyle);
+            GUI.Label(new Rect(20f, 94f, 470f, 18f), $"Foundry production  {production} ({progress})", labelStyle);
+            GUI.Label(new Rect(20f, 112f, 470f, 18f), $"Queue  {queuePreview}", labelStyle);
+            GUI.Label(new Rect(20f, 130f, 470f, 18f), $"Rally  {rally}  |  Alt+RMB on ground updates where new units run.", labelStyle);
+            GUI.Label(new Rect(20f, 148f, 470f, 18f), $"Control Node  {nodeLabel}  |  Production bonus {bonusLabel}", labelStyle);
+            GUI.Label(new Rect(20f, 166f, 470f, 18f), status, labelStyle);
+            GUI.Label(new Rect(20f, 184f, 490f, 18f), $"Foundry: [1][2][3] queue units | [F] ability | [A+RMB] attack move | {options}", labelStyle);
         }
 
         private void DrawSelectionPanel()
@@ -90,26 +91,28 @@ namespace Game.Prototype
                 return;
             }
 
-            Rect panel = new Rect(10f, Screen.height - 112f, 320f, 92f);
+            Rect panel = new Rect(10f, Screen.height - 130f, 380f, 110f);
             GUI.Box(panel, GUIContent.none, panelStyle);
-            GUI.Label(new Rect(panel.x + 10f, panel.y + 10f, 200f, 18f), $"Selection ({selectedUnits.Count})", titleStyle);
-            GUI.Label(new Rect(panel.x + 10f, panel.y + 30f, 290f, 18f), BuildSelectionSummary(selectedUnits), labelStyle);
-            GUI.Label(new Rect(panel.x + 10f, panel.y + 48f, 290f, 18f), BuildSelectionOrdersSummary(selectedUnits), labelStyle);
-            GUI.Label(new Rect(panel.x + 10f, panel.y + 66f, 290f, 18f), BuildSelectionRangeSummary(selectedUnits), labelStyle);
+            GUI.Label(new Rect(panel.x + 10f, panel.y + 10f, 220f, 18f), $"Selection ({selectedUnits.Count})", titleStyle);
+            GUI.Label(new Rect(panel.x + 10f, panel.y + 30f, 350f, 18f), BuildSelectionSummary(selectedUnits), labelStyle);
+            GUI.Label(new Rect(panel.x + 10f, panel.y + 48f, 350f, 18f), BuildSelectionOrdersSummary(selectedUnits), labelStyle);
+            GUI.Label(new Rect(panel.x + 10f, panel.y + 66f, 350f, 18f), BuildSelectionRangeSummary(selectedUnits), labelStyle);
+            GUI.Label(new Rect(panel.x + 10f, panel.y + 84f, 350f, 18f), BuildSelectionAbilitySummary(selectedUnits), labelStyle);
         }
 
-        private void DrawMatchOverlay(MatchResult result)
+        private void DrawMatchOverlay(MatchResult result, BaseStructure playerBase, BaseStructure enemyBase, int playerUnits, int enemyUnits)
         {
-            Rect overlay = new Rect(Screen.width * 0.5f - 180f, Screen.height * 0.5f - 70f, 360f, 140f);
+            Rect overlay = new Rect(Screen.width * 0.5f - 210f, Screen.height * 0.5f - 76f, 420f, 152f);
             GUI.Box(overlay, GUIContent.none, overlayStyle);
             string title = result == MatchResult.Victory ? "Victory" : "Defeat";
             string body = result == MatchResult.Victory
-                ? "The enemy base and army collapsed."
-                : "Your base and remaining army were destroyed.";
+                ? BuildVictoryBody(enemyBase, enemyUnits)
+                : BuildDefeatBody(playerBase, playerUnits);
 
-            GUI.Label(new Rect(overlay.x + 24f, overlay.y + 24f, 280f, 24f), title, titleStyle);
-            GUI.Label(new Rect(overlay.x + 24f, overlay.y + 56f, 300f, 20f), body, labelStyle);
-            GUI.Label(new Rect(overlay.x + 24f, overlay.y + 84f, 300f, 20f), "Press R to restart the battle.", labelStyle);
+            GUI.Label(new Rect(overlay.x + 24f, overlay.y + 24f, 320f, 24f), title, titleStyle);
+            GUI.Label(new Rect(overlay.x + 24f, overlay.y + 56f, 360f, 20f), body, labelStyle);
+            GUI.Label(new Rect(overlay.x + 24f, overlay.y + 84f, 360f, 20f), "Win by enemy base destruction or total enemy wipe.", labelStyle);
+            GUI.Label(new Rect(overlay.x + 24f, overlay.y + 108f, 360f, 20f), "Press R to restart the battle.", labelStyle);
         }
 
         private void EnsureStyles()
@@ -119,8 +122,8 @@ namespace Game.Prototype
                 return;
             }
 
-            panelTexture = MakeTexture(new Color(0.05f, 0.08f, 0.12f, 0.74f));
-            overlayTexture = MakeTexture(new Color(0.03f, 0.03f, 0.04f, 0.88f));
+            panelTexture = MakeTexture(new Color(0.19f, 0.14f, 0.09f, 0.78f));
+            overlayTexture = MakeTexture(new Color(0.12f, 0.09f, 0.06f, 0.9f));
 
             panelStyle = new GUIStyle(GUI.skin.box);
             panelStyle.normal.background = panelTexture;
@@ -134,7 +137,7 @@ namespace Game.Prototype
             labelStyle.fontSize = 12;
             labelStyle.wordWrap = false;
             labelStyle.clipping = TextClipping.Clip;
-            labelStyle.normal.textColor = Color.white;
+            labelStyle.normal.textColor = new Color(0.98f, 0.94f, 0.86f);
 
             titleStyle = new GUIStyle(labelStyle);
             titleStyle.fontSize = 15;
@@ -155,8 +158,8 @@ namespace Game.Prototype
             {
                 return matchController.Result switch
                 {
-                    MatchResult.Victory => "Status: Victory.",
-                    MatchResult.Defeat => "Status: Defeat.",
+                    MatchResult.Victory => "Status: Victory condition met.",
+                    MatchResult.Defeat => "Status: Defeat condition met.",
                     _ => BuildOngoingStatus(playerBase, enemyBase, playerUnits, enemyUnits)
                 };
             }
@@ -166,22 +169,52 @@ namespace Game.Prototype
 
         private static string BuildOngoingStatus(BaseStructure playerBase, BaseStructure enemyBase, int playerUnits, int enemyUnits)
         {
-            if (enemyUnits > playerUnits + 1)
+            if (enemyUnits > playerUnits + 2)
             {
-                return "Status: Enemy pressure is rising.";
+                return "Status: Enemy gunline is growing. Reinforce the center.";
             }
 
-            if (enemyBase != null && enemyBase.HealthNormalized < 0.5f)
+            if (enemyBase != null && enemyBase.HealthNormalized < 0.45f)
             {
-                return "Status: Enemy base is weakened.";
+                return "Status: Enemy bastion is vulnerable. Finish the assault.";
             }
 
             if (playerBase != null && playerBase.HealthNormalized < 0.5f)
             {
-                return "Status: Your base is damaged. Stabilize the line.";
+                return "Status: Your sanctum is under threat. Pull back and stabilize.";
             }
 
-            return "Status: Capture the center and push forward.";
+            return "Status: Hold the holy node, build at the foundry, then break the enemy line.";
+        }
+
+        private static string BuildVictoryBody(BaseStructure enemyBase, int enemyUnits)
+        {
+            if (enemyBase == null || !enemyBase.IsAlive)
+            {
+                return "The enemy bastion has fallen.";
+            }
+
+            if (enemyUnits == 0)
+            {
+                return "The enemy army has been wiped out.";
+            }
+
+            return "The enemy collapsed.";
+        }
+
+        private static string BuildDefeatBody(BaseStructure playerBase, int playerUnits)
+        {
+            if (playerBase == null || !playerBase.IsAlive)
+            {
+                return "Your sanctum has been destroyed.";
+            }
+
+            if (playerUnits == 0)
+            {
+                return "Your army has been wiped out.";
+            }
+
+            return "Your forces have collapsed.";
         }
 
         private static string BuildSelectionSummary(IReadOnlyList<SelectableUnit> selectedUnits)
@@ -219,7 +252,7 @@ namespace Game.Prototype
                 isFirst = false;
             }
 
-            return builder.Length == 0 ? "No valid units" : Shorten(builder.ToString(), 42);
+            return builder.Length == 0 ? "No valid units" : Shorten(builder.ToString(), 44);
         }
 
         private static string BuildSelectionOrdersSummary(IReadOnlyList<SelectableUnit> selectedUnits)
@@ -277,6 +310,21 @@ namespace Game.Prototype
             }
 
             return $"Range {longestLabel} {longestRange:0.0}";
+        }
+
+        private static string BuildSelectionAbilitySummary(IReadOnlyList<SelectableUnit> selectedUnits)
+        {
+            foreach (SelectableUnit unit in selectedUnits)
+            {
+                if (unit == null)
+                {
+                    continue;
+                }
+
+                return $"Ability {unit.DisplayName}: {unit.AbilityStatus}";
+            }
+
+            return "Ability None";
         }
 
         private static string BuildProductionOptions(PrototypeGameDatabase database)
