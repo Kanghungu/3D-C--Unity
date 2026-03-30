@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace Game.Units
 {
@@ -10,6 +10,9 @@ namespace Game.Units
         [SerializeField] private float maxHealth = 35f;
         [SerializeField] private bool createHealthBar = true;
         [SerializeField] private Vector3 healthBarOffset = new(0f, 1.8f, 0f);
+
+        private static Transform cachedCameraTransform;
+        private static float nextCameraRefreshTime;
 
         private float currentHealth;
         private Transform healthBarRoot;
@@ -35,9 +38,15 @@ namespace Game.Units
 
         private void LateUpdate()
         {
-            if (healthBarRoot != null && Camera.main != null)
+            if (healthBarRoot == null)
             {
-                healthBarRoot.forward = Camera.main.transform.forward;
+                return;
+            }
+
+            Transform cameraTransform = GetCameraTransform();
+            if (cameraTransform != null)
+            {
+                healthBarRoot.forward = cameraTransform.forward;
             }
         }
 
@@ -62,6 +71,17 @@ namespace Game.Units
             }
         }
 
+        public void Heal(float amount)
+        {
+            if (!IsAlive || amount <= 0f)
+            {
+                return;
+            }
+
+            currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+            UpdateHealthBar();
+        }
+
         public void Configure(float newMaxHealth, bool withHealthBar, Vector3? newOffset = null)
         {
             maxHealth = newMaxHealth;
@@ -73,7 +93,6 @@ namespace Game.Units
             }
 
             currentHealth = maxHealth;
-            abilityState = GetComponent<UnitAbilityState>();
 
             if (createHealthBar)
             {
@@ -122,6 +141,18 @@ namespace Game.Units
             float normalized = Normalized;
             healthBarFill.localScale = new Vector3(Mathf.Max(0.01f, normalized), 0.08f, 0.08f);
             healthBarFill.localPosition = new Vector3(-0.5f + healthBarFill.localScale.x * 0.5f, 0f, 0f);
+        }
+
+        private static Transform GetCameraTransform()
+        {
+            if (cachedCameraTransform == null || Time.unscaledTime >= nextCameraRefreshTime)
+            {
+                Camera mainCamera = Camera.main;
+                cachedCameraTransform = mainCamera != null ? mainCamera.transform : null;
+                nextCameraRefreshTime = Time.unscaledTime + 0.5f;
+            }
+
+            return cachedCameraTransform;
         }
 
         private void Die()

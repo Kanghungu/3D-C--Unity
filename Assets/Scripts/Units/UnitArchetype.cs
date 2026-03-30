@@ -1,9 +1,15 @@
-namespace Game.Units
+﻿namespace Game.Units
 {
     public enum UnitArchetype
     {
-        Vanguard,
-        Skirmisher,
-        Artillery
+        Spearman,
+        ShieldInfantry,
+        Rifleman,
+        Fighter,
+        SpecialWarrior,
+        RoyalGuard,
+        Artillery,
+        MobileFortress,
+        AirborneCitadel
     }
 }

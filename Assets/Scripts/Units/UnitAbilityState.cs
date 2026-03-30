@@ -57,39 +57,42 @@ namespace Game.Units
 
             switch (selectableUnit.Archetype)
             {
-                case UnitArchetype.Vanguard:
-                    Activate("Fortify", 5f, 10f, 0.82f, 1f, 1f, 0.55f);
+                case UnitArchetype.Spearman:
+                    Activate("Pike Brace", 5f, 10f, 0.9f, 1.22f, 1f, 0.72f);
                     return true;
-                case UnitArchetype.Skirmisher:
-                    Activate("Thrusters", 4f, 9f, 1.6f, 1f, 1f, 1f);
+                case UnitArchetype.ShieldInfantry:
+                    Activate("Shield Wall", 5f, 11f, 0.72f, 1f, 0.9f, 0.45f);
+                    return true;
+                case UnitArchetype.Rifleman:
+                    Activate("Overcharge", 4f, 9f, 1.18f, 1.18f, 0.74f, 1.15f);
+                    return true;
+                case UnitArchetype.Fighter:
+                    Activate("Afterburn", 4f, 10f, 1.5f, 1.12f, 0.82f, 1.2f);
+                    return true;
+                case UnitArchetype.SpecialWarrior:
+                    Activate("Blink Rush", 4f, 12f, 1.34f, 1.28f, 0.8f, 0.72f);
+                    return true;
+                case UnitArchetype.RoyalGuard:
+                    Activate("Guardian Oath", 5f, 14f, 1f, 1.24f, 0.82f, 0.5f);
                     return true;
                 case UnitArchetype.Artillery:
                     Activate("Siege Load", 5f, 11f, 0.8f, 1.35f, 0.72f, 1.1f);
+                    return true;
+                case UnitArchetype.MobileFortress:
+                    Activate("War March", 5f, 16f, 1.18f, 1.18f, 0.88f, 0.76f);
+                    return true;
+                case UnitArchetype.AirborneCitadel:
+                    Activate("Sky Salvo", 5f, 16f, 1.1f, 1.24f, 0.76f, 0.9f);
                     return true;
                 default:
                     return false;
             }
         }
 
-        public float GetMoveSpeedMultiplier()
-        {
-            return moveSpeedMultiplier;
-        }
-
-        public float GetAttackDamageMultiplier()
-        {
-            return attackDamageMultiplier;
-        }
-
-        public float GetAttackCooldownMultiplier()
-        {
-            return attackCooldownMultiplier;
-        }
-
-        public float ModifyIncomingDamage(float damage)
-        {
-            return damage * damageTakenMultiplier;
-        }
+        public float GetMoveSpeedMultiplier() => moveSpeedMultiplier;
+        public float GetAttackDamageMultiplier() => attackDamageMultiplier;
+        public float GetAttackCooldownMultiplier() => attackCooldownMultiplier;
+        public float ModifyIncomingDamage(float damage) => damage * damageTakenMultiplier;
 
         private void Activate(string label, float duration, float cooldown, float moveMultiplier, float damageMultiplier, float cooldownMultiplier, float incomingDamageMultiplier)
         {

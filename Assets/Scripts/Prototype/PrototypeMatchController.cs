@@ -1,4 +1,4 @@
-﻿using Game.Units;
+using Game.Units;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -17,7 +17,10 @@ namespace Game.Prototype
     /// </summary>
     public class PrototypeMatchController : MonoBehaviour
     {
+        [SerializeField] private float evaluationInterval = 0.25f;
+
         private MatchResult result = MatchResult.Ongoing;
+        private float evaluationTimer;
 
         public MatchResult Result => result;
         public bool IsFinished => result != MatchResult.Ongoing;
@@ -26,7 +29,13 @@ namespace Game.Prototype
         {
             if (!IsFinished)
             {
-                EvaluateMatch();
+                evaluationTimer -= Time.deltaTime;
+
+                if (evaluationTimer <= 0f)
+                {
+                    evaluationTimer = evaluationInterval;
+                    EvaluateMatch();
+                }
             }
 
             if (IsFinished && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)

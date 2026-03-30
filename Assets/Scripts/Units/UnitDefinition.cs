@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Game.Units
 {
@@ -22,6 +22,9 @@ namespace Game.Units
         [SerializeField] private float projectileArc = 1f;
         [SerializeField] private float splashRadius;
         [SerializeField] private float impactEffectScale = 0.7f;
+        [SerializeField] private int maxPerTeam;
+        [SerializeField] private bool isFlying;
+        [SerializeField] private float hoverHeight = 1f;
         [SerializeField] private Color playerColor = new(0.7f, 0.8f, 1f);
         [SerializeField] private Color enemyColor = new(0.9f, 0.35f, 0.35f);
 
@@ -42,6 +45,9 @@ namespace Game.Units
         public float ProjectileArc => projectileArc;
         public float SplashRadius => splashRadius;
         public float ImpactEffectScale => impactEffectScale;
+        public int MaxPerTeam => maxPerTeam;
+        public bool IsFlying => isFlying;
+        public float HoverHeight => hoverHeight;
         public Color PlayerColor => playerColor;
         public Color EnemyColor => enemyColor;
 
@@ -63,6 +69,9 @@ namespace Game.Units
             float assignedProjectileArc,
             float assignedSplashRadius,
             float assignedImpactEffectScale,
+            int assignedMaxPerTeam,
+            bool assignedIsFlying,
+            float assignedHoverHeight,
             Color assignedPlayerColor,
             Color assignedEnemyColor)
         {
@@ -83,6 +92,9 @@ namespace Game.Units
             projectileArc = assignedProjectileArc;
             splashRadius = assignedSplashRadius;
             impactEffectScale = assignedImpactEffectScale;
+            maxPerTeam = assignedMaxPerTeam;
+            isFlying = assignedIsFlying;
+            hoverHeight = assignedHoverHeight;
             playerColor = assignedPlayerColor;
             enemyColor = assignedEnemyColor;
         }

@@ -1,13 +1,13 @@
-﻿using Game.Units;
+using Game.CameraSystem;
 using Game.Selection;
+using Game.Units;
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 
 namespace Game.Prototype
 {
     /// <summary>
-    /// Lightweight debug HUD for the RTS prototype.
+    /// Bottom command bar HUD with a lightweight minimap and production panels.
     /// </summary>
     public class PrototypeHUD : MonoBehaviour
     {
@@ -15,8 +15,14 @@ namespace Game.Prototype
         private GUIStyle labelStyle;
         private GUIStyle titleStyle;
         private GUIStyle overlayStyle;
+        private GUIStyle tinyStyle;
+        private GUIStyle badgeStyle;
         private Texture2D panelTexture;
         private Texture2D overlayTexture;
+        private Texture2D whiteTexture;
+        private PrototypeMatchController cachedMatchController;
+        private BattlefieldMapProfile cachedMapProfile;
+        private BattlefieldVisionController cachedVisionController;
 
         private void OnGUI()
         {
@@ -24,15 +30,21 @@ namespace Game.Prototype
 
             BaseStructure playerBase = PrototypeRuntimeQuery.FindBase(UnitTeam.Player);
             BaseStructure enemyBase = PrototypeRuntimeQuery.FindBase(UnitTeam.Enemy);
-            ProductionStructure playerProduction = PrototypeRuntimeQuery.FindPlayerProductionStructure();
-            ControlNode controlNode = PrototypeRuntimeQuery.FindControlNode();
-            PrototypeGameDatabase database = PrototypeRuntimeQuery.FindDatabase();
+            List<ProductionStructure> playerProductions = PrototypeRuntimeQuery.FindPlayerProductionStructures();
+            List<ControlNode> controlNodes = PrototypeRuntimeQuery.FindControlNodes();
             int playerUnits = PrototypeRuntimeQuery.CountUnits(UnitTeam.Player);
             int enemyUnits = PrototypeRuntimeQuery.CountUnits(UnitTeam.Enemy);
-            PrototypeMatchController matchController = FindAnyObjectByType<PrototypeMatchController>();
+            PrototypeMatchController matchController = GetMatchController();
+            PrototypeSelectionController selectionController = PrototypeSelectionController.Instance;
+            BattleDirectiveController directiveController = BattleDirectiveController.Instance;
 
-            DrawTopPanel(playerBase, enemyBase, playerProduction, controlNode, database, playerUnits, enemyUnits, matchController);
-            DrawSelectionPanel();
+            if (selectionController != null)
+            {
+                selectionController.RemoveDestroyedSelections();
+            }
+
+            DrawBottomBar(playerBase, enemyBase, playerProductions, controlNodes, playerUnits, enemyUnits, matchController, selectionController, directiveController);
+            DrawTopRightNews(directiveController);
 
             if (matchController != null && matchController.IsFinished)
             {
@@ -40,64 +52,213 @@ namespace Game.Prototype
             }
         }
 
-        private void DrawTopPanel(
+        private void DrawBottomBar(
             BaseStructure playerBase,
             BaseStructure enemyBase,
-            ProductionStructure playerProduction,
-            ControlNode controlNode,
-            PrototypeGameDatabase database,
+            List<ProductionStructure> playerProductions,
+            List<ControlNode> controlNodes,
             int playerUnits,
             int enemyUnits,
-            PrototypeMatchController matchController)
+            PrototypeMatchController matchController,
+            PrototypeSelectionController selectionController,
+            BattleDirectiveController directiveController)
         {
-            Rect panel = new Rect(10f, 10f, 520f, 208f);
-            GUI.Box(panel, GUIContent.none, panelStyle);
+            float barHeight = 176f;
+            Rect barRect = new Rect(12f, Screen.height - barHeight - 12f, Screen.width - 24f, barHeight);
+            GUI.Box(barRect, GUIContent.none, panelStyle);
 
-            string status = BuildStatus(matchController, playerBase, enemyBase, playerUnits, enemyUnits);
-            string production = playerProduction == null ? "Unavailable" : playerProduction.QueueLabel;
-            string progress = playerProduction == null ? "0%" : $"{Mathf.RoundToInt(playerProduction.ProductionProgressNormalized * 100f)}%";
-            string queuePreview = playerProduction == null ? "Idle" : Shorten(playerProduction.QueuePreview, 58);
-            string rally = playerProduction == null ? "Unavailable" : playerProduction.RallyLabel;
-            string options = BuildProductionOptions(database);
-            string nodeLabel = controlNode == null ? "None" : controlNode.OwnerLabel;
-            string bonusLabel = controlNode == null ? "x1.00" : $"x{controlNode.BonusMultiplier:0.00}";
+            Rect minimapRect = new Rect(barRect.x + 12f, barRect.y + 12f, 196f, 152f);
+            Rect overviewRect = new Rect(minimapRect.xMax + 12f, barRect.y + 12f, 328f, 152f);
+            Rect productionRect = new Rect(overviewRect.xMax + 12f, barRect.y + 12f, 424f, 152f);
+            Rect selectionRect = new Rect(productionRect.xMax + 12f, barRect.y + 12f, Mathf.Max(220f, barRect.xMax - productionRect.xMax - 24f), 152f);
 
-            GUI.Label(new Rect(20f, 18f, 220f, 20f), "Battle HUD", titleStyle);
-            GUI.Label(new Rect(20f, 40f, 470f, 18f), $"Units  P:{playerUnits}  E:{enemyUnits}", labelStyle);
-            GUI.Label(new Rect(20f, 58f, 470f, 18f), $"Victory rule: destroy enemy base OR wipe enemy army. Lose if your base OR army falls.", labelStyle);
-            GUI.Label(new Rect(20f, 76f, 470f, 18f), $"Base   P:{ToPercent(playerBase)}  E:{ToPercent(enemyBase)}", labelStyle);
-            GUI.Label(new Rect(20f, 94f, 470f, 18f), $"Foundry production  {production} ({progress})", labelStyle);
-            GUI.Label(new Rect(20f, 112f, 470f, 18f), $"Queue  {queuePreview}", labelStyle);
-            GUI.Label(new Rect(20f, 130f, 470f, 18f), $"Rally  {rally}  |  Alt+RMB on ground updates where new units run.", labelStyle);
-            GUI.Label(new Rect(20f, 148f, 470f, 18f), $"Control Node  {nodeLabel}  |  Production bonus {bonusLabel}", labelStyle);
-            GUI.Label(new Rect(20f, 166f, 470f, 18f), status, labelStyle);
-            GUI.Label(new Rect(20f, 184f, 490f, 18f), $"Foundry: [1][2][3] queue units | [F] ability | [A+RMB] attack move | {options}", labelStyle);
+            DrawMinimap(minimapRect, controlNodes);
+            DrawOverviewPanel(overviewRect, playerBase, enemyBase, controlNodes, playerUnits, enemyUnits, matchController, directiveController);
+            DrawProductionPanel(productionRect, playerProductions);
+            DrawSelectionPanel(selectionRect, selectionController != null ? selectionController.SelectedUnits : null);
         }
 
-        private void DrawSelectionPanel()
+        private void DrawMinimap(Rect rect, List<ControlNode> controlNodes)
         {
-            PrototypeSelectionController selectionController = PrototypeSelectionController.Instance;
+            GUI.Box(rect, GUIContent.none, panelStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 6f, 120f, 18f), "Minimap", titleStyle);
 
-            if (selectionController == null)
+            Rect mapRect = new Rect(rect.x + 8f, rect.y + 26f, rect.width - 16f, rect.height - 34f);
+            BattlefieldMapProfile mapProfile = GetMapProfile();
+            BattlefieldVisionController visionController = GetVisionController();
+            DrawSolidRect(mapRect, mapProfile != null ? mapProfile.MinimapBackgroundColor : new Color(0.17f, 0.14f, 0.1f, 0.95f));
+
+            if (mapProfile != null)
+            {
+                TryHandleMinimapInput(mapRect, mapProfile);
+                DrawVisionOverlay(mapRect, mapProfile, visionController);
+                DrawCameraPoint(mapRect, mapProfile);
+            }
+
+            foreach (ControlNode node in controlNodes)
+            {
+                if (node == null || !ShouldDrawStaticOnMinimap(node.transform.position, visionController))
+                {
+                    continue;
+                }
+
+                DrawMapPoint(mapRect, node.transform.position, mapProfile, GetNodeColor(node), 12f);
+            }
+
+            foreach (BaseStructure baseStructure in PrototypeRuntimeRegistry.GetBaseStructures())
+            {
+                if (baseStructure == null || !ShouldDrawStaticOnMinimap(baseStructure.transform.position, visionController))
+                {
+                    continue;
+                }
+
+                Color color = baseStructure.Team == UnitTeam.Player ? new Color(0.3f, 0.92f, 1f) : new Color(1f, 0.42f, 0.2f);
+                DrawMapPoint(mapRect, baseStructure.transform.position, mapProfile, color, 10f);
+            }
+
+            foreach (SelectableUnit unit in PrototypeRuntimeRegistry.GetSelectableUnits())
+            {
+                if (unit == null || !ShouldDrawUnitOnMinimap(unit, visionController))
+                {
+                    continue;
+                }
+
+                Color color = unit.Team == UnitTeam.Player ? new Color(0.72f, 0.94f, 1f, 0.9f) : new Color(1f, 0.68f, 0.38f, 0.9f);
+                float size = unit.Archetype switch
+                {
+                    UnitArchetype.MobileFortress => 6f,
+                    UnitArchetype.AirborneCitadel => 6f,
+                    UnitArchetype.RoyalGuard => 4.5f,
+                    _ => 2.5f
+                };
+                DrawMapPoint(mapRect, unit.transform.position, mapProfile, color, size);
+            }
+
+            GUI.Label(new Rect(rect.x + 88f, rect.y + 6f, rect.width - 96f, 18f), "LMB jump", tinyStyle);
+        }
+
+        private void DrawVisionOverlay(Rect mapRect, BattlefieldMapProfile mapProfile, BattlefieldVisionController visionController)
+        {
+            if (mapProfile == null || visionController == null)
             {
                 return;
             }
 
-            selectionController.RemoveDestroyedSelections();
-            IReadOnlyList<SelectableUnit> selectedUnits = selectionController.SelectedUnits;
+            float cellWidth = mapRect.width / visionController.GridWidth;
+            float cellHeight = mapRect.height / visionController.GridHeight;
 
-            if (selectedUnits.Count == 0)
+            for (int y = 0; y < visionController.GridHeight; y++)
+            {
+                for (int x = 0; x < visionController.GridWidth; x++)
+                {
+                    if (visionController.IsCellVisible(x, y))
+                    {
+                        continue;
+                    }
+
+                    Color overlayColor = visionController.IsCellExplored(x, y)
+                        ? mapProfile.MemoryColor
+                        : mapProfile.ShroudColor;
+                    Rect cellRect = new Rect(mapRect.x + x * cellWidth, mapRect.y + y * cellHeight, cellWidth + 1f, cellHeight + 1f);
+                    DrawSolidRect(cellRect, overlayColor);
+                }
+            }
+        }
+
+        private void DrawOverviewPanel(Rect rect, BaseStructure playerBase, BaseStructure enemyBase, List<ControlNode> controlNodes, int playerUnits, int enemyUnits, PrototypeMatchController matchController, BattleDirectiveController directiveController)
+        {
+            GUI.Box(rect, GUIContent.none, panelStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 6f, 160f, 18f), "Battle HUD", titleStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 28f, rect.width - 16f, 18f), $"Map {GetMapLabel()}", labelStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 46f, rect.width - 16f, 18f), $"Army  P:{playerUnits}  E:{enemyUnits}", labelStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 64f, rect.width - 16f, 18f), $"Base  P:{ToPercent(playerBase)} ({GetPhaseLabel(playerBase)})  E:{ToPercent(enemyBase)} ({GetPhaseLabel(enemyBase)})", labelStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 82f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildStatus(matchController, playerBase, enemyBase, playerUnits, enemyUnits), tinyStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 100f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildStrategicPressureLine(directiveController, controlNodes), tinyStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 118f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildControlNodeLine(controlNodes), tinyStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 136f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildDirectiveLine(directiveController, controlNodes), tinyStyle);
+        }
+
+        private void DrawProductionPanel(Rect rect, List<ProductionStructure> playerProductions)
+        {
+            GUI.Box(rect, GUIContent.none, panelStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 6f, 160f, 18f), "Production", titleStyle);
+
+            float lineY = rect.y + 28f;
+
+            if (playerProductions.Count == 0)
+            {
+                GUI.Label(new Rect(rect.x + 8f, lineY, rect.width - 16f, 18f), "No active production structure.", labelStyle);
+                return;
+            }
+
+            foreach (ProductionStructure structure in playerProductions)
+            {
+                GUI.Label(new Rect(rect.x + 8f, lineY, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildProductionLine(structure), tinyStyle);
+                lineY += 18f;
+                GUI.Label(new Rect(rect.x + 8f, lineY, rect.width - 16f, 18f), $"Rally {structure.RallyLabel}", tinyStyle);
+                lineY += 18f;
+            }
+        }
+
+        private void DrawSelectionPanel(Rect rect, IReadOnlyList<SelectableUnit> selectedUnits)
+        {
+            GUI.Box(rect, GUIContent.none, panelStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 6f, 120f, 18f), "Selection", titleStyle);
+
+            if (selectedUnits == null || selectedUnits.Count == 0)
+            {
+                GUI.Label(new Rect(rect.x + 8f, rect.y + 32f, rect.width - 16f, 18f), "No unit selected.", labelStyle);
+                GUI.Label(new Rect(rect.x + 8f, rect.y + 54f, rect.width - 16f, 18f), "Select units to see command and ability info.", tinyStyle);
+                return;
+            }
+
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 28f, rect.width - 16f, 18f), $"Selected {selectedUnits.Count}", labelStyle);
+            DrawSelectionBadges(new Rect(rect.x + 8f, rect.y + 50f, rect.width - 16f, 42f), selectedUnits);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 100f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildSelectionOrdersSummary(selectedUnits), tinyStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 120f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildSelectionAbilitySummary(selectedUnits), tinyStyle);
+        }
+
+        private void DrawSelectionBadges(Rect rect, IReadOnlyList<SelectableUnit> selectedUnits)
+        {
+            List<string> badgeLines = PrototypeHudTextUtility.BuildSelectionGroupLines(selectedUnits, 6);
+            float badgeX = rect.x;
+            float badgeY = rect.y;
+            float badgeHeight = 18f;
+            float gap = 6f;
+
+            foreach (string badge in badgeLines)
+            {
+                float width = Mathf.Min(rect.width, 16f + badge.Length * 6.4f);
+
+                if (badgeX + width > rect.xMax)
+                {
+                    badgeX = rect.x;
+                    badgeY += badgeHeight + 4f;
+                }
+
+                Rect badgeRect = new Rect(badgeX, badgeY, width, badgeHeight);
+                GUI.Box(badgeRect, GUIContent.none, badgeStyle);
+                GUI.Label(new Rect(badgeRect.x + 8f, badgeRect.y + 1f, badgeRect.width - 12f, badgeRect.height - 2f), badge, tinyStyle);
+                badgeX += width + gap;
+
+                if (badgeY + badgeHeight > rect.yMax)
+                {
+                    break;
+                }
+            }
+        }
+
+        private void DrawTopRightNews(BattleDirectiveController directiveController)
+        {
+            if (directiveController == null || !directiveController.HasNews)
             {
                 return;
             }
 
-            Rect panel = new Rect(10f, Screen.height - 130f, 380f, 110f);
-            GUI.Box(panel, GUIContent.none, panelStyle);
-            GUI.Label(new Rect(panel.x + 10f, panel.y + 10f, 220f, 18f), $"Selection ({selectedUnits.Count})", titleStyle);
-            GUI.Label(new Rect(panel.x + 10f, panel.y + 30f, 350f, 18f), BuildSelectionSummary(selectedUnits), labelStyle);
-            GUI.Label(new Rect(panel.x + 10f, panel.y + 48f, 350f, 18f), BuildSelectionOrdersSummary(selectedUnits), labelStyle);
-            GUI.Label(new Rect(panel.x + 10f, panel.y + 66f, 350f, 18f), BuildSelectionRangeSummary(selectedUnits), labelStyle);
-            GUI.Label(new Rect(panel.x + 10f, panel.y + 84f, 350f, 18f), BuildSelectionAbilitySummary(selectedUnits), labelStyle);
+            Rect newsRect = new Rect(Screen.width - 356f, 12f, 344f, 54f);
+            GUI.Box(newsRect, GUIContent.none, panelStyle);
+            GUI.Label(new Rect(newsRect.x + 10f, newsRect.y + 8f, 92f, 18f), "War News", titleStyle);
+            GUI.Label(new Rect(newsRect.x + 10f, newsRect.y + 28f, newsRect.width - 20f, 18f), directiveController.CurrentNews, tinyStyle);
         }
 
         private void DrawMatchOverlay(MatchResult result, BaseStructure playerBase, BaseStructure enemyBase, int playerUnits, int enemyUnits)
@@ -105,9 +266,7 @@ namespace Game.Prototype
             Rect overlay = new Rect(Screen.width * 0.5f - 210f, Screen.height * 0.5f - 76f, 420f, 152f);
             GUI.Box(overlay, GUIContent.none, overlayStyle);
             string title = result == MatchResult.Victory ? "Victory" : "Defeat";
-            string body = result == MatchResult.Victory
-                ? BuildVictoryBody(enemyBase, enemyUnits)
-                : BuildDefeatBody(playerBase, playerUnits);
+            string body = result == MatchResult.Victory ? PrototypeHudTextUtility.BuildVictoryBody(enemyBase, enemyUnits) : PrototypeHudTextUtility.BuildDefeatBody(playerBase, playerUnits);
 
             GUI.Label(new Rect(overlay.x + 24f, overlay.y + 24f, 320f, 24f), title, titleStyle);
             GUI.Label(new Rect(overlay.x + 24f, overlay.y + 56f, 360f, 20f), body, labelStyle);
@@ -122,7 +281,8 @@ namespace Game.Prototype
                 return;
             }
 
-            panelTexture = MakeTexture(new Color(0.19f, 0.14f, 0.09f, 0.78f));
+            whiteTexture = MakeTexture(Color.white);
+            panelTexture = MakeTexture(new Color(0.16f, 0.12f, 0.08f, 0.84f));
             overlayTexture = MakeTexture(new Color(0.12f, 0.09f, 0.06f, 0.9f));
 
             panelStyle = new GUIStyle(GUI.skin.box);
@@ -135,13 +295,19 @@ namespace Game.Prototype
 
             labelStyle = new GUIStyle(GUI.skin.label);
             labelStyle.fontSize = 12;
-            labelStyle.wordWrap = false;
-            labelStyle.clipping = TextClipping.Clip;
             labelStyle.normal.textColor = new Color(0.98f, 0.94f, 0.86f);
+            labelStyle.clipping = TextClipping.Clip;
+
+            tinyStyle = new GUIStyle(labelStyle);
+            tinyStyle.fontSize = 11;
 
             titleStyle = new GUIStyle(labelStyle);
             titleStyle.fontSize = 15;
             titleStyle.fontStyle = FontStyle.Bold;
+
+            badgeStyle = new GUIStyle(GUI.skin.box);
+            badgeStyle.normal.background = MakeTexture(new Color(0.24f, 0.18f, 0.12f, 0.95f));
+            badgeStyle.border = new RectOffset(6, 6, 6, 6);
         }
 
         private static Texture2D MakeTexture(Color color)
@@ -152,220 +318,132 @@ namespace Game.Prototype
             return texture;
         }
 
-        private static string BuildStatus(PrototypeMatchController matchController, BaseStructure playerBase, BaseStructure enemyBase, int playerUnits, int enemyUnits)
+        private void DrawSolidRect(Rect rect, Color color)
         {
-            if (matchController != null)
-            {
-                return matchController.Result switch
-                {
-                    MatchResult.Victory => "Status: Victory condition met.",
-                    MatchResult.Defeat => "Status: Defeat condition met.",
-                    _ => BuildOngoingStatus(playerBase, enemyBase, playerUnits, enemyUnits)
-                };
-            }
-
-            return BuildOngoingStatus(playerBase, enemyBase, playerUnits, enemyUnits);
+            Color previousColor = GUI.color;
+            GUI.color = color;
+            GUI.DrawTexture(rect, whiteTexture);
+            GUI.color = previousColor;
         }
 
-        private static string BuildOngoingStatus(BaseStructure playerBase, BaseStructure enemyBase, int playerUnits, int enemyUnits)
+        private void DrawMapPoint(Rect mapRect, Vector3 worldPosition, BattlefieldMapProfile mapProfile, Color color, float size)
         {
-            if (enemyUnits > playerUnits + 2)
+            if (mapProfile == null)
             {
-                return "Status: Enemy gunline is growing. Reinforce the center.";
+                return;
             }
 
-            if (enemyBase != null && enemyBase.HealthNormalized < 0.45f)
-            {
-                return "Status: Enemy bastion is vulnerable. Finish the assault.";
-            }
-
-            if (playerBase != null && playerBase.HealthNormalized < 0.5f)
-            {
-                return "Status: Your sanctum is under threat. Pull back and stabilize.";
-            }
-
-            return "Status: Hold the holy node, build at the foundry, then break the enemy line.";
+            Vector2 normalized = mapProfile.WorldToNormalized(worldPosition);
+            Rect pointRect = new Rect(
+                mapRect.x + normalized.x * mapRect.width - size * 0.5f,
+                mapRect.y + normalized.y * mapRect.height - size * 0.5f,
+                size,
+                size);
+            DrawSolidRect(pointRect, color);
         }
 
-        private static string BuildVictoryBody(BaseStructure enemyBase, int enemyUnits)
+        private void DrawCameraPoint(Rect mapRect, BattlefieldMapProfile mapProfile)
         {
-            if (enemyBase == null || !enemyBase.IsAlive)
+            Camera mainCamera = Camera.main;
+            if (mainCamera == null || mapProfile == null)
             {
-                return "The enemy bastion has fallen.";
+                return;
             }
 
-            if (enemyUnits == 0)
-            {
-                return "The enemy army has been wiped out.";
-            }
-
-            return "The enemy collapsed.";
+            DrawMapPoint(mapRect, mainCamera.transform.position, mapProfile, new Color(1f, 1f, 1f, 0.95f), 5f);
         }
 
-        private static string BuildDefeatBody(BaseStructure playerBase, int playerUnits)
+        private void TryHandleMinimapInput(Rect mapRect, BattlefieldMapProfile mapProfile)
         {
-            if (playerBase == null || !playerBase.IsAlive)
+            Event currentEvent = Event.current;
+            if (currentEvent == null || currentEvent.type != EventType.MouseDown || currentEvent.button != 0)
             {
-                return "Your sanctum has been destroyed.";
+                return;
             }
 
-            if (playerUnits == 0)
+            if (!mapRect.Contains(currentEvent.mousePosition))
             {
-                return "Your army has been wiped out.";
+                return;
             }
 
-            return "Your forces have collapsed.";
+            float normalizedX = Mathf.InverseLerp(mapRect.xMin, mapRect.xMax, currentEvent.mousePosition.x);
+            float normalizedY = Mathf.InverseLerp(mapRect.yMin, mapRect.yMax, currentEvent.mousePosition.y);
+            Vector3 worldPoint = mapProfile.NormalizedToWorld(new Vector2(normalizedX, normalizedY));
+
+            RTSCameraController cameraController = Camera.main != null ? Camera.main.GetComponent<RTSCameraController>() : null;
+            if (cameraController != null)
+            {
+                cameraController.SnapToWorldPoint(worldPoint);
+                currentEvent.Use();
+            }
         }
 
-        private static string BuildSelectionSummary(IReadOnlyList<SelectableUnit> selectedUnits)
+        private PrototypeMatchController GetMatchController()
         {
-            Dictionary<string, int> counts = new();
-
-            foreach (SelectableUnit unit in selectedUnits)
+            if (cachedMatchController == null)
             {
-                if (unit == null)
-                {
-                    continue;
-                }
-
-                string label = unit.DisplayName;
-
-                if (!counts.TryAdd(label, 1))
-                {
-                    counts[label]++;
-                }
+                cachedMatchController = FindAnyObjectByType<PrototypeMatchController>();
             }
 
-            StringBuilder builder = new();
-            bool isFirst = true;
-
-            foreach ((string label, int count) in counts)
-            {
-                if (!isFirst)
-                {
-                    builder.Append(" | ");
-                }
-
-                builder.Append(label);
-                builder.Append(':');
-                builder.Append(count);
-                isFirst = false;
-            }
-
-            return builder.Length == 0 ? "No valid units" : Shorten(builder.ToString(), 44);
+            return cachedMatchController;
         }
 
-        private static string BuildSelectionOrdersSummary(IReadOnlyList<SelectableUnit> selectedUnits)
+        private BattlefieldMapProfile GetMapProfile()
         {
-            int attackers = 0;
-            int movers = 0;
-            int attackMovers = 0;
-            int validUnits = 0;
-
-            foreach (SelectableUnit unit in selectedUnits)
+            if (cachedMapProfile == null)
             {
-                if (unit == null)
-                {
-                    continue;
-                }
-
-                validUnits++;
-                UnitCombat combat = unit.GetComponent<UnitCombat>();
-                SimpleUnitMover mover = unit.GetComponent<SimpleUnitMover>();
-
-                if (combat != null && combat.CurrentTarget != null)
-                {
-                    attackers++;
-                }
-                else if (combat != null && combat.HasAttackMoveDestination)
-                {
-                    attackMovers++;
-                }
-                else if (mover != null && mover.IsMoving)
-                {
-                    movers++;
-                }
+                cachedMapProfile = FindAnyObjectByType<BattlefieldMapProfile>();
             }
 
-            return $"Orders A:{attackers} AM:{attackMovers} M:{movers} I:{Mathf.Max(0, validUnits - attackers - attackMovers - movers)}";
+            return cachedMapProfile;
         }
 
-        private static string BuildSelectionRangeSummary(IReadOnlyList<SelectableUnit> selectedUnits)
+        private BattlefieldVisionController GetVisionController()
         {
-            float longestRange = 0f;
-            string longestLabel = "None";
-
-            foreach (SelectableUnit unit in selectedUnits)
+            if (cachedVisionController == null)
             {
-                if (unit?.Definition == null)
-                {
-                    continue;
-                }
-
-                if (unit.Definition.AttackRange > longestRange)
-                {
-                    longestRange = unit.Definition.AttackRange;
-                    longestLabel = unit.DisplayName;
-                }
+                cachedVisionController = BattlefieldVisionController.Instance != null
+                    ? BattlefieldVisionController.Instance
+                    : FindAnyObjectByType<BattlefieldVisionController>();
             }
 
-            return $"Range {longestLabel} {longestRange:0.0}";
+            return cachedVisionController;
         }
 
-        private static string BuildSelectionAbilitySummary(IReadOnlyList<SelectableUnit> selectedUnits)
+        private string GetMapLabel()
         {
-            foreach (SelectableUnit unit in selectedUnits)
-            {
-                if (unit == null)
-                {
-                    continue;
-                }
-
-                return $"Ability {unit.DisplayName}: {unit.AbilityStatus}";
-            }
-
-            return "Ability None";
+            BattlefieldMapProfile mapProfile = GetMapProfile();
+            return mapProfile != null ? mapProfile.MapLabel : "Prototype Front";
         }
 
-        private static string BuildProductionOptions(PrototypeGameDatabase database)
+        private static bool ShouldDrawStaticOnMinimap(Vector3 worldPosition, BattlefieldVisionController visionController)
         {
-            if (database == null)
-            {
-                return "";
-            }
-
-            StringBuilder builder = new();
-            int hotkey = 1;
-
-            foreach (UnitDefinition definition in database.GetProductionOptions())
-            {
-                if (definition == null)
-                {
-                    continue;
-                }
-
-                if (builder.Length > 0)
-                {
-                    builder.Append(" ");
-                }
-
-                builder.Append('[');
-                builder.Append(hotkey++);
-                builder.Append(']');
-                builder.Append(definition.DisplayName[0]);
-            }
-
-            return builder.ToString();
+            return visionController == null || visionController.IsWorldExplored(worldPosition);
         }
 
-        private static string Shorten(string value, int maxLength)
+        private static bool ShouldDrawUnitOnMinimap(SelectableUnit unit, BattlefieldVisionController visionController)
         {
-            if (string.IsNullOrEmpty(value) || value.Length <= maxLength)
+            if (unit.Team == UnitTeam.Player)
             {
-                return value;
+                return true;
             }
 
-            return value[..Mathf.Max(0, maxLength - 3)] + "...";
+            return visionController == null || visionController.IsWorldVisible(unit.transform.position);
+        }
+
+        private static Color GetNodeColor(ControlNode node)
+        {
+            return node.OwnerTeam switch
+            {
+                UnitTeam.Player => new Color(0.28f, 0.9f, 1f),
+                UnitTeam.Enemy => new Color(1f, 0.42f, 0.22f),
+                _ => new Color(0.78f, 0.74f, 0.62f)
+            };
+        }
+
+        private static string GetPhaseLabel(BaseStructure baseStructure)
+        {
+            return baseStructure != null ? $"P{baseStructure.CurrentPhase} {baseStructure.PhaseLabel}" : "Lost";
         }
 
         private static string ToPercent(BaseStructure baseStructure)

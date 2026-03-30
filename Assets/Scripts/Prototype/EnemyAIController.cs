@@ -1,14 +1,19 @@
-using Game.Units;
+﻿using Game.Units;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game.Prototype
 {
     /// <summary>
-    /// Sends enemy forces toward nearby player targets at intervals.
+    /// Sends enemy forces toward player targets and strategically important shrines at intervals.
+    /// Preserves rear garrisons while concentrating pressure on high-value nodes.
     /// </summary>
     public class EnemyAIController : MonoBehaviour
     {
-        [SerializeField] private float thinkInterval = 2.4f;
+        [SerializeField] private float thinkInterval = 4.2f;
+        [SerializeField] private float garrisonRadius = 22f;
+        [SerializeField] private int rearGarrisonCount = 10;
+        [SerializeField] private float localThreatRange = 120f;
 
         private float thinkTimer;
 
@@ -27,26 +32,112 @@ namespace Game.Prototype
 
         private void IssueEnemyOrders()
         {
-            CombatTarget[] allTargets = FindObjectsByType<CombatTarget>();
-            SelectableUnit[] enemyUnits = FindObjectsByType<SelectableUnit>();
+            IReadOnlyList<CombatTarget> allTargets = PrototypeRuntimeRegistry.GetCombatTargets();
+            IReadOnlyList<SelectableUnit> allUnits = PrototypeRuntimeRegistry.GetSelectableUnits();
+            BaseStructure playerBase = PrototypeRuntimeQuery.FindBase(UnitTeam.Player);
+            List<ControlNode> enemyNodes = PrototypeRuntimeQuery.FindControlNodes();
+            enemyNodes.RemoveAll(node => node == null || node.OwnerTeam != UnitTeam.Enemy);
 
-            foreach (SelectableUnit enemyUnit in enemyUnits)
+            Vector3 priorityReference = playerBase != null ? playerBase.transform.position : Vector3.zero;
+            enemyNodes.Sort((left, right) => CompareEnemyDefensePriority(left, right, priorityReference));
+
+            BattleDirectiveController directiveController = BattleDirectiveController.Instance;
+            ControlNode targetNode = directiveController != null ? directiveController.FindPriorityNodeFor(UnitTeam.Enemy) : null;
+            bool baseUnlocked = BattleDirectiveController.CanTargetEnemyBaseStatic(UnitTeam.Enemy);
+
+            foreach (SelectableUnit enemyUnit in allUnits)
             {
-                if (enemyUnit == null || enemyUnit.Team != UnitTeam.Enemy)
+                if (enemyUnit == null || enemyUnit.Team != UnitTeam.Enemy || enemyUnit.IsSelected)
                 {
                     continue;
                 }
 
-                CombatTarget nearestTarget = FindNearestTarget(enemyUnit.transform.position, UnitTeam.Player, allTargets);
+                if (ShouldHoldGarrison(enemyUnit, enemyNodes, allUnits))
+                {
+                    continue;
+                }
+
+                CombatTarget nearestTarget = FindNearestTarget(enemyUnit.transform.position, UnitTeam.Player, allTargets, baseUnlocked);
+                if (nearestTarget != null && Vector3.Distance(enemyUnit.transform.position, nearestTarget.transform.position) <= localThreatRange)
+                {
+                    enemyUnit.Attack(nearestTarget);
+                    continue;
+                }
+
+                if (!baseUnlocked && targetNode != null)
+                {
+                    float offsetRadius = targetNode.IsGrand ? 18f : (targetNode.IsMajor ? 13f : 10f);
+                    Vector3 offset = new Vector3(Random.Range(-offsetRadius, offsetRadius), 0f, Random.Range(-offsetRadius, offsetRadius));
+                    enemyUnit.AttackMoveTo(targetNode.transform.position + offset);
+                    continue;
+                }
 
                 if (nearestTarget != null)
                 {
                     enemyUnit.Attack(nearestTarget);
+                    continue;
+                }
+
+                if (playerBase != null && baseUnlocked)
+                {
+                    enemyUnit.AttackMoveTo(playerBase.transform.position + new Vector3(Random.Range(-22f, 22f), 0f, Random.Range(-22f, 22f)));
                 }
             }
         }
 
-        private static CombatTarget FindNearestTarget(Vector3 fromPosition, UnitTeam desiredTeam, CombatTarget[] targets)
+        private bool ShouldHoldGarrison(SelectableUnit unit, List<ControlNode> enemyNodes, IReadOnlyList<SelectableUnit> allUnits)
+        {
+            for (int index = 0; index < enemyNodes.Count; index++)
+            {
+                ControlNode node = enemyNodes[index];
+                if (node == null)
+                {
+                    continue;
+                }
+
+                if (Vector3.Distance(unit.transform.position, node.transform.position) > garrisonRadius + node.StrategicWeight * 2f)
+                {
+                    continue;
+                }
+
+                int stationed = PrototypeBattlefieldUtility.CountUnitsNear(node.transform.position, UnitTeam.Enemy, garrisonRadius + node.StrategicWeight * 2f, allUnits);
+                int desired = Mathf.Max(rearGarrisonCount, node.DesiredGarrison - (index == 0 ? 2 : 0));
+                if (stationed <= desired)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static int CompareEnemyDefensePriority(ControlNode left, ControlNode right, Vector3 referencePosition)
+        {
+            if (left == null && right == null)
+            {
+                return 0;
+            }
+
+            if (left == null)
+            {
+                return 1;
+            }
+
+            if (right == null)
+            {
+                return -1;
+            }
+
+            int weightCompare = right.StrategicWeight.CompareTo(left.StrategicWeight);
+            if (weightCompare != 0)
+            {
+                return weightCompare;
+            }
+
+            return PrototypeBattlefieldUtility.CompareNodesByReference(left, right, referencePosition);
+        }
+
+        private static CombatTarget FindNearestTarget(Vector3 fromPosition, UnitTeam desiredTeam, IReadOnlyList<CombatTarget> targets, bool canAttackBase)
         {
             CombatTarget bestTarget = null;
             float bestDistance = float.MaxValue;
@@ -58,8 +149,12 @@ namespace Game.Prototype
                     continue;
                 }
 
-                float distance = Vector3.Distance(fromPosition, target.transform.position);
+                if (!canAttackBase && target.GetComponent<BaseStructure>() != null)
+                {
+                    continue;
+                }
 
+                float distance = Vector3.Distance(fromPosition, target.transform.position);
                 if (distance < bestDistance)
                 {
                     bestDistance = distance;

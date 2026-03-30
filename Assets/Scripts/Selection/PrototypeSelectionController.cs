@@ -1,3 +1,4 @@
+using Game.CameraSystem;
 using Game.Prototype;
 using Game.Units;
 using System.Collections.Generic;
@@ -8,19 +9,24 @@ namespace Game.Selection
 {
     /// <summary>
     /// Handles drag selection, move orders, and attack orders for the prototype.
+    /// Adds lightweight control groups for large-battle management.
     /// </summary>
     public class PrototypeSelectionController : MonoBehaviour
     {
         private const float DoubleClickThreshold = 0.3f;
+        private const float ControlGroupDoubleTapThreshold = 0.35f;
 
         private Camera mainCamera;
         private readonly List<SelectableUnit> selectedUnits = new();
+        private readonly Dictionary<int, List<SelectableUnit>> controlGroups = new();
         private Vector2 dragStartScreenPosition;
         private bool isDraggingSelection;
         private Texture2D selectionTexture;
         private GameObject moveMarker;
         private float lastClickTime;
         private SelectableUnit lastClickedUnit;
+        private int lastRecalledControlGroup = -1;
+        private float lastControlGroupRecallTime;
 
         public static PrototypeSelectionController Instance { get; private set; }
         public IReadOnlyList<SelectableUnit> SelectedUnits => selectedUnits;
@@ -46,6 +52,7 @@ namespace Game.Selection
         private void Update()
         {
             RemoveDestroyedSelections();
+            RemoveDestroyedControlGroupUnits();
 
             if (mainCamera == null)
             {
@@ -57,10 +64,13 @@ namespace Game.Selection
                 }
             }
 
-            if (Mouse.current == null)
+            if (Mouse.current == null || Keyboard.current == null)
             {
                 return;
             }
+
+            HandleControlGroupHotkeys();
+            HandleCommandHotkeys();
 
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {
@@ -93,15 +103,216 @@ namespace Game.Selection
                 }
             }
 
-            if (lastClickedUnit == null)
-            {
-                lastClickedUnit = null;
-            }
-
             if (removedAny && selectedUnits.Count == 0)
             {
                 lastClickTime = 0f;
             }
+        }
+
+        public string GetControlGroupSummary()
+        {
+            return PrototypeSelectionUtility.BuildControlGroupSummary(controlGroups);
+        }
+
+        private void RemoveDestroyedControlGroupUnits()
+        {
+            List<int> emptyGroups = new();
+
+            foreach (KeyValuePair<int, List<SelectableUnit>> pair in controlGroups)
+            {
+                for (int index = pair.Value.Count - 1; index >= 0; index--)
+                {
+                    if (pair.Value[index] == null)
+                    {
+                        pair.Value.RemoveAt(index);
+                    }
+                }
+
+                if (pair.Value.Count == 0)
+                {
+                    emptyGroups.Add(pair.Key);
+                }
+            }
+
+            foreach (int groupIndex in emptyGroups)
+            {
+                controlGroups.Remove(groupIndex);
+            }
+        }
+
+        private void HandleControlGroupHotkeys()
+        {
+            for (int index = 1; index <= 5; index++)
+            {
+                Key functionKey = index switch
+                {
+                    1 => Key.F1,
+                    2 => Key.F2,
+                    3 => Key.F3,
+                    4 => Key.F4,
+                    _ => Key.F5
+                };
+
+                if (!Keyboard.current[functionKey].wasPressedThisFrame)
+                {
+                    continue;
+                }
+
+                bool assignGroup = Keyboard.current.leftCtrlKey.isPressed || Keyboard.current.rightCtrlKey.isPressed;
+
+                if (assignGroup)
+                {
+                    AssignControlGroup(index);
+                }
+                else
+                {
+                    RecallControlGroup(index);
+                }
+            }
+        }
+
+        private void AssignControlGroup(int groupIndex)
+        {
+            List<SelectableUnit> groupUnits = new();
+
+            foreach (SelectableUnit unit in selectedUnits)
+            {
+                if (unit != null)
+                {
+                    groupUnits.Add(unit);
+                }
+            }
+
+            if (groupUnits.Count == 0)
+            {
+                controlGroups.Remove(groupIndex);
+                return;
+            }
+
+            controlGroups[groupIndex] = groupUnits;
+        }
+
+        private void RecallControlGroup(int groupIndex)
+        {
+            if (!controlGroups.TryGetValue(groupIndex, out List<SelectableUnit> groupUnits) || groupUnits.Count == 0)
+            {
+                return;
+            }
+
+            List<SelectableUnit> aliveUnits = new();
+            foreach (SelectableUnit unit in groupUnits)
+            {
+                if (unit != null)
+                {
+                    aliveUnits.Add(unit);
+                }
+            }
+
+            if (aliveUnits.Count == 0)
+            {
+                controlGroups.Remove(groupIndex);
+                return;
+            }
+
+            SetSelection(aliveUnits);
+
+            bool isDoubleTap = lastRecalledControlGroup == groupIndex && Time.time - lastControlGroupRecallTime <= ControlGroupDoubleTapThreshold;
+            lastRecalledControlGroup = groupIndex;
+            lastControlGroupRecallTime = Time.time;
+
+            if (isDoubleTap)
+            {
+                SnapCameraToUnits(aliveUnits);
+            }
+        }
+
+        private void SnapCameraToUnits(List<SelectableUnit> units)
+        {
+            RTSCameraController cameraController = mainCamera != null ? mainCamera.GetComponent<RTSCameraController>() : null;
+            if (cameraController == null || units == null || units.Count == 0)
+            {
+                return;
+            }
+
+            Vector3 center = PrototypeSelectionUtility.GetSelectionCenter(units);
+            cameraController.SnapToWorldPoint(center);
+        }
+
+        private void HandleCommandHotkeys()
+        {
+            if (Keyboard.current == null || selectedUnits.Count == 0)
+            {
+                return;
+            }
+
+            if (Keyboard.current.hKey.wasPressedThisFrame)
+            {
+                IssueHoldCommand();
+            }
+
+            if (Keyboard.current.gKey.wasPressedThisFrame)
+            {
+                IssueGuardCommand();
+            }
+
+            if (Keyboard.current.bKey.wasPressedThisFrame)
+            {
+                IssueFallbackCommand();
+            }
+        }
+
+        private void IssueHoldCommand()
+        {
+            foreach (SelectableUnit unit in selectedUnits)
+            {
+                if (unit != null)
+                {
+                    unit.HoldPosition();
+                }
+            }
+        }
+
+        private void IssueGuardCommand()
+        {
+            Vector3 guardPoint = GetSelectionCenter();
+            if (PrototypeBattlefieldUtility.TryFindClosestFriendlyAnchor(UnitTeam.Player, guardPoint, out Vector3 anchor))
+            {
+                guardPoint = anchor;
+            }
+
+            foreach (SelectableUnit unit in selectedUnits)
+            {
+                if (unit != null)
+                {
+                    unit.GuardPoint(guardPoint, 22f);
+                }
+            }
+
+            ShowMoveMarker(guardPoint, new Color(0.55f, 0.95f, 0.45f, 0.9f));
+        }
+
+        private void IssueFallbackCommand()
+        {
+            if (!PrototypeBattlefieldUtility.TryFindClosestFriendlyAnchor(UnitTeam.Player, GetSelectionCenter(), out Vector3 fallbackPoint))
+            {
+                return;
+            }
+
+            List<Vector3> formationPoints = PrototypeSelectionUtility.BuildFormationPoints(fallbackPoint, selectedUnits.Count, 3.2f);
+            for (int index = 0; index < selectedUnits.Count; index++)
+            {
+                if (selectedUnits[index] != null)
+                {
+                    selectedUnits[index].MoveTo(formationPoints[index]);
+                }
+            }
+
+            ShowMoveMarker(fallbackPoint, new Color(0.45f, 0.85f, 1f, 0.9f));
+        }
+
+        private Vector3 GetSelectionCenter()
+        {
+            return PrototypeSelectionUtility.GetSelectionCenter(selectedUnits);
         }
 
         private void OnGUI()
@@ -160,7 +371,7 @@ namespace Game.Selection
         {
             List<SelectableUnit> matchingUnits = new();
 
-            foreach (SelectableUnit unit in FindObjectsByType<SelectableUnit>())
+            foreach (SelectableUnit unit in PrototypeRuntimeRegistry.GetSelectableUnits())
             {
                 if (unit != null && unit.Team == UnitTeam.Player && unit.Archetype == archetype)
                 {
@@ -175,7 +386,7 @@ namespace Game.Selection
         {
             List<SelectableUnit> unitsInRect = new();
 
-            foreach (SelectableUnit unit in FindObjectsByType<SelectableUnit>())
+            foreach (SelectableUnit unit in PrototypeRuntimeRegistry.GetSelectableUnits())
             {
                 if (unit == null || unit.Team != UnitTeam.Player)
                 {
@@ -216,16 +427,19 @@ namespace Game.Selection
             if (IsRallyModifierPressed())
             {
                 BaseStructure playerBase = PrototypeRuntimeQuery.FindPlayerBase();
-                ProductionStructure playerProduction = PrototypeRuntimeQuery.FindPlayerProductionStructure();
+                List<ProductionStructure> playerProductions = PrototypeRuntimeQuery.FindPlayerProductionStructures();
 
                 if (playerBase != null && playerBase.IsAlive)
                 {
                     playerBase.SetRallyPoint(hit.point);
                 }
 
-                if (playerProduction != null && playerProduction.IsAlive)
+                foreach (ProductionStructure structure in playerProductions)
                 {
-                    playerProduction.SetRallyPoint(hit.point);
+                    if (structure != null && structure.IsAlive)
+                    {
+                        structure.SetRallyPoint(hit.point);
+                    }
                 }
 
                 ShowMoveMarker(hit.point, new Color(1f, 0.9f, 0.25f, 0.9f));
@@ -239,6 +453,12 @@ namespace Game.Selection
 
             if (hit.collider.TryGetComponent(out CombatTarget target) && target.Team == UnitTeam.Enemy)
             {
+                if (!CanAttackTarget(target))
+                {
+                    RedirectAssaultToPriorityNode();
+                    return;
+                }
+
                 foreach (SelectableUnit selectedUnit in selectedUnits)
                 {
                     if (selectedUnit != null)
@@ -252,7 +472,7 @@ namespace Game.Selection
             }
 
             Vector3 targetPoint = hit.point;
-            List<Vector3> formationPoints = BuildFormationPoints(targetPoint, selectedUnits.Count, 2.4f);
+            List<Vector3> formationPoints = PrototypeSelectionUtility.BuildFormationPoints(targetPoint, selectedUnits.Count, 2.8f);
 
             if (IsAttackMoveModifierPressed())
             {
@@ -280,10 +500,49 @@ namespace Game.Selection
             }
         }
 
+        private bool CanAttackTarget(CombatTarget target)
+        {
+            if (target == null)
+            {
+                return false;
+            }
+
+            BaseStructure baseStructure = target.GetComponent<BaseStructure>();
+            if (baseStructure == null)
+            {
+                return true;
+            }
+
+            return BattleDirectiveController.CanTargetEnemyBaseStatic(UnitTeam.Player);
+        }
+
+        private void RedirectAssaultToPriorityNode()
+        {
+            BattleDirectiveController directiveController = BattleDirectiveController.Instance;
+            ControlNode priorityNode = directiveController != null ? directiveController.FindPriorityNodeFor(UnitTeam.Player) : null;
+
+            if (priorityNode == null)
+            {
+                return;
+            }
+
+            Vector3 targetPoint = priorityNode.transform.position;
+            List<Vector3> formationPoints = PrototypeSelectionUtility.BuildFormationPoints(targetPoint, selectedUnits.Count, 4.4f);
+            ShowMoveMarker(targetPoint, new Color(0.95f, 0.72f, 0.2f, 0.95f));
+
+            for (int index = 0; index < selectedUnits.Count; index++)
+            {
+                if (selectedUnits[index] != null)
+                {
+                    selectedUnits[index].AttackMoveTo(formationPoints[index]);
+                }
+            }
+        }
+
         private bool TryGetMouseRaycastHit(out RaycastHit hit)
         {
             Ray ray = mainCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
-            return Physics.Raycast(ray, out hit, 500f);
+            return Physics.Raycast(ray, out hit, 1000f);
         }
 
         private void SetSelection(IEnumerable<SelectableUnit> units)
@@ -322,7 +581,12 @@ namespace Game.Selection
 
         private static bool IsAttackMoveModifierPressed()
         {
-            return Keyboard.current != null && Keyboard.current.aKey.isPressed;
+            if (Keyboard.current == null)
+            {
+                return false;
+            }
+
+            return Keyboard.current.aKey.isPressed || Keyboard.current.leftCtrlKey.isPressed || Keyboard.current.rightCtrlKey.isPressed;
         }
 
         private static Rect GetScreenRect(Vector2 start, Vector2 end)
@@ -334,28 +598,11 @@ namespace Game.Selection
             return Rect.MinMaxRect(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
         }
 
-        private static List<Vector3> BuildFormationPoints(Vector3 center, int count, float spacing)
-        {
-            List<Vector3> points = new(count);
-            int columns = Mathf.CeilToInt(Mathf.Sqrt(count));
-
-            for (int index = 0; index < count; index++)
-            {
-                int row = index / columns;
-                int column = index % columns;
-                float xOffset = (column - (columns - 1) * 0.5f) * spacing;
-                float zOffset = (row - (columns - 1) * 0.5f) * spacing;
-                points.Add(center + new Vector3(xOffset, 0f, zOffset));
-            }
-
-            return points;
-        }
-
         private void CreateMoveMarker()
         {
             moveMarker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             moveMarker.name = "Move Marker";
-            moveMarker.transform.localScale = new Vector3(0.5f, 0.03f, 0.5f);
+            moveMarker.transform.localScale = new Vector3(0.7f, 0.03f, 0.7f);
             moveMarker.GetComponent<Collider>().enabled = false;
             moveMarker.SetActive(false);
         }
@@ -384,4 +631,7 @@ namespace Game.Selection
         }
     }
 }
+
+
+
 

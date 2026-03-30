@@ -1,3 +1,4 @@
+using Game.Prototype;
 using UnityEngine;
 
 namespace Game.Units
@@ -9,6 +10,7 @@ namespace Game.Units
     {
         private CombatTarget target;
         private UnitTeam ownerTeam;
+        private UnitArchetype attackerArchetype;
         private float damage;
         private float travelDuration;
         private float travelTimer;
@@ -17,25 +19,25 @@ namespace Game.Units
         private float impactEffectScale;
         private Vector3 startPosition;
         private Vector3 lastKnownTargetPosition;
+        private Vector3 aimOffset;
         private Color impactColor;
 
-        public void Initialize(
-            CombatTarget assignedTarget,
-            UnitTeam assignedOwnerTeam,
-            float assignedDamage,
-            float projectileSpeed,
-            float assignedArcHeight,
-            float assignedSplashRadius,
-            float assignedImpactEffectScale,
-            Color assignedImpactColor)
+        public void Initialize(CombatTarget assignedTarget, UnitTeam assignedOwnerTeam, float assignedDamage, float projectileSpeed, float assignedArcHeight, float assignedSplashRadius, float assignedImpactEffectScale, Color assignedImpactColor)
+        {
+            Initialize(assignedTarget, assignedOwnerTeam, UnitArchetype.Rifleman, assignedDamage, projectileSpeed, assignedArcHeight, assignedSplashRadius, assignedImpactEffectScale, assignedImpactColor, Vector3.zero);
+        }
+
+        public void Initialize(CombatTarget assignedTarget, UnitTeam assignedOwnerTeam, UnitArchetype assignedAttackerArchetype, float assignedDamage, float projectileSpeed, float assignedArcHeight, float assignedSplashRadius, float assignedImpactEffectScale, Color assignedImpactColor, Vector3 assignedAimOffset)
         {
             target = assignedTarget;
             ownerTeam = assignedOwnerTeam;
+            attackerArchetype = assignedAttackerArchetype;
             damage = assignedDamage;
             arcHeight = assignedArcHeight;
             splashRadius = assignedSplashRadius;
             impactEffectScale = assignedImpactEffectScale;
             impactColor = assignedImpactColor;
+            aimOffset = assignedAimOffset;
             startPosition = transform.position;
             lastKnownTargetPosition = GetTargetPosition();
             float distance = Vector3.Distance(startPosition, lastKnownTargetPosition);
@@ -62,7 +64,7 @@ namespace Game.Units
         {
             if (target != null)
             {
-                return target.transform.position + Vector3.up * 0.6f;
+                return target.transform.position + Vector3.up * 0.6f + aimOffset;
             }
 
             return lastKnownTargetPosition;
@@ -74,7 +76,7 @@ namespace Game.Units
 
             if (splashRadius > 0.01f)
             {
-                foreach (CombatTarget candidate in FindObjectsByType<CombatTarget>())
+                foreach (CombatTarget candidate in PrototypeRuntimeRegistry.GetCombatTargets())
                 {
                     if (candidate == null || !candidate.IsAlive || candidate.Team == ownerTeam)
                     {
@@ -88,13 +90,15 @@ namespace Game.Units
                         continue;
                     }
 
-                    float damageMultiplier = Mathf.Lerp(1f, 0.35f, Mathf.Clamp01(distance / splashRadius));
-                    candidate.Health.ApplyDamage(damage * damageMultiplier);
+                    float splashMultiplier = Mathf.Lerp(1f, 0.35f, Mathf.Clamp01(distance / splashRadius));
+                    float resolvedDamage = CombatTriangleRules.ResolveDamage(attackerArchetype, candidate, damage * splashMultiplier, true);
+                    candidate.Health.ApplyDamage(resolvedDamage);
                 }
             }
             else if (target != null && target.IsAlive && target.Team != ownerTeam)
             {
-                target.Health.ApplyDamage(damage);
+                float resolvedDamage = CombatTriangleRules.ResolveDamage(attackerArchetype, target, damage, true);
+                target.Health.ApplyDamage(resolvedDamage);
             }
 
             UnitCombat.SpawnImpactEffect(impactPoint, impactEffectScale, impactColor);

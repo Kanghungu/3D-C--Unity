@@ -1,3 +1,4 @@
+using Game.Prototype;
 using UnityEngine;
 
 namespace Game.Units
@@ -81,7 +82,7 @@ namespace Game.Units
             CombatTarget bestTarget = null;
             float bestDistance = attackRange;
 
-            foreach (CombatTarget target in FindObjectsByType<CombatTarget>())
+            foreach (CombatTarget target in PrototypeRuntimeRegistry.GetCombatTargets())
             {
                 if (target == null || target == owner || !target.IsAlive || target.Team == owner.Team)
                 {
@@ -117,8 +118,16 @@ namespace Game.Units
             Renderer rendererComponent = projectileObject.GetComponent<Renderer>();
             rendererComponent.material.color = owner.Team == UnitTeam.Player ? new Color(0.35f, 1f, 1f) : new Color(1f, 0.45f, 0.25f);
 
+            float damage = attackDamage;
+            SelectableUnit unit = target.GetComponent<SelectableUnit>();
+
+            if (unit != null && unit.Archetype == UnitArchetype.Fighter)
+            {
+                damage *= 1.8f;
+            }
+
             UnitProjectile projectile = projectileObject.AddComponent<UnitProjectile>();
-            projectile.Initialize(target, owner.Team, attackDamage, projectileSpeed, projectileArc, 0f, 0.45f, rendererComponent.material.color);
+            projectile.Initialize(target, owner.Team, UnitArchetype.Artillery, damage, projectileSpeed, projectileArc, 0f, 0.45f, rendererComponent.material.color, Vector3.zero);
         }
 
         private void FaceTarget(Vector3 targetPosition)

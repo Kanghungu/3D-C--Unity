@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Game.Prototype;
+using UnityEngine;
 
 namespace Game.Units
 {
@@ -21,10 +22,12 @@ namespace Game.Units
         private Color selectedColor;
 
         public UnitTeam Team => team;
-        public UnitArchetype Archetype => definition != null ? definition.Archetype : UnitArchetype.Vanguard;
+        public UnitArchetype Archetype => definition != null ? definition.Archetype : UnitArchetype.Spearman;
         public string DisplayName => definition != null ? definition.DisplayName : "Unit";
         public UnitDefinition Definition => definition;
+        public bool IsSelected { get; private set; }
         public string AbilityStatus => abilityState != null ? abilityState.StatusLabel : "None";
+        public string OrderLabel => combat != null ? combat.OrderLabel : "Idle";
 
         private void Awake()
         {
@@ -35,6 +38,16 @@ namespace Game.Units
             abilityState = GetComponent<UnitAbilityState>();
             CreateSelectionRing();
             ApplyTeamColors();
+        }
+
+        private void OnEnable()
+        {
+            PrototypeRuntimeRegistry.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            PrototypeRuntimeRegistry.Unregister(this);
         }
 
         public void Initialize(UnitTeam assignedTeam, UnitDefinition assignedDefinition, SimpleUnitMover mover, UnitCombat unitCombat)
@@ -49,7 +62,7 @@ namespace Game.Units
 
         public void MoveTo(Vector3 destination)
         {
-            combat?.ClearTarget();
+            combat?.ClearOrders();
             unitMover.SetDestination(destination);
         }
 
@@ -63,6 +76,16 @@ namespace Game.Units
             combat?.SetTarget(target);
         }
 
+        public void HoldPosition()
+        {
+            combat?.SetHoldPosition(transform.position);
+        }
+
+        public void GuardPoint(Vector3 point, float radius)
+        {
+            combat?.SetGuardPoint(point, radius);
+        }
+
         public bool TryActivateAbility()
         {
             return abilityState != null && abilityState.TryActivateRoleAbility();
@@ -70,6 +93,7 @@ namespace Game.Units
 
         public void SetSelected(bool isSelected)
         {
+            IsSelected = isSelected;
             if (selectionRing != null)
             {
                 selectionRing.SetActive(isSelected);
@@ -134,3 +158,5 @@ namespace Game.Units
         }
     }
 }
+
+

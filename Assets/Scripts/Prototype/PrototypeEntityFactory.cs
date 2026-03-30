@@ -1,4 +1,4 @@
-﻿using Game.Units;
+using Game.Units;
 using UnityEngine;
 
 namespace Game.Prototype
@@ -12,27 +12,21 @@ namespace Game.Prototype
             GameObject unit = GameObject.CreatePrimitive(definition.PrimitiveType);
             unit.name = $"{team} {definition.DisplayName} {serialNumber++}";
             unit.transform.position = position;
-            unit.transform.localScale = GetAdjustedScale(team, definition);
+            unit.transform.localScale = PrototypeUnitBalanceUtility.GetAdjustedScale(team, definition);
             unit.transform.SetParent(parent);
 
-            UnitAbilityState abilityState = unit.AddComponent<UnitAbilityState>();
-
-            float moveSpeed = GetAdjustedMoveSpeed(team, definition);
-            float maxHealth = GetAdjustedMaxHealth(team, definition);
-            float attackDamage = GetAdjustedAttackDamage(team, definition);
-            float attackRange = GetAdjustedAttackRange(team, definition);
-
+            unit.AddComponent<UnitAbilityState>();
             SimpleUnitMover mover = unit.AddComponent<SimpleUnitMover>();
-            mover.Configure(moveSpeed, 540f, definition.StoppingDistance);
+            mover.Configure(PrototypeUnitBalanceUtility.GetAdjustedMoveSpeed(team, definition), 540f, definition.StoppingDistance);
 
             UnitHealth health = unit.AddComponent<UnitHealth>();
-            health.Configure(maxHealth, true, new Vector3(0f, 1.7f, 0f));
+            health.Configure(PrototypeUnitBalanceUtility.GetAdjustedMaxHealth(team, definition), true, new Vector3(0f, 1.9f, 0f));
 
             CombatTarget combatTarget = unit.AddComponent<CombatTarget>();
             UnitCombat combat = unit.AddComponent<UnitCombat>();
             combat.Configure(
-                attackRange,
-                attackDamage,
+                PrototypeUnitBalanceUtility.GetAdjustedAttackRange(team, definition),
+                PrototypeUnitBalanceUtility.GetAdjustedAttackDamage(team, definition),
                 definition.AttackCooldown,
                 definition.AggroRange,
                 0.55f,
@@ -43,10 +37,17 @@ namespace Game.Prototype
                 definition.ImpactEffectScale);
 
             SelectableUnit selectableUnit = unit.AddComponent<SelectableUnit>();
+            unit.AddComponent<AdvancedUnitRoleController>();
 
             combatTarget.Initialize(team, health);
             selectableUnit.Initialize(team, definition, mover, combat);
+            PrototypeEntityVisualFactory.BuildUnitSilhouette(unit.transform, definition, team);
             combat.Initialize(combatTarget, health);
+
+            if (definition.Archetype == UnitArchetype.MobileFortress)
+            {
+                AttachMobileFortressProduction(team, unit, combatTarget, health, parent);
+            }
 
             return selectableUnit;
         }
@@ -56,24 +57,17 @@ namespace Game.Prototype
             GameObject baseObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
             baseObject.name = name;
             baseObject.transform.position = position;
-            baseObject.transform.localScale = team == UnitTeam.Player ? new Vector3(4.6f, 3.4f, 4.6f) : new Vector3(4.2f, 3f, 4.2f);
+            baseObject.transform.localScale = team == UnitTeam.Player ? new Vector3(6.4f, 3.6f, 6.4f) : new Vector3(5.8f, 3.4f, 5.8f);
             baseObject.transform.SetParent(parent);
-
-            Renderer rendererComponent = baseObject.GetComponent<Renderer>();
-            rendererComponent.material.color = team == UnitTeam.Player
-                ? new Color(0.56f, 0.64f, 0.78f)
-                : new Color(0.66f, 0.29f, 0.2f);
+            PrototypeEntityVisualFactory.ApplyBaseVisuals(baseObject, team);
 
             UnitHealth health = baseObject.AddComponent<UnitHealth>();
-            float baseHealth = team == UnitTeam.Player ? 320f : 230f;
-            health.Configure(baseHealth, true, new Vector3(0f, 3.2f, 0f));
+            health.Configure(team == UnitTeam.Player ? 2600f : 2400f, true, new Vector3(0f, 4.2f, 0f));
 
             CombatTarget combatTarget = baseObject.AddComponent<CombatTarget>();
             BaseStructure baseStructure = baseObject.AddComponent<BaseStructure>();
-
             combatTarget.Initialize(team, health);
             baseStructure.InitializeTarget(combatTarget, health);
-
             return baseStructure;
         }
 
@@ -82,28 +76,15 @@ namespace Game.Prototype
             GameObject structureObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
             structureObject.name = name;
             structureObject.transform.position = position;
-            structureObject.transform.localScale = new Vector3(3.2f, 2.5f, 3.2f);
+            structureObject.transform.localScale = new Vector3(4f, 2.4f, 4f);
             structureObject.transform.SetParent(parent);
-
-            Renderer rendererComponent = structureObject.GetComponent<Renderer>();
-            rendererComponent.material.color = team == UnitTeam.Player
-                ? new Color(0.78f, 0.72f, 0.58f)
-                : new Color(0.8f, 0.38f, 0.22f);
-
-            GameObject pad = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            pad.name = "Assembly Pad";
-            pad.transform.SetParent(structureObject.transform);
-            pad.transform.localPosition = new Vector3(0f, -0.9f, 0f);
-            pad.transform.localScale = new Vector3(1.15f, 0.08f, 1.15f);
-            pad.GetComponent<Collider>().enabled = false;
-            pad.GetComponent<Renderer>().material.color = new Color(0.22f, 0.85f, 0.95f);
+            PrototypeEntityVisualFactory.ApplyProductionVisuals(structureObject, team, name.Contains("Siege"));
 
             UnitHealth health = structureObject.AddComponent<UnitHealth>();
-            health.Configure(180f, true, new Vector3(0f, 2.9f, 0f));
+            health.Configure(team == UnitTeam.Player ? 320f : 220f, true, new Vector3(0f, 3.4f, 0f));
 
             CombatTarget combatTarget = structureObject.AddComponent<CombatTarget>();
             combatTarget.Initialize(team, health);
-
             return structureObject.AddComponent<ProductionStructure>();
         }
 
@@ -112,22 +93,17 @@ namespace Game.Prototype
             GameObject turretObject = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             turretObject.name = name;
             turretObject.transform.position = position;
-            turretObject.transform.localScale = team == UnitTeam.Player ? new Vector3(1.0f, 1.3f, 1.0f) : new Vector3(1.18f, 1.0f, 1.18f);
+            turretObject.transform.localScale = team == UnitTeam.Player ? new Vector3(1.05f, 1.1f, 1.05f) : new Vector3(1f, 1f, 1f);
             turretObject.transform.SetParent(parent);
-
-            Renderer rendererComponent = turretObject.GetComponent<Renderer>();
-            rendererComponent.material.color = team == UnitTeam.Player
-                ? new Color(0.74f, 0.79f, 0.88f)
-                : new Color(0.92f, 0.42f, 0.22f);
+            PrototypeEntityVisualFactory.ApplyTurretVisuals(turretObject, team);
 
             UnitHealth health = turretObject.AddComponent<UnitHealth>();
-            health.Configure(team == UnitTeam.Player ? 110f : 95f, true, new Vector3(0f, 2.4f, 0f));
+            health.Configure(team == UnitTeam.Player ? 185f : 105f, true, new Vector3(0f, 2.6f, 0f));
 
             CombatTarget combatTarget = turretObject.AddComponent<CombatTarget>();
             combatTarget.Initialize(team, health);
-
             DefensiveTurret turret = turretObject.AddComponent<DefensiveTurret>();
-            turret.Configure(team == UnitTeam.Player ? 10.5f : 11f, team == UnitTeam.Player ? 11f : 13f, 1.15f, 20f, 0.4f);
+            turret.Configure(team == UnitTeam.Player ? 14f : 11f, team == UnitTeam.Player ? 16f : 11f, 1.05f, 24f, 0.4f);
             return turret;
         }
 
@@ -136,65 +112,24 @@ namespace Game.Prototype
             GameObject nodeObject = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             nodeObject.name = name;
             nodeObject.transform.position = position;
-            nodeObject.transform.localScale = new Vector3(2.4f, 0.35f, 2.4f);
+            nodeObject.transform.localScale = new Vector3(13.5f, 0.55f, 13.5f);
             nodeObject.transform.SetParent(parent);
+            PrototypeEntityVisualFactory.BuildControlNodeSilhouette(nodeObject.transform);
             return nodeObject.AddComponent<ControlNode>();
         }
 
-        private static Vector3 GetAdjustedScale(UnitTeam team, UnitDefinition definition)
+        private static void AttachMobileFortressProduction(UnitTeam team, GameObject unit, CombatTarget combatTarget, UnitHealth health, Transform parent)
         {
-            Vector3 scale = definition.Scale;
-
-            if (team == UnitTeam.Player)
-            {
-                scale *= definition.Archetype == UnitArchetype.Vanguard ? 1.14f : 1.06f;
-            }
-            else
-            {
-                scale *= definition.Archetype == UnitArchetype.Artillery ? 1.1f : 0.98f;
-            }
-
-            return scale;
-        }
-
-        private static float GetAdjustedMaxHealth(UnitTeam team, UnitDefinition definition)
-        {
-            if (team == UnitTeam.Player)
-            {
-                return definition.MaxHealth * 1.22f;
-            }
-
-            return definition.MaxHealth * 0.92f;
-        }
-
-        private static float GetAdjustedMoveSpeed(UnitTeam team, UnitDefinition definition)
-        {
-            if (team == UnitTeam.Player)
-            {
-                return definition.MoveSpeed * 0.92f;
-            }
-
-            return definition.MoveSpeed * 1.06f;
-        }
-
-        private static float GetAdjustedAttackDamage(UnitTeam team, UnitDefinition definition)
-        {
-            if (team == UnitTeam.Player)
-            {
-                return definition.AttackDamage * 0.94f;
-            }
-
-            return definition.AttackDamage * 1.18f;
-        }
-
-        private static float GetAdjustedAttackRange(UnitTeam team, UnitDefinition definition)
-        {
-            if (team == UnitTeam.Enemy && definition.Archetype != UnitArchetype.Vanguard)
-            {
-                return definition.AttackRange + 0.4f;
-            }
-
-            return definition.AttackRange;
+            ProductionStructure production = unit.AddComponent<ProductionStructure>();
+            production.ConfigureStructure(
+                team == UnitTeam.Player ? "Moving Bastion" : "War Bastion",
+                new Vector3(24f, 0f, 12f),
+                team == UnitTeam.Player ? new Color(0.7f, 0.86f, 0.98f) : new Color(0.98f, 0.6f, 0.34f),
+                UnitArchetype.Spearman,
+                UnitArchetype.ShieldInfantry,
+                UnitArchetype.Rifleman,
+                UnitArchetype.SpecialWarrior);
+            production.Initialize(combatTarget, health, parent, PrototypeRuntimeQuery.FindDatabase(), PrototypeRuntimeQuery.FindBase(team));
         }
     }
 }
