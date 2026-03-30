@@ -1,0 +1,57 @@
+{
+  "project": "3D-Unity",
+  "phase": "MVP combat prototype",
+  "primary_goal": "Finish a playable ground combat RTS prototype loop before expanding scope.",
+  "home_ai_workflow": {
+    "read_first": [
+      "AGENTS.md",
+      "START_HERE.md",
+      "SESSION_CONTEXT.md",
+      "TODO.md",
+      "DEVLOG.md",
+      "HOME_AI_PROMPTS.md",
+      "HOME_AI_HARNESS.md"
+    ],
+    "default_sequence": [
+      "check git status",
+      "summarize direction in 5 lines or less",
+      "pick the safest small task",
+      "implement",
+      "do lightweight verification",
+      "update docs if needed"
+    ],
+    "behavior_rules": [
+      "Do not stop after one small step.",
+      "Work in 30 to 60 minute chunks when possible.",
+      "Avoid unnecessary questions when a reasonable assumption is safe.",
+      "Do not overwrite local uncommitted changes."
+    ]
+  },
+  "world_direction": {
+    "summary": "Grand crusade, giant empire, and space-scale sci-fi warfare.",
+    "player_faction": "Heavy armored crusade empire with sacred imperial symbolism and sci-fi weapons.",
+    "enemy_faction": "Opposing sci-fi war civilization with stronger frontal firepower feel.",
+    "must_keep": [
+      "space war feeling",
+      "imperial grandeur",
+      "religious crusade tone",
+      "science fiction armor and weapons"
+    ],
+    "avoid": [
+      "pure medieval fantasy",
+      "generic sci-fi without sacred imperial weight",
+      "primitive placeholder visuals as the final direction"
+    ]
+  },
+  "current_focus": [
+    "protect the ground combat prototype direction",
+    "improve battlefield readability and faction identity",
+    "support home AI development with better instructions and harness files"
+  ],
+  "not_now": [
+    "multiplayer",
+    "steam integration",
+    "large backend systems",
+    "over-abstract architecture"
+  ]
+}

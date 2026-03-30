@@ -11,7 +11,14 @@
 3. `SESSION_CONTEXT.md`
 4. `TODO.md`
 5. `DEVLOG.md`
-6. 필요할 때 `Docs/Reference/BATTLEFIELD_DIAGRAM.md`, `Docs/Reference/SYSTEM_FLOW_DIAGRAM.md`, `Docs/Reference/ANIMATION_STATE_DIAGRAM.md`
+6. `HOME_AI_PROMPTS.md`
+7. `HOME_AI_HARNESS.md`
+8. 필요할 때 `Docs/Reference/BATTLEFIELD_DIAGRAM.md`, `Docs/Reference/SYSTEM_FLOW_DIAGRAM.md`, `Docs/Reference/ANIMATION_STATE_DIAGRAM.md`
+
+## 집에서 작업 시작 전에
+- 가능하면 PowerShell에서 `./scripts/Start-HomeWork.ps1`를 먼저 실행한다.
+- 이어서 `./scripts/Show-CurrentContext.ps1`를 실행해 현재 방향과 `task_brief.json`을 다시 확인한다.
+- 그 다음 `HOME_AI_PROMPTS.md`의 프롬프트를 복붙해서 AI 작업을 시작한다.
 
 ## 프로젝트 한 줄 요약
 - Unity 기반 3D SF 싱글플레이 RTS 전투 프로토타입

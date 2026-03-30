@@ -23,6 +23,12 @@ Unity 기반 3D SF 싱글플레이 RTS 전투 프로토타입 프로젝트입니
 - `TODO.md`: 지금 할 일
 - `DEVLOG.md`: 작업 기록
 - `HOME_AI_PROMPTS.md`: 집에서 AI에게 바로 복붙하는 프롬프트 모음
+- `HOME_AI_HARNESS.md`: 집에서 작업 시작 흐름을 고정하는 가벼운 하네스 안내
+- `task_brief.json`: 현재 목표와 제약을 구조화한 요약 파일
+
+## 하네스 파일
+- `scripts/Start-HomeWork.ps1`: Git 상태와 핵심 문서를 먼저 보여주는 시작 스크립트
+- `scripts/Show-CurrentContext.ps1`: 현재 방향과 `task_brief.json`을 다시 보여주는 스크립트
 
 ## 참고 문서
 아래 문서는 지우지 않고 `Docs/Reference`로 정리했습니다.
