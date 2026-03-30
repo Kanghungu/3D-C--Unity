@@ -1,4 +1,4 @@
-# 3D-Unity
+﻿# 3D-Unity
 
 Unity 기반 3D SF 싱글플레이 RTS 전투 프로토타입 프로젝트입니다.
 
@@ -28,13 +28,16 @@ Unity 기반 3D SF 싱글플레이 RTS 전투 프로토타입 프로젝트입니
 아래 문서는 지우지 않고 `Docs/Reference`로 정리했습니다.
 
 - `Docs/Reference/AI_NOTES.md`
+- `Docs/Reference/ANIMATION_STATE_DIAGRAM.md`
 - `Docs/Reference/ART_DIRECTION.md`
+- `Docs/Reference/BATTLEFIELD_DIAGRAM.md`
 - `Docs/Reference/BRAINSTORMING.md`
 - `Docs/Reference/COMBAT_DESIGN.md`
 - `Docs/Reference/GDD.md`
 - `Docs/Reference/HISTORY.md`
 - `Docs/Reference/MINDMAP.md`
 - `Docs/Reference/ROADMAP.md`
+- `Docs/Reference/SYSTEM_FLOW_DIAGRAM.md`
 
 ## 집에서 AI에게 맡길 때 기억할 점
 - 문서부터 읽고 시작하게 하기

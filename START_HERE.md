@@ -1,4 +1,4 @@
-# START_HERE.md
+﻿# START_HERE.md
 
 ## 이 문서의 역할
 - 집에서 AI에게 작업을 맡길 때 가장 먼저 보여주는 실행용 문서다.
@@ -11,6 +11,7 @@
 3. `SESSION_CONTEXT.md`
 4. `TODO.md`
 5. `DEVLOG.md`
+6. 필요할 때 `Docs/Reference/BATTLEFIELD_DIAGRAM.md`, `Docs/Reference/SYSTEM_FLOW_DIAGRAM.md`, `Docs/Reference/ANIMATION_STATE_DIAGRAM.md`
 
 ## 프로젝트 한 줄 요약
 - Unity 기반 3D SF 싱글플레이 RTS 전투 프로토타입
