@@ -27,6 +27,30 @@ Show-Section -Path "SESSION_CONTEXT.md" -Head 50
 Show-Section -Path "TODO.md" -Head 50
 
 if (Test-Path "task_brief.json") {
+    $taskBrief = Get-Content "task_brief.json" -Encoding utf8 | ConvertFrom-Json
+
+    if ($taskBrief.priority_work_queue) {
+        Write-Host ""
+        Write-Host "== Priority Snapshot ==" -ForegroundColor Cyan
+
+        Write-Host "[Immediate]" -ForegroundColor Yellow
+        foreach ($item in $taskBrief.priority_work_queue.immediate) {
+            Write-Host " - $item"
+        }
+
+        Write-Host ""
+        Write-Host "[Soon]" -ForegroundColor Yellow
+        foreach ($item in $taskBrief.priority_work_queue.soon) {
+            Write-Host " - $item"
+        }
+
+        Write-Host ""
+        Write-Host "[Later]" -ForegroundColor Yellow
+        foreach ($item in $taskBrief.priority_work_queue.later) {
+            Write-Host " - $item"
+        }
+    }
+
     Write-Host ""
     Write-Host "== task_brief.json ==" -ForegroundColor Cyan
     Get-Content "task_brief.json" -Encoding utf8

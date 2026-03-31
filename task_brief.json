@@ -48,6 +48,24 @@
     "improve battlefield readability and faction identity",
     "support home AI development with better instructions and harness files"
   ],
+  "priority_work_queue": {
+    "immediate": [
+      "Show minimap as current camera view area instead of only a camera position dot.",
+      "Fix edge-case match resolution such as simultaneous army wipe or base destruction.",
+      "Simplify or relax the total assault unlock rule for the prototype."
+    ],
+    "soon": [
+      "Rework battlefield layout readability from rear base to central shrine to enemy front.",
+      "Make production and rally flow easier to read for first-time players.",
+      "Strengthen readability of the core infantry triangle: spearman, shield infantry, rifleman.",
+      "Reduce HUD wording and information density."
+    ],
+    "later": [
+      "Reduce extension-unit emphasis and refocus combat on the core infantry triangle.",
+      "Do a first pass on battlefield environment polish to reduce test-map feel.",
+      "Set build scenes and execution baseline for a replayable prototype build."
+    ]
+  },
   "not_now": [
     "multiplayer",
     "steam integration",
