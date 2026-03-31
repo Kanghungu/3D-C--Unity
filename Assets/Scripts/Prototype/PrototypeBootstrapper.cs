@@ -838,8 +838,8 @@ namespace Game.Prototype
 
         private void CreateBattleSmokeAndBeacons(Transform terrainRoot)
         {
-            Color playerSmoke = new(0.36f, 0.48f, 0.58f, 0.72f);
-            Color enemySmoke = new(0.38f, 0.22f, 0.18f, 0.78f);
+            Color playerSmoke = new(0.36f, 0.48f, 0.58f, 0.42f);
+            Color enemySmoke = new(0.38f, 0.22f, 0.18f, 0.46f);
             Color emberPlayer = new(0.48f, 0.92f, 1f, 0.9f);
             Color emberEnemy = new(1f, 0.54f, 0.26f, 0.9f);
 
@@ -847,21 +847,21 @@ namespace Game.Prototype
             CreateSmokeCluster("Player Ridge Beacon", new Vector3(-1480f, 0f, 980f), playerSmoke, emberPlayer, terrainRoot);
             CreateSmokeCluster("Enemy Gun Pyre", enemyBasePosition + new Vector3(-360f, 0f, -80f), enemySmoke, emberEnemy, terrainRoot);
             CreateSmokeCluster("Enemy Ridge Pyre", new Vector3(1480f, 0f, -980f), enemySmoke, emberEnemy, terrainRoot);
-            CreateSmokeCluster("Midfield Ruin Smoke", new Vector3(0f, 0f, -360f), Color.Lerp(playerSmoke, enemySmoke, 0.5f), Color.Lerp(emberPlayer, emberEnemy, 0.5f), terrainRoot);
-            CreateSmokeCluster("Midfield Ruin Smoke East", new Vector3(420f, 0f, 280f), Color.Lerp(playerSmoke, enemySmoke, 0.5f), Color.Lerp(emberPlayer, emberEnemy, 0.5f), terrainRoot);
+            CreateSmokeCluster("Midfield Ruin Smoke West", new Vector3(-620f, 0f, -620f), Color.Lerp(playerSmoke, enemySmoke, 0.5f), Color.Lerp(emberPlayer, emberEnemy, 0.5f), terrainRoot);
+            CreateSmokeCluster("Midfield Ruin Smoke East", new Vector3(760f, 0f, 560f), Color.Lerp(playerSmoke, enemySmoke, 0.5f), Color.Lerp(emberPlayer, emberEnemy, 0.5f), terrainRoot);
         }
 
         private void CreateSmokeCluster(string clusterName, Vector3 origin, Color smokeColor, Color emberColor, Transform terrainRoot)
         {
             for (int index = 0; index < 3; index++)
             {
-                float offsetX = (index - 1) * 2.8f;
-                float offsetZ = (index % 2 == 0 ? 1.6f : -1.6f);
+                float offsetX = (index - 1) * 2.2f;
+                float offsetZ = (index % 2 == 0 ? 1.3f : -1.3f);
                 CreateAtmospherePrimitive(
                     $"{clusterName} Smoke Column {index + 1}",
                     PrimitiveType.Cylinder,
-                    origin + new Vector3(offsetX, 8f + index * 1.8f, offsetZ),
-                    new Vector3(1.8f + index * 0.34f, 7.8f + index * 1.4f, 1.8f + index * 0.34f),
+                    origin + new Vector3(offsetX, 5.4f + index * 1.2f, offsetZ),
+                    new Vector3(1.05f + index * 0.2f, 5.6f + index * 0.95f, 1.05f + index * 0.2f),
                     smokeColor,
                     terrainRoot);
             }

@@ -601,6 +601,158 @@ namespace Game.Prototype
             public float Phase;
         }
 
+        private struct ThinGlint
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct FadingGleam
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct SoftTrace
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct FaintVeil
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct GhostSheen
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct FinalTint
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct MuteHue
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct HushedTint
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct FadedCast
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct SpentShade
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct DryStain
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct WornMark
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct FaintScuff
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct TraceNick
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct PinPrick
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct NeedleDot
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct DustSpeck
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct AshMote
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
+        private struct SootFleck
+        {
+            public Transform Transform;
+            public Vector3 BasePosition;
+            public Vector3 BaseScale;
+            public float Phase;
+        }
+
         private readonly List<DriftLayer> driftLayers = new();
         private readonly List<HorizonSilhouette> horizonSilhouettes = new();
         private readonly List<SkyTrail> skyTrails = new();
@@ -812,6 +964,63 @@ namespace Game.Prototype
         private readonly List<LastLustre> lastLustres = new();
         private readonly List<Renderer> lastLustreRenderers = new();
         private readonly List<Color> lastLustreBaseColors = new();
+        private readonly List<ThinGlint> thinGlints = new();
+        private readonly List<Renderer> thinGlintRenderers = new();
+        private readonly List<Color> thinGlintBaseColors = new();
+        private readonly List<FadingGleam> fadingGleams = new();
+        private readonly List<Renderer> fadingGleamRenderers = new();
+        private readonly List<Color> fadingGleamBaseColors = new();
+        private readonly List<SoftTrace> softTraces = new();
+        private readonly List<Renderer> softTraceRenderers = new();
+        private readonly List<Color> softTraceBaseColors = new();
+        private readonly List<FaintVeil> faintVeils = new();
+        private readonly List<Renderer> faintVeilRenderers = new();
+        private readonly List<Color> faintVeilBaseColors = new();
+        private readonly List<GhostSheen> ghostSheens = new();
+        private readonly List<Renderer> ghostSheenRenderers = new();
+        private readonly List<Color> ghostSheenBaseColors = new();
+        private readonly List<FinalTint> finalTints = new();
+        private readonly List<Renderer> finalTintRenderers = new();
+        private readonly List<Color> finalTintBaseColors = new();
+        private readonly List<MuteHue> muteHues = new();
+        private readonly List<Renderer> muteHueRenderers = new();
+        private readonly List<Color> muteHueBaseColors = new();
+        private readonly List<HushedTint> hushedTints = new();
+        private readonly List<Renderer> hushedTintRenderers = new();
+        private readonly List<Color> hushedTintBaseColors = new();
+        private readonly List<FadedCast> fadedCasts = new();
+        private readonly List<Renderer> fadedCastRenderers = new();
+        private readonly List<Color> fadedCastBaseColors = new();
+        private readonly List<SpentShade> spentShades = new();
+        private readonly List<Renderer> spentShadeRenderers = new();
+        private readonly List<Color> spentShadeBaseColors = new();
+        private readonly List<DryStain> dryStains = new();
+        private readonly List<Renderer> dryStainRenderers = new();
+        private readonly List<Color> dryStainBaseColors = new();
+        private readonly List<WornMark> wornMarks = new();
+        private readonly List<Renderer> wornMarkRenderers = new();
+        private readonly List<Color> wornMarkBaseColors = new();
+        private readonly List<FaintScuff> faintScuffs = new();
+        private readonly List<Renderer> faintScuffRenderers = new();
+        private readonly List<Color> faintScuffBaseColors = new();
+        private readonly List<TraceNick> traceNicks = new();
+        private readonly List<Renderer> traceNickRenderers = new();
+        private readonly List<Color> traceNickBaseColors = new();
+        private readonly List<PinPrick> pinPricks = new();
+        private readonly List<Renderer> pinPrickRenderers = new();
+        private readonly List<Color> pinPrickBaseColors = new();
+        private readonly List<NeedleDot> needleDots = new();
+        private readonly List<Renderer> needleDotRenderers = new();
+        private readonly List<Color> needleDotBaseColors = new();
+        private readonly List<DustSpeck> dustSpecks = new();
+        private readonly List<Renderer> dustSpeckRenderers = new();
+        private readonly List<Color> dustSpeckBaseColors = new();
+        private readonly List<AshMote> ashMotes = new();
+        private readonly List<Renderer> ashMoteRenderers = new();
+        private readonly List<Color> ashMoteBaseColors = new();
+        private readonly List<SootFleck> sootFlecks = new();
+        private readonly List<Renderer> sootFleckRenderers = new();
+        private readonly List<Color> sootFleckBaseColors = new();
         private readonly List<Transform> shrineMotes = new();
         private readonly List<Vector3> shrineMoteCenters = new();
         private readonly List<float> shrineMotePhases = new();
@@ -1034,6 +1243,63 @@ namespace Game.Prototype
             lastLustres.Clear();
             lastLustreRenderers.Clear();
             lastLustreBaseColors.Clear();
+            thinGlints.Clear();
+            thinGlintRenderers.Clear();
+            thinGlintBaseColors.Clear();
+            fadingGleams.Clear();
+            fadingGleamRenderers.Clear();
+            fadingGleamBaseColors.Clear();
+            softTraces.Clear();
+            softTraceRenderers.Clear();
+            softTraceBaseColors.Clear();
+            faintVeils.Clear();
+            faintVeilRenderers.Clear();
+            faintVeilBaseColors.Clear();
+            ghostSheens.Clear();
+            ghostSheenRenderers.Clear();
+            ghostSheenBaseColors.Clear();
+            finalTints.Clear();
+            finalTintRenderers.Clear();
+            finalTintBaseColors.Clear();
+            muteHues.Clear();
+            muteHueRenderers.Clear();
+            muteHueBaseColors.Clear();
+            hushedTints.Clear();
+            hushedTintRenderers.Clear();
+            hushedTintBaseColors.Clear();
+            fadedCasts.Clear();
+            fadedCastRenderers.Clear();
+            fadedCastBaseColors.Clear();
+            spentShades.Clear();
+            spentShadeRenderers.Clear();
+            spentShadeBaseColors.Clear();
+            dryStains.Clear();
+            dryStainRenderers.Clear();
+            dryStainBaseColors.Clear();
+            wornMarks.Clear();
+            wornMarkRenderers.Clear();
+            wornMarkBaseColors.Clear();
+            faintScuffs.Clear();
+            faintScuffRenderers.Clear();
+            faintScuffBaseColors.Clear();
+            traceNicks.Clear();
+            traceNickRenderers.Clear();
+            traceNickBaseColors.Clear();
+            pinPricks.Clear();
+            pinPrickRenderers.Clear();
+            pinPrickBaseColors.Clear();
+            needleDots.Clear();
+            needleDotRenderers.Clear();
+            needleDotBaseColors.Clear();
+            dustSpecks.Clear();
+            dustSpeckRenderers.Clear();
+            dustSpeckBaseColors.Clear();
+            ashMotes.Clear();
+            ashMoteRenderers.Clear();
+            ashMoteBaseColors.Clear();
+            sootFlecks.Clear();
+            sootFleckRenderers.Clear();
+            sootFleckBaseColors.Clear();
             shrineMotes.Clear();
             shrineMoteCenters.Clear();
             shrineMotePhases.Clear();
@@ -1120,6 +1386,25 @@ namespace Game.Prototype
             CreateStillFilms();
             CreateQuietSheens();
             CreateLastLustres();
+            CreateThinGlints();
+            CreateFadingGleams();
+            CreateSoftTraces();
+            CreateFaintVeils();
+            CreateGhostSheens();
+            CreateFinalTints();
+            CreateMuteHues();
+            CreateHushedTints();
+            CreateFadedCasts();
+            CreateSpentShades();
+            CreateDryStains();
+            CreateWornMarks();
+            CreateFaintScuffs();
+            CreateTraceNicks();
+            CreatePinPricks();
+            CreateNeedleDots();
+            CreateDustSpecks();
+            CreateAshMotes();
+            CreateSootFleckLayer();
             CreateShrineMotes();
         }
 
@@ -1196,6 +1481,25 @@ namespace Game.Prototype
             AnimateStillFilms();
             AnimateQuietSheens();
             AnimateLastLustres();
+            AnimateThinGlints();
+            AnimateFadingGleams();
+            AnimateSoftTraces();
+            AnimateFaintVeils();
+            AnimateGhostSheens();
+            AnimateFinalTints();
+            AnimateMuteHues();
+            AnimateHushedTints();
+            AnimateFadedCasts();
+            AnimateSpentShades();
+            AnimateDryStains();
+            AnimateWornMarks();
+            AnimateFaintScuffs();
+            AnimateTraceNicks();
+            AnimatePinPricks();
+            AnimateNeedleDots();
+            AnimateDustSpecks();
+            AnimateAshMotes();
+            AnimateSootFleckLayer();
             AnimateShrineMotes();
         }
 
@@ -5689,6 +5993,1051 @@ namespace Game.Prototype
             }
         }
 
+        private void CreateThinGlints()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerGlint = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.00008f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00008f),
+                _ => new Color(1f, 1f, 1f, 0.00008f)
+            };
+            Color enemyGlint = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.00008f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00008f),
+                _ => new Color(1f, 1f, 0.999f, 0.00008f)
+            };
+
+            int glintCount = 8;
+            for (int index = 0; index < glintCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.99033f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject glint = new($"Thin Glint {index + 1}");
+                glint.transform.SetParent(root);
+                glint.transform.position = basePosition;
+                glint.transform.rotation = Quaternion.identity;
+                glint.transform.localScale = Vector3.one;
+
+                Color glintColor = playerBias ? playerGlint : enemyGlint;
+                CreateThinGlintElement(
+                    glint.transform,
+                    "Thin Glint Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.00002f, 0f),
+                    Vector3.one * 0.00009f,
+                    glintColor);
+
+                thinGlints.Add(new ThinGlint
+                {
+                    Transform = glint.transform,
+                    BasePosition = basePosition,
+                    BaseScale = glint.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateFadingGleams()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerGleam = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.00005f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00005f),
+                _ => new Color(1f, 1f, 1f, 0.00005f)
+            };
+            Color enemyGleam = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.00005f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00005f),
+                _ => new Color(1f, 1f, 0.999f, 0.00005f)
+            };
+
+            int gleamCount = 8;
+            for (int index = 0; index < gleamCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990325f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject gleam = new($"Fading Gleam {index + 1}");
+                gleam.transform.SetParent(root);
+                gleam.transform.position = basePosition;
+                gleam.transform.rotation = Quaternion.identity;
+                gleam.transform.localScale = Vector3.one;
+
+                Color gleamColor = playerBias ? playerGleam : enemyGleam;
+                CreateFadingGleamElement(
+                    gleam.transform,
+                    "Fading Gleam Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.000016f, 0f),
+                    Vector3.one * 0.00007f,
+                    gleamColor);
+
+                fadingGleams.Add(new FadingGleam
+                {
+                    Transform = gleam.transform,
+                    BasePosition = basePosition,
+                    BaseScale = gleam.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateSoftTraces()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerTrace = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.00003f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00003f),
+                _ => new Color(1f, 1f, 1f, 0.00003f)
+            };
+            Color enemyTrace = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.00003f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00003f),
+                _ => new Color(1f, 1f, 0.999f, 0.00003f)
+            };
+
+            int traceCount = 8;
+            for (int index = 0; index < traceCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990322f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject trace = new($"Soft Trace {index + 1}");
+                trace.transform.SetParent(root);
+                trace.transform.position = basePosition;
+                trace.transform.rotation = Quaternion.identity;
+                trace.transform.localScale = Vector3.one;
+
+                Color traceColor = playerBias ? playerTrace : enemyTrace;
+                CreateSoftTraceElement(
+                    trace.transform,
+                    "Soft Trace Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.000013f, 0f),
+                    Vector3.one * 0.000055f,
+                    traceColor);
+
+                softTraces.Add(new SoftTrace
+                {
+                    Transform = trace.transform,
+                    BasePosition = basePosition,
+                    BaseScale = trace.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateFaintVeils()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerVeil = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.00002f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00002f),
+                _ => new Color(1f, 1f, 1f, 0.00002f)
+            };
+            Color enemyVeil = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.00002f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00002f),
+                _ => new Color(1f, 1f, 0.999f, 0.00002f)
+            };
+
+            int veilCount = 8;
+            for (int index = 0; index < veilCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990319f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject veil = new($"Faint Veil {index + 1}");
+                veil.transform.SetParent(root);
+                veil.transform.position = basePosition;
+                veil.transform.rotation = Quaternion.identity;
+                veil.transform.localScale = Vector3.one;
+
+                Color veilColor = playerBias ? playerVeil : enemyVeil;
+                CreateFaintVeilElement(
+                    veil.transform,
+                    "Faint Veil Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.000011f, 0f),
+                    Vector3.one * 0.000042f,
+                    veilColor);
+
+                faintVeils.Add(new FaintVeil
+                {
+                    Transform = veil.transform,
+                    BasePosition = basePosition,
+                    BaseScale = veil.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateGhostSheens()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerSheen = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.000012f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000012f),
+                _ => new Color(1f, 1f, 1f, 0.000012f)
+            };
+            Color enemySheen = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.000012f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000012f),
+                _ => new Color(1f, 1f, 0.999f, 0.000012f)
+            };
+
+            int sheenCount = 8;
+            for (int index = 0; index < sheenCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990317f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject sheen = new($"Ghost Sheen {index + 1}");
+                sheen.transform.SetParent(root);
+                sheen.transform.position = basePosition;
+                sheen.transform.rotation = Quaternion.identity;
+                sheen.transform.localScale = Vector3.one;
+
+                Color sheenColor = playerBias ? playerSheen : enemySheen;
+                CreateGhostSheenElement(
+                    sheen.transform,
+                    "Ghost Sheen Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.000009f, 0f),
+                    Vector3.one * 0.000032f,
+                    sheenColor);
+
+                ghostSheens.Add(new GhostSheen
+                {
+                    Transform = sheen.transform,
+                    BasePosition = basePosition,
+                    BaseScale = sheen.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateFinalTints()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerTint = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.000007f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000007f),
+                _ => new Color(1f, 1f, 1f, 0.000007f)
+            };
+            Color enemyTint = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.000007f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000007f),
+                _ => new Color(1f, 1f, 0.999f, 0.000007f)
+            };
+
+            int tintCount = 8;
+            for (int index = 0; index < tintCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990316f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject tint = new($"Final Tint {index + 1}");
+                tint.transform.SetParent(root);
+                tint.transform.position = basePosition;
+                tint.transform.rotation = Quaternion.identity;
+                tint.transform.localScale = Vector3.one;
+
+                Color tintColor = playerBias ? playerTint : enemyTint;
+                CreateFinalTintElement(
+                    tint.transform,
+                    "Final Tint Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.000007f, 0f),
+                    Vector3.one * 0.000024f,
+                    tintColor);
+
+                finalTints.Add(new FinalTint
+                {
+                    Transform = tint.transform,
+                    BasePosition = basePosition,
+                    BaseScale = tint.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateMuteHues()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerHue = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.000004f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000004f),
+                _ => new Color(1f, 1f, 1f, 0.000004f)
+            };
+            Color enemyHue = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.000004f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000004f),
+                _ => new Color(1f, 1f, 0.999f, 0.000004f)
+            };
+
+            int hueCount = 8;
+            for (int index = 0; index < hueCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990315f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject hue = new($"Mute Hue {index + 1}");
+                hue.transform.SetParent(root);
+                hue.transform.position = basePosition;
+                hue.transform.rotation = Quaternion.identity;
+                hue.transform.localScale = Vector3.one;
+
+                Color hueColor = playerBias ? playerHue : enemyHue;
+                CreateMuteHueElement(
+                    hue.transform,
+                    "Mute Hue Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.000006f, 0f),
+                    Vector3.one * 0.000018f,
+                    hueColor);
+
+                muteHues.Add(new MuteHue
+                {
+                    Transform = hue.transform,
+                    BasePosition = basePosition,
+                    BaseScale = hue.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateHushedTints()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerTint = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.0000025f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.0000025f),
+                _ => new Color(1f, 1f, 1f, 0.0000025f)
+            };
+            Color enemyTint = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.0000025f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.0000025f),
+                _ => new Color(1f, 1f, 0.999f, 0.0000025f)
+            };
+
+            int tintCount = 8;
+            for (int index = 0; index < tintCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990314f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject tint = new($"Hushed Tint {index + 1}");
+                tint.transform.SetParent(root);
+                tint.transform.position = basePosition;
+                tint.transform.rotation = Quaternion.identity;
+                tint.transform.localScale = Vector3.one;
+
+                Color tintColor = playerBias ? playerTint : enemyTint;
+                CreateHushedTintElement(
+                    tint.transform,
+                    "Hushed Tint Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.000005f, 0f),
+                    Vector3.one * 0.000014f,
+                    tintColor);
+
+                hushedTints.Add(new HushedTint
+                {
+                    Transform = tint.transform,
+                    BasePosition = basePosition,
+                    BaseScale = tint.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateFadedCasts()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerCast = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.0000015f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.0000015f),
+                _ => new Color(1f, 1f, 1f, 0.0000015f)
+            };
+            Color enemyCast = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.0000015f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.0000015f),
+                _ => new Color(1f, 1f, 0.999f, 0.0000015f)
+            };
+
+            int castCount = 8;
+            for (int index = 0; index < castCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990313f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject cast = new($"Faded Cast {index + 1}");
+                cast.transform.SetParent(root);
+                cast.transform.position = basePosition;
+                cast.transform.rotation = Quaternion.identity;
+                cast.transform.localScale = Vector3.one;
+
+                Color castColor = playerBias ? playerCast : enemyCast;
+                CreateFadedCastElement(
+                    cast.transform,
+                    "Faded Cast Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.000004f, 0f),
+                    Vector3.one * 0.000011f,
+                    castColor);
+
+                fadedCasts.Add(new FadedCast
+                {
+                    Transform = cast.transform,
+                    BasePosition = basePosition,
+                    BaseScale = cast.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateSpentShades()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerShade = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.000001f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000001f),
+                _ => new Color(1f, 1f, 1f, 0.000001f)
+            };
+            Color enemyShade = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.000001f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000001f),
+                _ => new Color(1f, 1f, 0.999f, 0.000001f)
+            };
+
+            int shadeCount = 8;
+            for (int index = 0; index < shadeCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990312f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject shade = new($"Spent Shade {index + 1}");
+                shade.transform.SetParent(root);
+                shade.transform.position = basePosition;
+                shade.transform.rotation = Quaternion.identity;
+                shade.transform.localScale = Vector3.one;
+
+                Color shadeColor = playerBias ? playerShade : enemyShade;
+                CreateSpentShadeElement(
+                    shade.transform,
+                    "Spent Shade Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.000003f, 0f),
+                    Vector3.one * 0.000009f,
+                    shadeColor);
+
+                spentShades.Add(new SpentShade
+                {
+                    Transform = shade.transform,
+                    BasePosition = basePosition,
+                    BaseScale = shade.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateDryStains()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerStain = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.0000007f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.0000007f),
+                _ => new Color(1f, 1f, 1f, 0.0000007f)
+            };
+            Color enemyStain = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.0000007f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.0000007f),
+                _ => new Color(1f, 1f, 0.999f, 0.0000007f)
+            };
+
+            int stainCount = 8;
+            for (int index = 0; index < stainCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990311f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject stain = new($"Dry Stain {index + 1}");
+                stain.transform.SetParent(root);
+                stain.transform.position = basePosition;
+                stain.transform.rotation = Quaternion.identity;
+                stain.transform.localScale = Vector3.one;
+
+                Color stainColor = playerBias ? playerStain : enemyStain;
+                CreateDryStainElement(
+                    stain.transform,
+                    "Dry Stain Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.000002f, 0f),
+                    Vector3.one * 0.000007f,
+                    stainColor);
+
+                dryStains.Add(new DryStain
+                {
+                    Transform = stain.transform,
+                    BasePosition = basePosition,
+                    BaseScale = stain.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateWornMarks()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerMark = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.00000045f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00000045f),
+                _ => new Color(1f, 1f, 1f, 0.00000045f)
+            };
+            Color enemyMark = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.00000045f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00000045f),
+                _ => new Color(1f, 1f, 0.999f, 0.00000045f)
+            };
+
+            int markCount = 8;
+            for (int index = 0; index < markCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.99031f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject mark = new($"Worn Mark {index + 1}");
+                mark.transform.SetParent(root);
+                mark.transform.position = basePosition;
+                mark.transform.rotation = Quaternion.identity;
+                mark.transform.localScale = Vector3.one;
+
+                Color markColor = playerBias ? playerMark : enemyMark;
+                CreateWornMarkElement(
+                    mark.transform,
+                    "Worn Mark Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.0000015f, 0f),
+                    Vector3.one * 0.000005f,
+                    markColor);
+
+                wornMarks.Add(new WornMark
+                {
+                    Transform = mark.transform,
+                    BasePosition = basePosition,
+                    BaseScale = mark.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateFaintScuffs()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerScuff = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.00000028f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00000028f),
+                _ => new Color(1f, 1f, 1f, 0.00000028f)
+            };
+            Color enemyScuff = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.00000028f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00000028f),
+                _ => new Color(1f, 1f, 0.999f, 0.00000028f)
+            };
+
+            int scuffCount = 8;
+            for (int index = 0; index < scuffCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990309f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject scuff = new($"Faint Scuff {index + 1}");
+                scuff.transform.SetParent(root);
+                scuff.transform.position = basePosition;
+                scuff.transform.rotation = Quaternion.identity;
+                scuff.transform.localScale = Vector3.one;
+
+                Color scuffColor = playerBias ? playerScuff : enemyScuff;
+                CreateFaintScuffElement(
+                    scuff.transform,
+                    "Faint Scuff Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.000001f, 0f),
+                    Vector3.one * 0.0000038f,
+                    scuffColor);
+
+                faintScuffs.Add(new FaintScuff
+                {
+                    Transform = scuff.transform,
+                    BasePosition = basePosition,
+                    BaseScale = scuff.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateTraceNicks()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerNick = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.00000018f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00000018f),
+                _ => new Color(1f, 1f, 1f, 0.00000018f)
+            };
+            Color enemyNick = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.00000018f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00000018f),
+                _ => new Color(1f, 1f, 0.999f, 0.00000018f)
+            };
+
+            int nickCount = 8;
+            for (int index = 0; index < nickCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990308f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject nick = new($"Trace Nick {index + 1}");
+                nick.transform.SetParent(root);
+                nick.transform.position = basePosition;
+                nick.transform.rotation = Quaternion.identity;
+                nick.transform.localScale = Vector3.one;
+
+                Color nickColor = playerBias ? playerNick : enemyNick;
+                CreateTraceNickElement(
+                    nick.transform,
+                    "Trace Nick Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.0000007f, 0f),
+                    Vector3.one * 0.0000026f,
+                    nickColor);
+
+                traceNicks.Add(new TraceNick
+                {
+                    Transform = nick.transform,
+                    BasePosition = basePosition,
+                    BaseScale = nick.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreatePinPricks()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerPrick = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.00000011f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00000011f),
+                _ => new Color(1f, 1f, 1f, 0.00000011f)
+            };
+            Color enemyPrick = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.00000011f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00000011f),
+                _ => new Color(1f, 1f, 0.999f, 0.00000011f)
+            };
+
+            int prickCount = 8;
+            for (int index = 0; index < prickCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990307f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject prick = new($"Pin Prick {index + 1}");
+                prick.transform.SetParent(root);
+                prick.transform.position = basePosition;
+                prick.transform.rotation = Quaternion.identity;
+                prick.transform.localScale = Vector3.one;
+
+                Color prickColor = playerBias ? playerPrick : enemyPrick;
+                CreatePinPrickElement(
+                    prick.transform,
+                    "Pin Prick Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.0000005f, 0f),
+                    Vector3.one * 0.0000018f,
+                    prickColor);
+
+                pinPricks.Add(new PinPrick
+                {
+                    Transform = prick.transform,
+                    BasePosition = basePosition,
+                    BaseScale = prick.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateNeedleDots()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerDot = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.00000007f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00000007f),
+                _ => new Color(1f, 1f, 1f, 0.00000007f)
+            };
+            Color enemyDot = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.00000007f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.00000007f),
+                _ => new Color(1f, 1f, 0.999f, 0.00000007f)
+            };
+
+            int dotCount = 8;
+            for (int index = 0; index < dotCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990306f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject dot = new($"Needle Dot {index + 1}");
+                dot.transform.SetParent(root);
+                dot.transform.position = basePosition;
+                dot.transform.rotation = Quaternion.identity;
+                dot.transform.localScale = Vector3.one;
+
+                Color dotColor = playerBias ? playerDot : enemyDot;
+                CreateNeedleDotElement(
+                    dot.transform,
+                    "Needle Dot Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.0000003f, 0f),
+                    Vector3.one * 0.0000012f,
+                    dotColor);
+
+                needleDots.Add(new NeedleDot
+                {
+                    Transform = dot.transform,
+                    BasePosition = basePosition,
+                    BaseScale = dot.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateDustSpecks()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerSpeck = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.000000045f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000000045f),
+                _ => new Color(1f, 1f, 1f, 0.000000045f)
+            };
+            Color enemySpeck = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.000000045f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000000045f),
+                _ => new Color(1f, 1f, 0.999f, 0.000000045f)
+            };
+
+            int speckCount = 8;
+            for (int index = 0; index < speckCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990305f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject speck = new($"Dust Speck {index + 1}");
+                speck.transform.SetParent(root);
+                speck.transform.position = basePosition;
+                speck.transform.rotation = Quaternion.identity;
+                speck.transform.localScale = Vector3.one;
+
+                Color speckColor = playerBias ? playerSpeck : enemySpeck;
+                CreateDustSpeckElement(
+                    speck.transform,
+                    "Dust Speck Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.00000018f, 0f),
+                    Vector3.one * 0.00000085f,
+                    speckColor);
+
+                dustSpecks.Add(new DustSpeck
+                {
+                    Transform = speck.transform,
+                    BasePosition = basePosition,
+                    BaseScale = speck.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateAshMotes()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerMote = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.000000028f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000000028f),
+                _ => new Color(1f, 1f, 1f, 0.000000028f)
+            };
+            Color enemyMote = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.000000028f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000000028f),
+                _ => new Color(1f, 1f, 0.999f, 0.000000028f)
+            };
+
+            int moteCount = 8;
+            for (int index = 0; index < moteCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990304f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject mote = new($"Ash Mote {index + 1}");
+                mote.transform.SetParent(root);
+                mote.transform.position = basePosition;
+                mote.transform.rotation = Quaternion.identity;
+                mote.transform.localScale = Vector3.one;
+
+                Color moteColor = playerBias ? playerMote : enemyMote;
+                CreateAshMoteElement(
+                    mote.transform,
+                    "Ash Mote Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.00000011f, 0f),
+                    Vector3.one * 0.00000062f,
+                    moteColor);
+
+                ashMotes.Add(new AshMote
+                {
+                    Transform = mote.transform,
+                    BasePosition = basePosition,
+                    BaseScale = mote.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
+        private void CreateSootFleckLayer()
+        {
+            if (mapProfile == null || root == null)
+            {
+                return;
+            }
+
+            Color playerFleck = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 1f, 0.000000017f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000000017f),
+                _ => new Color(1f, 1f, 1f, 0.000000017f)
+            };
+            Color enemyFleck = theme switch
+            {
+                BattlefieldTheme.CrimsonBasin => new Color(1f, 1f, 0.999f, 0.000000017f),
+                BattlefieldTheme.PaleSaltFlats => new Color(1f, 1f, 1f, 0.000000017f),
+                _ => new Color(1f, 1f, 0.999f, 0.000000017f)
+            };
+
+            int fleckCount = 8;
+            for (int index = 0; index < fleckCount; index++)
+            {
+                bool playerBias = index % 2 == 0;
+                float laneT = 0.24f + index * 0.065f;
+                Vector3 basePosition = new Vector3(
+                    playerBias ? -62f : 62f,
+                    7.990303f,
+                    Mathf.Lerp(mapProfile.MinZ, mapProfile.MaxZ, laneT) + (playerBias ? 16f : -16f));
+
+                GameObject fleck = new($"Soot Fleck {index + 1}");
+                fleck.transform.SetParent(root);
+                fleck.transform.position = basePosition;
+                fleck.transform.rotation = Quaternion.identity;
+                fleck.transform.localScale = Vector3.one;
+
+                Color fleckColor = playerBias ? playerFleck : enemyFleck;
+                CreateSootFleckElement(
+                    fleck.transform,
+                    "Soot Fleck Core",
+                    PrimitiveType.Sphere,
+                    new Vector3(0f, 0.00000007f, 0f),
+                    Vector3.one * 0.00000045f,
+                    fleckColor);
+
+                sootFlecks.Add(new SootFleck
+                {
+                    Transform = fleck.transform,
+                    BasePosition = basePosition,
+                    BaseScale = fleck.transform.localScale,
+                    Phase = Random.value * Mathf.PI * 2f
+                });
+            }
+        }
+
         private void AnimateDriftLayers()
         {
             if (mapProfile == null)
@@ -8517,6 +9866,595 @@ namespace Game.Prototype
             }
         }
 
+        private void AnimateThinGlints()
+        {
+            for (int index = 0; index < thinGlints.Count; index++)
+            {
+                ThinGlint glint = thinGlints[index];
+                if (glint.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.092f + Mathf.PingPong(Time.time * 0.00072f + glint.Phase, 0.00012f);
+                glint.Transform.position = glint.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.00072f + glint.Phase) * 0.0000011f, 0f);
+                glint.Transform.localScale = glint.BaseScale * Mathf.Lerp(0.99999f, 1.00004f, intensity);
+                thinGlints[index] = glint;
+
+                if (index >= thinGlintRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = thinGlintRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.9986f + Mathf.PingPong(Time.time * 0.041f + index * 0.0019f, 0.000024f);
+                rendererComponent.material.color = thinGlintBaseColors[index] * Mathf.Max(0.000024f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateFadingGleams()
+        {
+            for (int index = 0; index < fadingGleams.Count; index++)
+            {
+                FadingGleam gleam = fadingGleams[index];
+                if (gleam.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.09f + Mathf.PingPong(Time.time * 0.00058f + gleam.Phase, 0.00009f);
+                gleam.Transform.position = gleam.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.00058f + gleam.Phase) * 0.0000009f, 0f);
+                gleam.Transform.localScale = gleam.BaseScale * Mathf.Lerp(0.999992f, 1.00003f, intensity);
+                fadingGleams[index] = gleam;
+
+                if (index >= fadingGleamRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = fadingGleamRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99865f + Mathf.PingPong(Time.time * 0.036f + index * 0.0017f, 0.000018f);
+                rendererComponent.material.color = fadingGleamBaseColors[index] * Mathf.Max(0.000018f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateSoftTraces()
+        {
+            for (int index = 0; index < softTraces.Count; index++)
+            {
+                SoftTrace trace = softTraces[index];
+                if (trace.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.088f + Mathf.PingPong(Time.time * 0.00048f + trace.Phase, 0.00007f);
+                trace.Transform.position = trace.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.00048f + trace.Phase) * 0.0000007f, 0f);
+                trace.Transform.localScale = trace.BaseScale * Mathf.Lerp(0.999994f, 1.000022f, intensity);
+                softTraces[index] = trace;
+
+                if (index >= softTraceRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = softTraceRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.9987f + Mathf.PingPong(Time.time * 0.031f + index * 0.0015f, 0.000014f);
+                rendererComponent.material.color = softTraceBaseColors[index] * Mathf.Max(0.000014f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateFaintVeils()
+        {
+            for (int index = 0; index < faintVeils.Count; index++)
+            {
+                FaintVeil veil = faintVeils[index];
+                if (veil.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.086f + Mathf.PingPong(Time.time * 0.00041f + veil.Phase, 0.000055f);
+                veil.Transform.position = veil.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.00041f + veil.Phase) * 0.00000055f, 0f);
+                veil.Transform.localScale = veil.BaseScale * Mathf.Lerp(0.999995f, 1.000018f, intensity);
+                faintVeils[index] = veil;
+
+                if (index >= faintVeilRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = faintVeilRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99874f + Mathf.PingPong(Time.time * 0.027f + index * 0.0013f, 0.000011f);
+                rendererComponent.material.color = faintVeilBaseColors[index] * Mathf.Max(0.000011f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateGhostSheens()
+        {
+            for (int index = 0; index < ghostSheens.Count; index++)
+            {
+                GhostSheen sheen = ghostSheens[index];
+                if (sheen.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.084f + Mathf.PingPong(Time.time * 0.00034f + sheen.Phase, 0.000043f);
+                sheen.Transform.position = sheen.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.00034f + sheen.Phase) * 0.00000042f, 0f);
+                sheen.Transform.localScale = sheen.BaseScale * Mathf.Lerp(0.999996f, 1.000014f, intensity);
+                ghostSheens[index] = sheen;
+
+                if (index >= ghostSheenRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = ghostSheenRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99877f + Mathf.PingPong(Time.time * 0.023f + index * 0.0011f, 0.000009f);
+                rendererComponent.material.color = ghostSheenBaseColors[index] * Mathf.Max(0.000009f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateFinalTints()
+        {
+            for (int index = 0; index < finalTints.Count; index++)
+            {
+                FinalTint tint = finalTints[index];
+                if (tint.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.083f + Mathf.PingPong(Time.time * 0.00029f + tint.Phase, 0.000034f);
+                tint.Transform.position = tint.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.00029f + tint.Phase) * 0.00000033f, 0f);
+                tint.Transform.localScale = tint.BaseScale * Mathf.Lerp(0.999997f, 1.000011f, intensity);
+                finalTints[index] = tint;
+
+                if (index >= finalTintRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = finalTintRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99879f + Mathf.PingPong(Time.time * 0.02f + index * 0.001f, 0.000007f);
+                rendererComponent.material.color = finalTintBaseColors[index] * Mathf.Max(0.000007f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateMuteHues()
+        {
+            for (int index = 0; index < muteHues.Count; index++)
+            {
+                MuteHue hue = muteHues[index];
+                if (hue.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.082f + Mathf.PingPong(Time.time * 0.00024f + hue.Phase, 0.000027f);
+                hue.Transform.position = hue.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.00024f + hue.Phase) * 0.00000026f, 0f);
+                hue.Transform.localScale = hue.BaseScale * Mathf.Lerp(0.9999975f, 1.000009f, intensity);
+                muteHues[index] = hue;
+
+                if (index >= muteHueRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = muteHueRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99881f + Mathf.PingPong(Time.time * 0.017f + index * 0.0009f, 0.000005f);
+                rendererComponent.material.color = muteHueBaseColors[index] * Mathf.Max(0.000005f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateHushedTints()
+        {
+            for (int index = 0; index < hushedTints.Count; index++)
+            {
+                HushedTint tint = hushedTints[index];
+                if (tint.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.081f + Mathf.PingPong(Time.time * 0.0002f + tint.Phase, 0.000021f);
+                tint.Transform.position = tint.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.0002f + tint.Phase) * 0.00000021f, 0f);
+                tint.Transform.localScale = tint.BaseScale * Mathf.Lerp(0.999998f, 1.000007f, intensity);
+                hushedTints[index] = tint;
+
+                if (index >= hushedTintRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = hushedTintRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99882f + Mathf.PingPong(Time.time * 0.015f + index * 0.0008f, 0.000004f);
+                rendererComponent.material.color = hushedTintBaseColors[index] * Mathf.Max(0.000004f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateFadedCasts()
+        {
+            for (int index = 0; index < fadedCasts.Count; index++)
+            {
+                FadedCast cast = fadedCasts[index];
+                if (cast.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.08f + Mathf.PingPong(Time.time * 0.00017f + cast.Phase, 0.000017f);
+                cast.Transform.position = cast.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.00017f + cast.Phase) * 0.00000017f, 0f);
+                cast.Transform.localScale = cast.BaseScale * Mathf.Lerp(0.9999985f, 1.000006f, intensity);
+                fadedCasts[index] = cast;
+
+                if (index >= fadedCastRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = fadedCastRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99883f + Mathf.PingPong(Time.time * 0.013f + index * 0.0007f, 0.000003f);
+                rendererComponent.material.color = fadedCastBaseColors[index] * Mathf.Max(0.000003f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateSpentShades()
+        {
+            for (int index = 0; index < spentShades.Count; index++)
+            {
+                SpentShade shade = spentShades[index];
+                if (shade.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.079f + Mathf.PingPong(Time.time * 0.00014f + shade.Phase, 0.000014f);
+                shade.Transform.position = shade.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.00014f + shade.Phase) * 0.00000014f, 0f);
+                shade.Transform.localScale = shade.BaseScale * Mathf.Lerp(0.999999f, 1.000005f, intensity);
+                spentShades[index] = shade;
+
+                if (index >= spentShadeRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = spentShadeRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99884f + Mathf.PingPong(Time.time * 0.011f + index * 0.0006f, 0.000002f);
+                rendererComponent.material.color = spentShadeBaseColors[index] * Mathf.Max(0.000002f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateDryStains()
+        {
+            for (int index = 0; index < dryStains.Count; index++)
+            {
+                DryStain stain = dryStains[index];
+                if (stain.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.078f + Mathf.PingPong(Time.time * 0.00011f + stain.Phase, 0.000011f);
+                stain.Transform.position = stain.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.00011f + stain.Phase) * 0.00000011f, 0f);
+                stain.Transform.localScale = stain.BaseScale * Mathf.Lerp(0.9999992f, 1.000004f, intensity);
+                dryStains[index] = stain;
+
+                if (index >= dryStainRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = dryStainRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99885f + Mathf.PingPong(Time.time * 0.009f + index * 0.0005f, 0.0000015f);
+                rendererComponent.material.color = dryStainBaseColors[index] * Mathf.Max(0.0000015f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateWornMarks()
+        {
+            for (int index = 0; index < wornMarks.Count; index++)
+            {
+                WornMark mark = wornMarks[index];
+                if (mark.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.077f + Mathf.PingPong(Time.time * 0.000085f + mark.Phase, 0.000008f);
+                mark.Transform.position = mark.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.000085f + mark.Phase) * 0.000000085f, 0f);
+                mark.Transform.localScale = mark.BaseScale * Mathf.Lerp(0.9999994f, 1.000003f, intensity);
+                wornMarks[index] = mark;
+
+                if (index >= wornMarkRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = wornMarkRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99886f + Mathf.PingPong(Time.time * 0.007f + index * 0.0004f, 0.000001f);
+                rendererComponent.material.color = wornMarkBaseColors[index] * Mathf.Max(0.000001f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateFaintScuffs()
+        {
+            for (int index = 0; index < faintScuffs.Count; index++)
+            {
+                FaintScuff scuff = faintScuffs[index];
+                if (scuff.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.076f + Mathf.PingPong(Time.time * 0.000063f + scuff.Phase, 0.000006f);
+                scuff.Transform.position = scuff.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.000063f + scuff.Phase) * 0.000000063f, 0f);
+                scuff.Transform.localScale = scuff.BaseScale * Mathf.Lerp(0.9999996f, 1.0000022f, intensity);
+                faintScuffs[index] = scuff;
+
+                if (index >= faintScuffRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = faintScuffRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99887f + Mathf.PingPong(Time.time * 0.005f + index * 0.0003f, 0.0000007f);
+                rendererComponent.material.color = faintScuffBaseColors[index] * Mathf.Max(0.0000007f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateTraceNicks()
+        {
+            for (int index = 0; index < traceNicks.Count; index++)
+            {
+                TraceNick nick = traceNicks[index];
+                if (nick.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.075f + Mathf.PingPong(Time.time * 0.000047f + nick.Phase, 0.000004f);
+                nick.Transform.position = nick.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.000047f + nick.Phase) * 0.000000047f, 0f);
+                nick.Transform.localScale = nick.BaseScale * Mathf.Lerp(0.99999975f, 1.0000016f, intensity);
+                traceNicks[index] = nick;
+
+                if (index >= traceNickRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = traceNickRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99888f + Mathf.PingPong(Time.time * 0.0038f + index * 0.0002f, 0.0000004f);
+                rendererComponent.material.color = traceNickBaseColors[index] * Mathf.Max(0.0000004f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimatePinPricks()
+        {
+            for (int index = 0; index < pinPricks.Count; index++)
+            {
+                PinPrick prick = pinPricks[index];
+                if (prick.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.074f + Mathf.PingPong(Time.time * 0.000034f + prick.Phase, 0.000003f);
+                prick.Transform.position = prick.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.000034f + prick.Phase) * 0.000000034f, 0f);
+                prick.Transform.localScale = prick.BaseScale * Mathf.Lerp(0.99999985f, 1.0000012f, intensity);
+                pinPricks[index] = prick;
+
+                if (index >= pinPrickRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = pinPrickRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99889f + Mathf.PingPong(Time.time * 0.0028f + index * 0.00015f, 0.00000025f);
+                rendererComponent.material.color = pinPrickBaseColors[index] * Mathf.Max(0.00000025f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateNeedleDots()
+        {
+            for (int index = 0; index < needleDots.Count; index++)
+            {
+                NeedleDot dot = needleDots[index];
+                if (dot.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.073f + Mathf.PingPong(Time.time * 0.000024f + dot.Phase, 0.000002f);
+                dot.Transform.position = dot.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.000024f + dot.Phase) * 0.000000024f, 0f);
+                dot.Transform.localScale = dot.BaseScale * Mathf.Lerp(0.99999992f, 1.0000008f, intensity);
+                needleDots[index] = dot;
+
+                if (index >= needleDotRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = needleDotRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.9989f + Mathf.PingPong(Time.time * 0.0019f + index * 0.0001f, 0.00000012f);
+                rendererComponent.material.color = needleDotBaseColors[index] * Mathf.Max(0.00000012f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateDustSpecks()
+        {
+            for (int index = 0; index < dustSpecks.Count; index++)
+            {
+                DustSpeck speck = dustSpecks[index];
+                if (speck.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.072f + Mathf.PingPong(Time.time * 0.000017f + speck.Phase, 0.0000014f);
+                speck.Transform.position = speck.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.000017f + speck.Phase) * 0.000000017f, 0f);
+                speck.Transform.localScale = speck.BaseScale * Mathf.Lerp(0.99999996f, 1.00000045f, intensity);
+                dustSpecks[index] = speck;
+
+                if (index >= dustSpeckRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = dustSpeckRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99891f + Mathf.PingPong(Time.time * 0.0013f + index * 0.00008f, 0.00000007f);
+                rendererComponent.material.color = dustSpeckBaseColors[index] * Mathf.Max(0.00000007f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateAshMotes()
+        {
+            for (int index = 0; index < ashMotes.Count; index++)
+            {
+                AshMote mote = ashMotes[index];
+                if (mote.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.071f + Mathf.PingPong(Time.time * 0.000012f + mote.Phase, 0.000001f);
+                mote.Transform.position = mote.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.000012f + mote.Phase) * 0.000000012f, 0f);
+                mote.Transform.localScale = mote.BaseScale * Mathf.Lerp(0.99999998f, 1.00000028f, intensity);
+                ashMotes[index] = mote;
+
+                if (index >= ashMoteRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = ashMoteRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99892f + Mathf.PingPong(Time.time * 0.0009f + index * 0.00006f, 0.00000004f);
+                rendererComponent.material.color = ashMoteBaseColors[index] * Mathf.Max(0.00000004f, intensity * pulseValue);
+            }
+        }
+
+        private void AnimateSootFleckLayer()
+        {
+            for (int index = 0; index < sootFlecks.Count; index++)
+            {
+                SootFleck fleck = sootFlecks[index];
+                if (fleck.Transform == null)
+                {
+                    continue;
+                }
+
+                float intensity = 0.0705f + Mathf.PingPong(Time.time * 0.0000085f + fleck.Phase, 0.0000007f);
+                fleck.Transform.position = fleck.BasePosition + new Vector3(0f, Mathf.Sin(Time.time * 0.0000085f + fleck.Phase) * 0.000000008f, 0f);
+                fleck.Transform.localScale = fleck.BaseScale * Mathf.Lerp(0.99999999f, 1.00000016f, intensity);
+                sootFlecks[index] = fleck;
+
+                if (index >= sootFleckRenderers.Count)
+                {
+                    continue;
+                }
+
+                Renderer rendererComponent = sootFleckRenderers[index];
+                if (rendererComponent == null)
+                {
+                    continue;
+                }
+
+                float pulseValue = 0.99893f + Mathf.PingPong(Time.time * 0.00065f + index * 0.00004f, 0.000000025f);
+                rendererComponent.material.color = sootFleckBaseColors[index] * Mathf.Max(0.000000025f, intensity * pulseValue);
+            }
+        }
+
         private void AnimateHorizonSilhouettes()
         {
             if (mapProfile == null)
@@ -10106,6 +12044,405 @@ namespace Game.Prototype
                 rendererComponent.material.color = color;
                 lastLustreRenderers.Add(rendererComponent);
                 lastLustreBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateThinGlintElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                thinGlintRenderers.Add(rendererComponent);
+                thinGlintBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateFadingGleamElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                fadingGleamRenderers.Add(rendererComponent);
+                fadingGleamBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateSoftTraceElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                softTraceRenderers.Add(rendererComponent);
+                softTraceBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateFaintVeilElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                faintVeilRenderers.Add(rendererComponent);
+                faintVeilBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateGhostSheenElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                ghostSheenRenderers.Add(rendererComponent);
+                ghostSheenBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateFinalTintElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                finalTintRenderers.Add(rendererComponent);
+                finalTintBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateMuteHueElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                muteHueRenderers.Add(rendererComponent);
+                muteHueBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateHushedTintElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                hushedTintRenderers.Add(rendererComponent);
+                hushedTintBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateFadedCastElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                fadedCastRenderers.Add(rendererComponent);
+                fadedCastBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateSpentShadeElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                spentShadeRenderers.Add(rendererComponent);
+                spentShadeBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateDryStainElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                dryStainRenderers.Add(rendererComponent);
+                dryStainBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateWornMarkElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                wornMarkRenderers.Add(rendererComponent);
+                wornMarkBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateFaintScuffElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                faintScuffRenderers.Add(rendererComponent);
+                faintScuffBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateTraceNickElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                traceNickRenderers.Add(rendererComponent);
+                traceNickBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreatePinPrickElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                pinPrickRenderers.Add(rendererComponent);
+                pinPrickBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateNeedleDotElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                needleDotRenderers.Add(rendererComponent);
+                needleDotBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateDustSpeckElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                dustSpeckRenderers.Add(rendererComponent);
+                dustSpeckBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateAshMoteElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                ashMoteRenderers.Add(rendererComponent);
+                ashMoteBaseColors.Add(color);
+            }
+
+            PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
+        }
+
+        private void CreateSootFleckElement(Transform parent, string name, PrimitiveType primitiveType, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject primitive = GameObject.CreatePrimitive(primitiveType);
+            primitive.name = name;
+            primitive.transform.SetParent(parent);
+            primitive.transform.localPosition = localPosition;
+            primitive.transform.localRotation = Quaternion.identity;
+            primitive.transform.localScale = localScale;
+            DisableCollider(primitive);
+
+            Renderer rendererComponent = primitive.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+                sootFleckRenderers.Add(rendererComponent);
+                sootFleckBaseColors.Add(color);
             }
 
             PrototypeTerrainPrimitiveFactory.EnsureFogObject(primitive, BattlefieldFogRequirement.Explored);
