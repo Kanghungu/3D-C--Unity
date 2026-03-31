@@ -14,6 +14,7 @@ namespace Game.Prototype
         private static readonly HashSet<SelectableUnit> selectableUnits = new();
         private static readonly HashSet<UnitCombat> unitCombats = new();
         private static readonly HashSet<CombatTarget> combatTargets = new();
+        private static readonly HashSet<DefensiveTurret> defensiveTurrets = new();
         private static readonly HashSet<BaseStructure> baseStructures = new();
         private static readonly HashSet<ProductionStructure> productionStructures = new();
         private static readonly HashSet<ControlNode> controlNodes = new();
@@ -21,6 +22,7 @@ namespace Game.Prototype
         private static readonly List<SelectableUnit> selectableUnitsCache = new();
         private static readonly List<UnitCombat> unitCombatsCache = new();
         private static readonly List<CombatTarget> combatTargetsCache = new();
+        private static readonly List<DefensiveTurret> defensiveTurretsCache = new();
         private static readonly List<BaseStructure> baseStructuresCache = new();
         private static readonly List<ProductionStructure> productionStructuresCache = new();
         private static readonly List<ControlNode> controlNodesCache = new();
@@ -28,6 +30,7 @@ namespace Game.Prototype
         private static bool selectableUnitsDirty = true;
         private static bool unitCombatsDirty = true;
         private static bool combatTargetsDirty = true;
+        private static bool defensiveTurretsDirty = true;
         private static bool baseStructuresDirty = true;
         private static bool productionStructuresDirty = true;
         private static bool controlNodesDirty = true;
@@ -77,6 +80,22 @@ namespace Game.Prototype
             if (target != null && combatTargets.Remove(target))
             {
                 combatTargetsDirty = true;
+            }
+        }
+
+        public static void Register(DefensiveTurret turret)
+        {
+            if (turret != null && defensiveTurrets.Add(turret))
+            {
+                defensiveTurretsDirty = true;
+            }
+        }
+
+        public static void Unregister(DefensiveTurret turret)
+        {
+            if (turret != null && defensiveTurrets.Remove(turret))
+            {
+                defensiveTurretsDirty = true;
             }
         }
 
@@ -159,6 +178,17 @@ namespace Game.Prototype
             }
 
             return combatTargetsCache;
+        }
+
+        public static IReadOnlyList<DefensiveTurret> GetDefensiveTurrets()
+        {
+            if (defensiveTurretsDirty)
+            {
+                RebuildCache(defensiveTurrets, defensiveTurretsCache);
+                defensiveTurretsDirty = false;
+            }
+
+            return defensiveTurretsCache;
         }
 
         public static IReadOnlyList<BaseStructure> GetBaseStructures()

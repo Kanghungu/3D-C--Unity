@@ -14,6 +14,7 @@ namespace Game.Prototype
         [SerializeField] private float spawnRadius = 10f;
         [SerializeField] private Vector3 playerDefaultRallyOffset = new(34f, 0f, 18f);
         [SerializeField] private Vector3 enemyDefaultRallyOffset = new(-28f, 0f, -16f);
+        [SerializeField] private float threatWarningRadius = 28f;
 
         private readonly UnitArchetype[] enemyReinforcementCycle =
         {
@@ -42,6 +43,25 @@ namespace Game.Prototype
         private int currentPhase = 1;
         private Vector3 rallyPoint;
         private GameObject rallyMarker;
+        private Transform phaseAnchor;
+        private Renderer phaseCoreRenderer;
+        private readonly Transform[] phasePillars = new Transform[4];
+        private readonly Renderer[] phasePillarRenderers = new Renderer[4];
+        private Transform assaultAnchor;
+        private Transform assaultMarker;
+        private Renderer assaultMarkerRenderer;
+        private Transform threatAnchor;
+        private Transform threatRing;
+        private Renderer threatRingRenderer;
+        private Transform threatCore;
+        private Renderer threatCoreRenderer;
+        private Transform threatDirectionRoot;
+        private Transform threatDirectionBeam;
+        private Renderer threatDirectionBeamRenderer;
+        private Transform threatDirectionTip;
+        private Renderer threatDirectionTipRenderer;
+        private readonly Transform[] threatSpikes = new Transform[4];
+        private readonly Renderer[] threatSpikeRenderers = new Renderer[4];
 
         public UnitTeam Team => combatTarget != null ? combatTarget.Team : UnitTeam.Player;
         public bool IsAlive => health != null && health.IsAlive;
@@ -70,6 +90,12 @@ namespace Game.Prototype
             ApplyVisuals();
             EnsureRallyMarker();
             UpdateRallyMarkerVisuals();
+            EnsurePhaseVisuals();
+            EnsureAssaultVisuals();
+            EnsureThreatVisuals();
+            UpdatePhaseVisuals();
+            UpdateAssaultVisuals();
+            UpdateThreatVisuals();
         }
 
         private void OnEnable()
@@ -85,6 +111,9 @@ namespace Game.Prototype
         private void Update()
         {
             UpdateRallyMarker();
+            UpdatePhaseVisuals();
+            UpdateAssaultVisuals();
+            UpdateThreatVisuals();
 
             if (!IsAlive || unitRoot == null || database == null)
             {
@@ -107,6 +136,12 @@ namespace Game.Prototype
             ApplyVisuals();
             EnsureRallyMarker();
             UpdateRallyMarkerVisuals();
+            EnsurePhaseVisuals();
+            EnsureAssaultVisuals();
+            EnsureThreatVisuals();
+            UpdatePhaseVisuals();
+            UpdateAssaultVisuals();
+            UpdateThreatVisuals();
         }
 
         public void Initialize(Transform assignedUnitRoot, PrototypeGameDatabase assignedDatabase)
@@ -117,6 +152,12 @@ namespace Game.Prototype
             ApplyVisuals();
             EnsureRallyMarker();
             UpdateRallyMarkerVisuals();
+            EnsurePhaseVisuals();
+            EnsureAssaultVisuals();
+            EnsureThreatVisuals();
+            UpdatePhaseVisuals();
+            UpdateAssaultVisuals();
+            UpdateThreatVisuals();
 
             Vector3 defaultOffset = Team == UnitTeam.Player ? playerDefaultRallyOffset : enemyDefaultRallyOffset;
             SetRallyPoint(transform.position + defaultOffset);
@@ -129,11 +170,17 @@ namespace Game.Prototype
             EnsureRallyMarker();
             UpdateRallyMarkerVisuals();
             UpdateRallyMarker();
+            UpdatePhaseVisuals();
+            UpdateAssaultVisuals();
+            UpdateThreatVisuals();
         }
 
         public void SetProductionSpeedMultiplier(float multiplier)
         {
             productionSpeedMultiplier = Mathf.Max(0.5f, multiplier);
+            UpdatePhaseVisuals();
+            UpdateAssaultVisuals();
+            UpdateThreatVisuals();
         }
 
         private void EvaluatePhaseState()
@@ -303,6 +350,8 @@ namespace Game.Prototype
 
             float scaleMultiplier = phaseScaleMultipliers[Mathf.Clamp(currentPhase - 1, 0, phaseScaleMultipliers.Length - 1)];
             transform.localScale = baseScale * scaleMultiplier;
+            UpdatePhaseVisuals();
+            UpdateAssaultVisuals();
         }
 
         private void EnsureRallyMarker()
@@ -341,6 +390,383 @@ namespace Game.Prototype
 
             rallyMarker.transform.position = new Vector3(rallyPoint.x, 0.12f, rallyPoint.z);
             rallyMarker.SetActive(hasRallyPoint && IsAlive);
+        }
+
+        private void EnsurePhaseVisuals()
+        {
+            if (phaseAnchor != null)
+            {
+                return;
+            }
+
+            phaseAnchor = new GameObject("Phase Anchor").transform;
+            phaseAnchor.SetParent(transform);
+            phaseAnchor.localPosition = new Vector3(0f, 1.52f, 0f);
+            phaseAnchor.localRotation = Quaternion.identity;
+            phaseAnchor.localScale = Vector3.one;
+
+            Transform crown = CreateStatusPrimitive(
+                phaseAnchor,
+                PrimitiveType.Cylinder,
+                "Phase Crown",
+                new Vector3(0f, 0.1f, 0f),
+                new Vector3(0.26f, 0.08f, 0.26f),
+                new Color(0.3f, 0.7f, 0.95f));
+            phaseCoreRenderer = crown.GetComponent<Renderer>();
+
+            for (int i = 0; i < phasePillars.Length; i++)
+            {
+                float angle = i * Mathf.PI * 0.5f;
+                Vector3 localPosition = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.46f + new Vector3(0f, 0.32f, 0f);
+                phasePillars[i] = CreateStatusPrimitive(
+                    phaseAnchor,
+                    PrimitiveType.Cube,
+                    $"Phase Pillar {i + 1}",
+                    localPosition,
+                    new Vector3(0.12f, 0.22f, 0.12f),
+                    new Color(0.36f, 0.74f, 1f));
+                phasePillarRenderers[i] = phasePillars[i].GetComponent<Renderer>();
+            }
+        }
+
+        private void UpdatePhaseVisuals()
+        {
+            if (phaseAnchor == null)
+            {
+                return;
+            }
+
+            bool alive = IsAlive;
+            phaseAnchor.gameObject.SetActive(alive);
+            if (!alive)
+            {
+                return;
+            }
+
+            Color teamColor = Team == UnitTeam.Player ? new Color(0.34f, 0.84f, 1f) : new Color(1f, 0.46f, 0.22f);
+            Color phaseColor = Color.Lerp(teamColor, new Color(1f, 0.9f, 0.54f), Mathf.InverseLerp(1f, 4f, currentPhase));
+            float pulse = 0.88f + Mathf.PingPong(Time.time * (0.75f + currentPhase * 0.18f), 0.12f);
+
+            if (phaseCoreRenderer != null)
+            {
+                phaseCoreRenderer.material.color = phaseColor * pulse;
+            }
+
+            for (int i = 0; i < phasePillars.Length; i++)
+            {
+                bool active = i < currentPhase;
+                if (phasePillars[i] != null)
+                {
+                    phasePillars[i].gameObject.SetActive(active);
+                    phasePillars[i].localScale = new Vector3(0.12f, 0.18f + i * 0.04f, 0.12f);
+                }
+
+                if (active && phasePillarRenderers[i] != null)
+                {
+                    float pillarMix = 0.2f + i * 0.18f;
+                    phasePillarRenderers[i].material.color = Color.Lerp(teamColor, phaseColor, pillarMix) * pulse;
+                }
+            }
+        }
+
+        private void EnsureAssaultVisuals()
+        {
+            if (assaultAnchor != null)
+            {
+                return;
+            }
+
+            assaultAnchor = new GameObject("Assault Anchor").transform;
+            assaultAnchor.SetParent(transform);
+            assaultAnchor.localPosition = new Vector3(0f, 2.34f, 0f);
+            assaultAnchor.localRotation = Quaternion.identity;
+            assaultAnchor.localScale = Vector3.one;
+
+            assaultMarker = CreateStatusPrimitive(
+                assaultAnchor,
+                PrimitiveType.Cube,
+                "Assault Marker",
+                new Vector3(0f, 0.18f, 0f),
+                new Vector3(0.18f, 0.36f, 0.18f),
+                new Color(1f, 0.42f, 0.24f));
+            assaultMarkerRenderer = assaultMarker.GetComponent<Renderer>();
+        }
+
+        private void UpdateAssaultVisuals()
+        {
+            if (assaultAnchor == null)
+            {
+                return;
+            }
+
+            bool alive = IsAlive;
+            bool threatenedByPlayer = Team == UnitTeam.Enemy && BattleDirectiveController.CanTargetEnemyBaseStatic(UnitTeam.Player);
+            bool threatenedByEnemy = Team == UnitTeam.Player && BattleDirectiveController.CanTargetEnemyBaseStatic(UnitTeam.Enemy);
+            bool isObjective = alive && (threatenedByPlayer || threatenedByEnemy);
+            assaultAnchor.gameObject.SetActive(isObjective);
+
+            if (!isObjective || assaultMarker == null)
+            {
+                return;
+            }
+
+            Color assaultColor = threatenedByPlayer
+                ? new Color(0.34f, 0.92f, 1f)
+                : new Color(1f, 0.46f, 0.24f);
+            float pulse = 0.9f + Mathf.PingPong(Time.time * 4.1f, 0.22f);
+            assaultMarker.localPosition = new Vector3(0f, 0.18f + Mathf.PingPong(Time.time * 1.6f, 0.12f), 0f);
+            assaultMarker.localScale = new Vector3(0.18f, 0.34f * pulse, 0.18f);
+
+            if (assaultMarkerRenderer != null)
+            {
+                assaultMarkerRenderer.material.color = assaultColor * pulse;
+            }
+        }
+
+        private void EnsureThreatVisuals()
+        {
+            if (threatAnchor != null)
+            {
+                return;
+            }
+
+            threatAnchor = new GameObject("Threat Anchor").transform;
+            threatAnchor.SetParent(transform);
+            threatAnchor.localPosition = new Vector3(0f, 2.02f, 0f);
+            threatAnchor.localRotation = Quaternion.identity;
+            threatAnchor.localScale = Vector3.one;
+
+            threatRing = CreateStatusPrimitive(
+                threatAnchor,
+                PrimitiveType.Cylinder,
+                "Threat Ring",
+                new Vector3(0f, -0.08f, 0f),
+                new Vector3(0.26f, 0.04f, 0.26f),
+                new Color(1f, 0.46f, 0.24f));
+            threatRingRenderer = threatRing.GetComponent<Renderer>();
+
+            threatCore = CreateStatusPrimitive(
+                threatAnchor,
+                PrimitiveType.Sphere,
+                "Threat Core",
+                new Vector3(0f, 0.16f, 0f),
+                new Vector3(0.18f, 0.18f, 0.18f),
+                new Color(1f, 0.46f, 0.24f));
+            threatCoreRenderer = threatCore.GetComponent<Renderer>();
+
+            threatDirectionRoot = new GameObject("Threat Direction Root").transform;
+            threatDirectionRoot.SetParent(threatAnchor);
+            threatDirectionRoot.localPosition = new Vector3(0f, 0.06f, 0f);
+            threatDirectionRoot.localRotation = Quaternion.identity;
+            threatDirectionRoot.localScale = Vector3.one;
+
+            threatDirectionBeam = CreateStatusPrimitive(
+                threatDirectionRoot,
+                PrimitiveType.Cube,
+                "Threat Direction Beam",
+                new Vector3(0f, 0f, 0.3f),
+                new Vector3(0.04f, 0.04f, 0.6f),
+                new Color(1f, 0.46f, 0.24f));
+            threatDirectionBeamRenderer = threatDirectionBeam.GetComponent<Renderer>();
+
+            threatDirectionTip = CreateStatusPrimitive(
+                threatDirectionRoot,
+                PrimitiveType.Cube,
+                "Threat Direction Tip",
+                new Vector3(0f, 0f, 0.64f),
+                new Vector3(0.12f, 0.12f, 0.12f),
+                new Color(1f, 0.46f, 0.24f));
+            threatDirectionTipRenderer = threatDirectionTip.GetComponent<Renderer>();
+
+            for (int i = 0; i < threatSpikes.Length; i++)
+            {
+                threatSpikes[i] = CreateStatusPrimitive(
+                    threatAnchor,
+                    PrimitiveType.Cube,
+                    $"Threat Spike {i + 1}",
+                    Vector3.zero,
+                    new Vector3(0.08f, 0.22f, 0.08f),
+                    new Color(1f, 0.46f, 0.24f));
+                threatSpikeRenderers[i] = threatSpikes[i].GetComponent<Renderer>();
+            }
+        }
+
+        private void UpdateThreatVisuals()
+        {
+            if (threatAnchor == null)
+            {
+                return;
+            }
+
+            int hostileCount = CountNearbyHostiles(out float pressure, out Vector3 threatDirection);
+            bool showThreat = IsAlive && hostileCount > 0;
+            threatAnchor.gameObject.SetActive(showThreat);
+
+            if (!showThreat)
+            {
+                return;
+            }
+
+            Color threatColor = Team == UnitTeam.Player
+                ? new Color(1f, 0.46f, 0.24f)
+                : new Color(0.34f, 0.92f, 1f);
+            float pulse = 0.88f + Mathf.PingPong(Time.time * (2.2f + pressure * 2.8f), 0.14f + pressure * 0.16f);
+            float ringRadius = 0.24f + pressure * 0.24f;
+            float coreScale = 0.16f + pressure * 0.16f;
+
+            threatAnchor.localPosition = new Vector3(0f, 2.02f + Mathf.PingPong(Time.time * 1.5f, 0.1f), 0f);
+
+            if (threatRing != null)
+            {
+                threatRing.localScale = new Vector3(ringRadius, 0.04f, ringRadius);
+            }
+
+            if (threatRingRenderer != null)
+            {
+                threatRingRenderer.material.color = threatColor * pulse;
+            }
+
+            if (threatCore != null)
+            {
+                threatCore.localScale = Vector3.one * coreScale;
+            }
+
+            if (threatCoreRenderer != null)
+            {
+                threatCoreRenderer.material.color = Color.Lerp(threatColor, Color.white, 0.22f) * pulse;
+            }
+
+            int shownSpikes = Mathf.Clamp(hostileCount, 1, threatSpikes.Length);
+            for (int i = 0; i < threatSpikes.Length; i++)
+            {
+                if (threatSpikes[i] == null)
+                {
+                    continue;
+                }
+
+                bool active = i < shownSpikes;
+                threatSpikes[i].gameObject.SetActive(active);
+                if (!active)
+                {
+                    continue;
+                }
+
+                float angle = i / (float)threatSpikes.Length * Mathf.PI * 2f + Time.time * 0.35f;
+                Vector3 spikePosition = new Vector3(Mathf.Cos(angle), 0.18f + Mathf.PingPong(Time.time * 1.6f + i * 0.4f, 0.08f), Mathf.Sin(angle)) * (0.34f + pressure * 0.12f);
+                threatSpikes[i].localPosition = spikePosition;
+                threatSpikes[i].localScale = new Vector3(0.08f, 0.16f + pressure * 0.14f, 0.08f);
+
+                if (threatSpikeRenderers[i] != null)
+                {
+                    threatSpikeRenderers[i].material.color = Color.Lerp(threatColor, Color.white, 0.12f + i * 0.04f) * pulse;
+                }
+            }
+
+            bool showDirection = threatDirectionRoot != null && threatDirection.sqrMagnitude > 0.0001f;
+            if (threatDirectionRoot != null)
+            {
+                threatDirectionRoot.gameObject.SetActive(showDirection);
+            }
+
+            if (!showDirection)
+            {
+                return;
+            }
+
+            float directionLength = 0.48f + pressure * 0.26f;
+            threatDirectionRoot.localRotation = Quaternion.LookRotation(threatDirection.normalized, Vector3.up);
+
+            if (threatDirectionBeam != null)
+            {
+                threatDirectionBeam.localPosition = new Vector3(0f, 0f, directionLength * 0.5f);
+                threatDirectionBeam.localScale = new Vector3(0.04f, 0.04f, directionLength);
+            }
+
+            if (threatDirectionBeamRenderer != null)
+            {
+                threatDirectionBeamRenderer.material.color = threatColor * pulse;
+            }
+
+            if (threatDirectionTip != null)
+            {
+                threatDirectionTip.localPosition = new Vector3(0f, 0f, directionLength + 0.1f);
+                threatDirectionTip.localScale = new Vector3(0.1f + pressure * 0.05f, 0.1f + pressure * 0.03f, 0.1f + pressure * 0.05f);
+            }
+
+            if (threatDirectionTipRenderer != null)
+            {
+                threatDirectionTipRenderer.material.color = Color.Lerp(threatColor, Color.white, 0.22f) * pulse;
+            }
+        }
+
+        private int CountNearbyHostiles(out float pressure, out Vector3 threatDirection)
+        {
+            pressure = 0f;
+            threatDirection = Vector3.zero;
+            int hostileCount = 0;
+            Vector3 centroid = Vector3.zero;
+
+            foreach (SelectableUnit unit in PrototypeRuntimeRegistry.GetSelectableUnits())
+            {
+                if (unit == null || unit.Team == Team)
+                {
+                    continue;
+                }
+
+                CombatTarget target = unit.GetComponent<CombatTarget>();
+                if (target != null && !target.IsAlive)
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(transform.position, unit.transform.position);
+                if (distance > threatWarningRadius)
+                {
+                    continue;
+                }
+
+                hostileCount++;
+                centroid += unit.transform.position;
+                pressure = Mathf.Max(pressure, 1f - distance / Mathf.Max(0.01f, threatWarningRadius));
+            }
+
+            pressure = Mathf.Clamp01(Mathf.Max(pressure, hostileCount / 6f));
+            if (hostileCount > 0)
+            {
+                Vector3 averagePosition = centroid / hostileCount;
+                threatDirection = averagePosition - transform.position;
+                threatDirection.y = 0f;
+                if (threatDirection.sqrMagnitude <= 0.0001f)
+                {
+                    threatDirection = Vector3.forward;
+                }
+            }
+
+            return hostileCount;
+        }
+
+        private static Transform CreateStatusPrimitive(Transform parent, PrimitiveType primitiveType, string objectName, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject child = GameObject.CreatePrimitive(primitiveType);
+            child.name = objectName;
+            child.transform.SetParent(parent);
+            child.transform.localPosition = localPosition;
+            child.transform.localRotation = Quaternion.identity;
+            child.transform.localScale = localScale;
+
+            Collider collider = child.GetComponent<Collider>();
+            if (collider != null)
+            {
+                collider.enabled = false;
+            }
+
+            Renderer rendererComponent = child.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+            }
+
+            return child.transform;
         }
     }
 }

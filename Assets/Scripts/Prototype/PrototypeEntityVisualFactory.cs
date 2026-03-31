@@ -15,6 +15,7 @@ namespace Game.Prototype
             Color accentColor = team == UnitTeam.Player ? new Color(0.34f, 0.9f, 1f) : new Color(1f, 0.52f, 0.22f);
             target.GetComponent<Renderer>().material.color = primaryColor;
             BuildBaseSilhouette(target.transform, secondaryColor, accentColor);
+            BuildStructureFactionSignature(target.transform, team, accentColor, 2.42f, 1.08f);
         }
 
         public static void ApplyProductionVisuals(GameObject target, UnitTeam team, bool isSiegeStructure)
@@ -24,6 +25,7 @@ namespace Game.Prototype
             Color accentColor = team == UnitTeam.Player ? new Color(0.22f, 0.85f, 0.95f) : new Color(1f, 0.58f, 0.22f);
             target.GetComponent<Renderer>().material.color = primaryColor;
             BuildProductionSilhouette(target.transform, secondaryColor, accentColor, isSiegeStructure);
+            BuildStructureFactionSignature(target.transform, team, accentColor, isSiegeStructure ? 2.24f : 1.76f, isSiegeStructure ? 0.92f : 0.74f);
         }
 
         public static void ApplyTurretVisuals(GameObject target, UnitTeam team)
@@ -32,6 +34,7 @@ namespace Game.Prototype
             Color accentColor = team == UnitTeam.Player ? new Color(0.24f, 0.9f, 1f) : new Color(0.35f, 0.08f, 0.06f);
             target.GetComponent<Renderer>().material.color = primaryColor;
             BuildTurretSilhouette(target.transform, accentColor);
+            BuildStructureFactionSignature(target.transform, team, accentColor, 1.14f, 0.58f);
         }
 
         public static void BuildUnitSilhouette(Transform root, UnitDefinition definition, UnitTeam team)
@@ -97,6 +100,8 @@ namespace Game.Prototype
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Wing Right", new Vector3(1.18f, 0.24f, 0f), new Vector3(0.88f, 0.06f, 0.42f), weapon);
                     break;
             }
+
+            BuildUnitFactionSignature(root, definition.Archetype, team, cloth, glow);
         }
 
         public static void BuildControlNodeSilhouette(Transform root)
@@ -156,6 +161,87 @@ namespace Game.Prototype
         private static void BuildTurretSilhouette(Transform root, Color accentColor)
         {
             CreateChildPrimitive(root, PrimitiveType.Cube, "Turret Barrel", new Vector3(0f, 0.46f, 0.94f), new Vector3(0.18f, 0.1f, 0.66f), accentColor);
+        }
+
+        private static void BuildUnitFactionSignature(Transform root, UnitArchetype archetype, UnitTeam team, Color bannerColor, Color accentColor)
+        {
+            float markerBaseHeight = archetype switch
+            {
+                UnitArchetype.Artillery => 0.58f,
+                UnitArchetype.Fighter => 0.42f,
+                UnitArchetype.MobileFortress => 1.18f,
+                UnitArchetype.AirborneCitadel => 1.48f,
+                UnitArchetype.RoyalGuard => 1.78f,
+                _ => 1.52f
+            };
+
+            float mastHeight = archetype switch
+            {
+                UnitArchetype.Artillery => 0.2f,
+                UnitArchetype.Fighter => 0.16f,
+                UnitArchetype.MobileFortress => 0.32f,
+                UnitArchetype.AirborneCitadel => 0.36f,
+                UnitArchetype.RoyalGuard => 0.3f,
+                _ => 0.24f
+            };
+
+            float bannerWidth = archetype switch
+            {
+                UnitArchetype.Artillery => 0.26f,
+                UnitArchetype.Fighter => 0.22f,
+                UnitArchetype.MobileFortress => 0.42f,
+                UnitArchetype.AirborneCitadel => 0.52f,
+                UnitArchetype.RoyalGuard => 0.34f,
+                _ => 0.28f
+            };
+
+            float markerDepth = archetype switch
+            {
+                UnitArchetype.Artillery => -0.12f,
+                UnitArchetype.MobileFortress => -0.18f,
+                UnitArchetype.AirborneCitadel => -0.16f,
+                _ => -0.06f
+            };
+
+            if (team == UnitTeam.Player)
+            {
+                CreateChildPrimitive(root, PrimitiveType.Cylinder, "Signal Mast", new Vector3(0f, markerBaseHeight, markerDepth), new Vector3(0.05f, mastHeight, 0.05f), bannerColor);
+                GameObject banner = CreateChildPrimitive(root, PrimitiveType.Cube, "Signal Banner", new Vector3(bannerWidth * 0.42f, markerBaseHeight + mastHeight * 0.58f, markerDepth), new Vector3(bannerWidth, mastHeight * 0.34f, 0.04f), accentColor);
+                banner.transform.localRotation = Quaternion.Euler(0f, 18f, 0f);
+                CreateChildPrimitive(root, PrimitiveType.Sphere, "Signal Beacon", new Vector3(0f, markerBaseHeight + mastHeight * 1.22f, markerDepth), new Vector3(0.12f, 0.12f, 0.12f), accentColor);
+                CreateChildPrimitive(root, PrimitiveType.Cube, "Signal Wing Left", new Vector3(-bannerWidth * 0.32f, markerBaseHeight + mastHeight * 0.28f, markerDepth - 0.02f), new Vector3(0.08f, 0.05f, bannerWidth * 0.78f), bannerColor);
+                CreateChildPrimitive(root, PrimitiveType.Cube, "Signal Wing Right", new Vector3(bannerWidth * 0.32f, markerBaseHeight + mastHeight * 0.28f, markerDepth - 0.02f), new Vector3(0.08f, 0.05f, bannerWidth * 0.78f), bannerColor);
+                return;
+            }
+
+            CreateChildPrimitive(root, PrimitiveType.Cylinder, "War Pike", new Vector3(0f, markerBaseHeight, markerDepth), new Vector3(0.05f, mastHeight, 0.05f), bannerColor);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "War Crest", new Vector3(0f, markerBaseHeight + mastHeight * 0.64f, markerDepth), new Vector3(bannerWidth * 0.9f, mastHeight * 0.28f, 0.04f), accentColor);
+            GameObject hornLeft = CreateChildPrimitive(root, PrimitiveType.Cube, "War Horn Left", new Vector3(-bannerWidth * 0.34f, markerBaseHeight + mastHeight * 1.04f, markerDepth), new Vector3(0.08f, mastHeight * 0.62f, 0.08f), accentColor);
+            hornLeft.transform.localRotation = Quaternion.Euler(0f, 0f, 30f);
+            GameObject hornRight = CreateChildPrimitive(root, PrimitiveType.Cube, "War Horn Right", new Vector3(bannerWidth * 0.34f, markerBaseHeight + mastHeight * 1.04f, markerDepth), new Vector3(0.08f, mastHeight * 0.62f, 0.08f), accentColor);
+            hornRight.transform.localRotation = Quaternion.Euler(0f, 0f, -30f);
+        }
+
+        private static void BuildStructureFactionSignature(Transform root, UnitTeam team, Color accentColor, float topHeight, float span)
+        {
+            Color supportColor = team == UnitTeam.Player ? new Color(0.78f, 0.9f, 1f) : new Color(0.42f, 0.14f, 0.08f);
+
+            if (team == UnitTeam.Player)
+            {
+                CreateChildPrimitive(root, PrimitiveType.Cylinder, "Signal Tower", new Vector3(0f, topHeight, 0f), new Vector3(0.08f, 0.42f, 0.08f), supportColor);
+                CreateChildPrimitive(root, PrimitiveType.Cube, "Signal Bridge", new Vector3(0f, topHeight + 0.22f, 0f), new Vector3(span, 0.08f, 0.12f), accentColor);
+                CreateChildPrimitive(root, PrimitiveType.Cube, "Signal Fin Left", new Vector3(-span * 0.46f, topHeight + 0.06f, 0f), new Vector3(0.12f, 0.22f, 0.08f), supportColor);
+                CreateChildPrimitive(root, PrimitiveType.Cube, "Signal Fin Right", new Vector3(span * 0.46f, topHeight + 0.06f, 0f), new Vector3(0.12f, 0.22f, 0.08f), supportColor);
+                CreateChildPrimitive(root, PrimitiveType.Sphere, "Signal Core", new Vector3(0f, topHeight + 0.44f, 0f), new Vector3(0.18f, 0.18f, 0.18f), accentColor);
+                return;
+            }
+
+            CreateChildPrimitive(root, PrimitiveType.Cylinder, "War Spire", new Vector3(0f, topHeight, 0f), new Vector3(0.08f, 0.48f, 0.08f), supportColor);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "War Crest", new Vector3(0f, topHeight + 0.2f, 0f), new Vector3(span * 0.84f, 0.08f, 0.1f), accentColor);
+            GameObject spikeLeft = CreateChildPrimitive(root, PrimitiveType.Cube, "War Spike Left", new Vector3(-span * 0.34f, topHeight + 0.4f, 0f), new Vector3(0.1f, 0.34f, 0.1f), accentColor);
+            spikeLeft.transform.localRotation = Quaternion.Euler(0f, 0f, 22f);
+            GameObject spikeRight = CreateChildPrimitive(root, PrimitiveType.Cube, "War Spike Right", new Vector3(span * 0.34f, topHeight + 0.4f, 0f), new Vector3(0.1f, 0.34f, 0.1f), accentColor);
+            spikeRight.transform.localRotation = Quaternion.Euler(0f, 0f, -22f);
         }
 
         private static GameObject CreateChildPrimitive(Transform parent, PrimitiveType primitiveType, string objectName, Vector3 localPosition, Vector3 localScale, Color color)

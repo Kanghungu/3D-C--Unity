@@ -13,6 +13,7 @@ namespace Game.Prototype
         [SerializeField] private int maxQueueLength = 48;
         [SerializeField] private float spawnRadius = 10f;
         [SerializeField] private Vector3 defaultRallyOffset = new(8f, 0f, 4f);
+        [SerializeField] private float threatWarningRadius = 22f;
 
         private readonly List<UnitDefinition> productionQueue = new();
         private readonly List<UnitArchetype> allowedArchetypes = new();
@@ -31,6 +32,26 @@ namespace Game.Prototype
         private Vector3 rallyPoint;
         private GameObject rallyMarker;
         private string structureLabel = "Foundry";
+        private Transform statusAnchor;
+        private Transform productionCore;
+        private Renderer productionCoreRenderer;
+        private Transform rallyGuideRoot;
+        private Transform rallyGuide;
+        private Renderer rallyGuideRenderer;
+        private Transform rallyTip;
+        private Renderer rallyTipRenderer;
+        private Transform threatAnchor;
+        private Transform threatRing;
+        private Renderer threatRingRenderer;
+        private Transform threatCore;
+        private Renderer threatCoreRenderer;
+        private Transform threatDirectionRoot;
+        private Transform threatDirectionBeam;
+        private Renderer threatDirectionBeamRenderer;
+        private Transform threatDirectionTip;
+        private Renderer threatDirectionTipRenderer;
+        private readonly Transform[] queuePips = new Transform[4];
+        private readonly Renderer[] queuePipRenderers = new Renderer[4];
 
         public UnitTeam Team => combatTarget != null ? combatTarget.Team : UnitTeam.Player;
         public bool IsAlive => health != null && health.IsAlive;
@@ -52,6 +73,10 @@ namespace Game.Prototype
         private void Awake()
         {
             EnsureRallyMarker();
+            EnsureStatusVisuals();
+            EnsureThreatVisuals();
+            UpdateStatusVisuals();
+            UpdateThreatVisuals();
         }
 
         private void OnEnable()
@@ -67,6 +92,8 @@ namespace Game.Prototype
         private void Update()
         {
             UpdateRallyMarker();
+            UpdateStatusVisuals();
+            UpdateThreatVisuals();
 
             if (!IsAlive || unitRoot == null || database == null || Team != UnitTeam.Player)
             {
@@ -90,6 +117,8 @@ namespace Game.Prototype
             linkedBase = assignedLinkedBase;
             ApplyVisuals();
             SetRallyPoint(transform.position + defaultRallyOffset);
+            UpdateStatusVisuals();
+            UpdateThreatVisuals();
         }
 
         public void ConfigureStructure(string newLabel, Vector3 rallyOffset, Color color, params UnitArchetype[] newAllowedArchetypes)
@@ -109,6 +138,9 @@ namespace Game.Prototype
             {
                 rallyMarker.GetComponent<Renderer>().material.color = color;
             }
+
+            UpdateStatusVisuals();
+            UpdateThreatVisuals();
         }
 
         public bool TryQueueProduction(UnitDefinition definition)
@@ -158,11 +190,13 @@ namespace Game.Prototype
             rallyPoint = new Vector3(worldPoint.x, 1f, worldPoint.z);
             hasRallyPoint = true;
             UpdateRallyMarker();
+            UpdateStatusVisuals();
         }
 
         public void SetProductionSpeedMultiplier(float multiplier)
         {
             productionSpeedMultiplier = Mathf.Max(0.5f, multiplier);
+            UpdateStatusVisuals();
         }
 
         private void RunProduction()
@@ -341,6 +375,384 @@ namespace Game.Prototype
 
             rallyMarker.transform.position = new Vector3(rallyPoint.x, 0.12f, rallyPoint.z);
             rallyMarker.SetActive(hasRallyPoint && IsAlive);
+        }
+
+        private void EnsureStatusVisuals()
+        {
+            if (statusAnchor != null)
+            {
+                return;
+            }
+
+            statusAnchor = new GameObject("Production Status Anchor").transform;
+            statusAnchor.SetParent(transform);
+            statusAnchor.localPosition = new Vector3(0f, 1.3f, 0f);
+            statusAnchor.localRotation = Quaternion.identity;
+            statusAnchor.localScale = Vector3.one;
+
+            Transform mast = CreateStatusPrimitive(
+                statusAnchor,
+                PrimitiveType.Cylinder,
+                "Status Mast",
+                new Vector3(0f, 0.22f, 0f),
+                new Vector3(0.05f, 0.22f, 0.05f),
+                new Color(0.28f, 0.3f, 0.34f));
+
+            productionCore = CreateStatusPrimitive(
+                statusAnchor,
+                PrimitiveType.Cube,
+                "Production Core",
+                new Vector3(0f, 0.48f, 0f),
+                new Vector3(0.18f, 0.18f, 0.18f),
+                new Color(0.28f, 0.9f, 1f));
+            productionCoreRenderer = productionCore.GetComponent<Renderer>();
+
+            rallyGuideRoot = new GameObject("Rally Guide Root").transform;
+            rallyGuideRoot.SetParent(statusAnchor);
+            rallyGuideRoot.localPosition = new Vector3(0f, 0.14f, 0f);
+            rallyGuideRoot.localRotation = Quaternion.identity;
+            rallyGuideRoot.localScale = Vector3.one;
+
+            rallyGuide = CreateStatusPrimitive(
+                rallyGuideRoot,
+                PrimitiveType.Cube,
+                "Rally Guide",
+                new Vector3(0f, 0f, 0.28f),
+                new Vector3(0.06f, 0.04f, 0.56f),
+                new Color(0.36f, 0.95f, 0.86f));
+            rallyGuideRenderer = rallyGuide.GetComponent<Renderer>();
+
+            rallyTip = CreateStatusPrimitive(
+                rallyGuideRoot,
+                PrimitiveType.Sphere,
+                "Rally Tip",
+                new Vector3(0f, 0f, 0.58f),
+                new Vector3(0.12f, 0.12f, 0.12f),
+                new Color(0.62f, 1f, 0.9f));
+            rallyTipRenderer = rallyTip.GetComponent<Renderer>();
+
+            for (int i = 0; i < queuePips.Length; i++)
+            {
+                float angle = i * Mathf.PI * 0.5f;
+                Vector3 pipPosition = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.28f + new Vector3(0f, 0.78f, 0f);
+                queuePips[i] = CreateStatusPrimitive(
+                    statusAnchor,
+                    PrimitiveType.Cube,
+                    $"Queue Pip {i + 1}",
+                    pipPosition,
+                    new Vector3(0.08f, 0.08f, 0.08f),
+                    new Color(0.24f, 0.24f, 0.26f));
+                queuePipRenderers[i] = queuePips[i].GetComponent<Renderer>();
+            }
+
+            mast.gameObject.SetActive(true);
+        }
+
+        private void UpdateStatusVisuals()
+        {
+            if (statusAnchor == null)
+            {
+                return;
+            }
+
+            bool alive = IsAlive;
+            statusAnchor.gameObject.SetActive(alive);
+            if (!alive)
+            {
+                return;
+            }
+
+            Color idleColor = Team == UnitTeam.Player ? new Color(0.34f, 0.66f, 0.82f) : new Color(0.74f, 0.32f, 0.18f);
+            Color activeColor = Team == UnitTeam.Player ? new Color(0.34f, 0.95f, 1f) : new Color(1f, 0.6f, 0.18f);
+            bool producing = isProducing && currentProductionDefinition != null;
+            float progress = producing ? Mathf.Clamp01(ProductionProgressNormalized) : 0f;
+            float pulse = 0.86f + Mathf.PingPong(Time.time * (producing ? 2.2f : 0.8f), 0.14f);
+            Color coreColor = Color.Lerp(idleColor, activeColor, producing ? 0.85f : 0.2f) * pulse;
+
+            if (productionCore != null)
+            {
+                float coreHeight = Mathf.Lerp(0.08f, 0.46f, producing ? Mathf.Max(0.16f, progress) : 0.1f);
+                productionCore.localPosition = new Vector3(0f, 0.34f + coreHeight * 0.5f, 0f);
+                productionCore.localScale = new Vector3(0.18f, coreHeight, 0.18f);
+            }
+
+            if (productionCoreRenderer != null)
+            {
+                productionCoreRenderer.material.color = coreColor;
+            }
+
+            int shownQueueCount = Mathf.Clamp(QueueCount, 0, queuePips.Length);
+            for (int i = 0; i < queuePips.Length; i++)
+            {
+                bool active = i < shownQueueCount;
+                if (queuePips[i] != null)
+                {
+                    queuePips[i].gameObject.SetActive(active);
+                }
+
+                if (active && queuePipRenderers[i] != null)
+                {
+                    float pipPulse = producing && i == 0 ? pulse : 1f;
+                    queuePipRenderers[i].material.color = Color.Lerp(idleColor, activeColor, 0.58f + 0.08f * i) * pipPulse;
+                }
+            }
+
+            UpdateRallyGuideVisuals(activeColor);
+        }
+
+        private void UpdateRallyGuideVisuals(Color accentColor)
+        {
+            if (rallyGuideRoot == null)
+            {
+                return;
+            }
+
+            bool showGuide = hasRallyPoint && IsAlive;
+            rallyGuideRoot.gameObject.SetActive(showGuide);
+            if (!showGuide)
+            {
+                return;
+            }
+
+            Vector3 worldTarget = new Vector3(rallyPoint.x, transform.position.y, rallyPoint.z);
+            Vector3 localTarget = transform.InverseTransformPoint(worldTarget);
+            Vector3 planarDirection = new Vector3(localTarget.x, 0f, localTarget.z);
+            if (planarDirection.sqrMagnitude < 0.01f)
+            {
+                planarDirection = Vector3.forward;
+            }
+
+            float guideLength = Mathf.Clamp(planarDirection.magnitude * 0.08f, 0.32f, 0.72f);
+            rallyGuideRoot.localRotation = Quaternion.LookRotation(planarDirection.normalized, Vector3.up);
+
+            if (rallyGuide != null)
+            {
+                rallyGuide.localPosition = new Vector3(0f, 0f, 0.14f + guideLength * 0.5f);
+                rallyGuide.localScale = new Vector3(0.06f, 0.04f, guideLength);
+            }
+
+            if (rallyTip != null)
+            {
+                rallyTip.localPosition = new Vector3(0f, 0f, 0.14f + guideLength);
+            }
+
+            if (rallyGuideRenderer != null)
+            {
+                rallyGuideRenderer.material.color = new Color(accentColor.r, accentColor.g, accentColor.b, 0.92f);
+            }
+
+            if (rallyTipRenderer != null)
+            {
+                rallyTipRenderer.material.color = Color.Lerp(accentColor, Color.white, 0.28f);
+            }
+        }
+
+        private void EnsureThreatVisuals()
+        {
+            if (threatAnchor != null)
+            {
+                return;
+            }
+
+            threatAnchor = new GameObject("Threat Anchor").transform;
+            threatAnchor.SetParent(statusAnchor != null ? statusAnchor : transform);
+            threatAnchor.localPosition = new Vector3(0f, 1.02f, 0f);
+            threatAnchor.localRotation = Quaternion.identity;
+            threatAnchor.localScale = Vector3.one;
+
+            threatRing = CreateStatusPrimitive(
+                threatAnchor,
+                PrimitiveType.Cylinder,
+                "Threat Ring",
+                new Vector3(0f, -0.08f, 0f),
+                new Vector3(0.18f, 0.035f, 0.18f),
+                new Color(1f, 0.46f, 0.24f));
+            threatRingRenderer = threatRing.GetComponent<Renderer>();
+
+            threatCore = CreateStatusPrimitive(
+                threatAnchor,
+                PrimitiveType.Sphere,
+                "Threat Core",
+                new Vector3(0f, 0.12f, 0f),
+                new Vector3(0.16f, 0.16f, 0.16f),
+                new Color(1f, 0.46f, 0.24f));
+            threatCoreRenderer = threatCore.GetComponent<Renderer>();
+
+            threatDirectionRoot = new GameObject("Threat Direction Root").transform;
+            threatDirectionRoot.SetParent(threatAnchor);
+            threatDirectionRoot.localPosition = new Vector3(0f, 0.02f, 0f);
+            threatDirectionRoot.localRotation = Quaternion.identity;
+            threatDirectionRoot.localScale = Vector3.one;
+
+            threatDirectionBeam = CreateStatusPrimitive(
+                threatDirectionRoot,
+                PrimitiveType.Cube,
+                "Threat Direction Beam",
+                new Vector3(0f, 0f, 0.22f),
+                new Vector3(0.03f, 0.03f, 0.44f),
+                new Color(1f, 0.46f, 0.24f));
+            threatDirectionBeamRenderer = threatDirectionBeam.GetComponent<Renderer>();
+
+            threatDirectionTip = CreateStatusPrimitive(
+                threatDirectionRoot,
+                PrimitiveType.Cube,
+                "Threat Direction Tip",
+                new Vector3(0f, 0f, 0.48f),
+                new Vector3(0.1f, 0.08f, 0.1f),
+                new Color(1f, 0.46f, 0.24f));
+            threatDirectionTipRenderer = threatDirectionTip.GetComponent<Renderer>();
+        }
+
+        private void UpdateThreatVisuals()
+        {
+            if (threatAnchor == null)
+            {
+                return;
+            }
+
+            int hostileCount = CountNearbyHostiles(out float pressure, out Vector3 threatDirection);
+            bool showThreat = IsAlive && hostileCount > 0;
+            threatAnchor.gameObject.SetActive(showThreat);
+
+            if (!showThreat)
+            {
+                return;
+            }
+
+            Color threatColor = Team == UnitTeam.Player
+                ? new Color(1f, 0.46f, 0.24f)
+                : new Color(0.34f, 0.92f, 1f);
+            float pulse = 0.88f + Mathf.PingPong(Time.time * (2.4f + pressure * 3.2f), 0.12f + pressure * 0.14f);
+            float ringRadius = 0.16f + pressure * 0.18f;
+            float coreScale = 0.12f + pressure * 0.14f;
+
+            threatAnchor.localPosition = new Vector3(0f, 1.02f + Mathf.PingPong(Time.time * 1.8f, 0.08f), 0f);
+
+            if (threatRing != null)
+            {
+                threatRing.localScale = new Vector3(ringRadius, 0.035f, ringRadius);
+            }
+
+            if (threatRingRenderer != null)
+            {
+                threatRingRenderer.material.color = threatColor * pulse;
+            }
+
+            if (threatCore != null)
+            {
+                threatCore.localScale = Vector3.one * coreScale;
+            }
+
+            if (threatCoreRenderer != null)
+            {
+                threatCoreRenderer.material.color = Color.Lerp(threatColor, Color.white, 0.18f) * pulse;
+            }
+
+            bool showDirection = threatDirectionRoot != null && threatDirection.sqrMagnitude > 0.0001f;
+            if (threatDirectionRoot != null)
+            {
+                threatDirectionRoot.gameObject.SetActive(showDirection);
+            }
+
+            if (!showDirection)
+            {
+                return;
+            }
+
+            float directionLength = 0.38f + pressure * 0.22f;
+            threatDirectionRoot.localRotation = Quaternion.LookRotation(threatDirection.normalized, Vector3.up);
+
+            if (threatDirectionBeam != null)
+            {
+                threatDirectionBeam.localPosition = new Vector3(0f, 0f, directionLength * 0.5f);
+                threatDirectionBeam.localScale = new Vector3(0.03f, 0.03f, directionLength);
+            }
+
+            if (threatDirectionBeamRenderer != null)
+            {
+                threatDirectionBeamRenderer.material.color = threatColor * pulse;
+            }
+
+            if (threatDirectionTip != null)
+            {
+                threatDirectionTip.localPosition = new Vector3(0f, 0f, directionLength + 0.08f);
+                threatDirectionTip.localScale = new Vector3(0.08f + pressure * 0.04f, 0.08f, 0.08f + pressure * 0.04f);
+            }
+
+            if (threatDirectionTipRenderer != null)
+            {
+                threatDirectionTipRenderer.material.color = Color.Lerp(threatColor, Color.white, 0.22f) * pulse;
+            }
+        }
+
+        private int CountNearbyHostiles(out float pressure, out Vector3 threatDirection)
+        {
+            pressure = 0f;
+            threatDirection = Vector3.zero;
+            int hostileCount = 0;
+            Vector3 centroid = Vector3.zero;
+
+            foreach (SelectableUnit unit in PrototypeRuntimeRegistry.GetSelectableUnits())
+            {
+                if (unit == null || unit.Team == Team)
+                {
+                    continue;
+                }
+
+                CombatTarget target = unit.GetComponent<CombatTarget>();
+                if (target != null && !target.IsAlive)
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(transform.position, unit.transform.position);
+                if (distance > threatWarningRadius)
+                {
+                    continue;
+                }
+
+                hostileCount++;
+                centroid += unit.transform.position;
+                pressure = Mathf.Max(pressure, 1f - distance / Mathf.Max(0.01f, threatWarningRadius));
+            }
+
+            pressure = Mathf.Clamp01(Mathf.Max(pressure, hostileCount / 5f));
+            if (hostileCount > 0)
+            {
+                Vector3 averagePosition = centroid / hostileCount;
+                threatDirection = averagePosition - transform.position;
+                threatDirection.y = 0f;
+                if (threatDirection.sqrMagnitude <= 0.0001f)
+                {
+                    threatDirection = Vector3.forward;
+                }
+            }
+
+            return hostileCount;
+        }
+
+        private static Transform CreateStatusPrimitive(Transform parent, PrimitiveType primitiveType, string objectName, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject child = GameObject.CreatePrimitive(primitiveType);
+            child.name = objectName;
+            child.transform.SetParent(parent);
+            child.transform.localPosition = localPosition;
+            child.transform.localRotation = Quaternion.identity;
+            child.transform.localScale = localScale;
+
+            Collider collider = child.GetComponent<Collider>();
+            if (collider != null)
+            {
+                collider.enabled = false;
+            }
+
+            Renderer rendererComponent = child.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+            }
+
+            return child.transform;
         }
     }
 }

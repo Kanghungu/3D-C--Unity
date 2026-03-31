@@ -13,8 +13,51 @@ namespace Game.Selection
     /// </summary>
     public class PrototypeSelectionController : MonoBehaviour
     {
+        public readonly struct ControlGroupMarkerInfo
+        {
+            public ControlGroupMarkerInfo(int groupIndex, Vector3 worldCenter, int unitCount, int selectedCount, bool isActive, float recallEmphasis, float assignmentEmphasis)
+            {
+                GroupIndex = groupIndex;
+                WorldCenter = worldCenter;
+                UnitCount = unitCount;
+                SelectedCount = selectedCount;
+                IsActive = isActive;
+                RecallEmphasis = recallEmphasis;
+                AssignmentEmphasis = assignmentEmphasis;
+            }
+
+            public int GroupIndex { get; }
+            public Vector3 WorldCenter { get; }
+            public int UnitCount { get; }
+            public int SelectedCount { get; }
+            public bool IsActive { get; }
+            public float RecallEmphasis { get; }
+            public float AssignmentEmphasis { get; }
+            public bool HasSelectedMembers => SelectedCount > 0;
+            public bool IsFullySelected => SelectedCount > 0 && SelectedCount >= UnitCount;
+            public float SelectionCoverage => UnitCount > 0 ? (float)SelectedCount / UnitCount : 0f;
+        }
+
+        public readonly struct SelectedControlGroupInfo
+        {
+            public SelectedControlGroupInfo(int groupIndex, int selectedCount, int totalCount)
+            {
+                GroupIndex = groupIndex;
+                SelectedCount = selectedCount;
+                TotalCount = totalCount;
+            }
+
+            public int GroupIndex { get; }
+            public int SelectedCount { get; }
+            public int TotalCount { get; }
+            public bool IsFullySelected => SelectedCount > 0 && SelectedCount >= TotalCount;
+        }
+
         private const float DoubleClickThreshold = 0.3f;
         private const float ControlGroupDoubleTapThreshold = 0.35f;
+        private const float ControlGroupRecallHighlightDuration = 1.1f;
+        private const float ControlGroupAssignHighlightDuration = 0.95f;
+        private const float CommandMarkerLifetime = 0.85f;
 
         private Camera mainCamera;
         private readonly List<SelectableUnit> selectedUnits = new();
@@ -23,13 +66,39 @@ namespace Game.Selection
         private bool isDraggingSelection;
         private Texture2D selectionTexture;
         private GameObject moveMarker;
+        private string moveMarkerLabel = string.Empty;
         private float lastClickTime;
         private SelectableUnit lastClickedUnit;
+        private int lastAssignedControlGroup = -1;
+        private float lastControlGroupAssignTime;
         private int lastRecalledControlGroup = -1;
         private float lastControlGroupRecallTime;
+        private bool selectionStartedOverHud;
 
         public static PrototypeSelectionController Instance { get; private set; }
         public IReadOnlyList<SelectableUnit> SelectedUnits => selectedUnits;
+        public bool HasVisibleMoveMarker => moveMarker != null && moveMarker.activeSelf;
+        public Vector3 MoveMarkerWorldPosition => moveMarker != null ? moveMarker.transform.position : Vector3.zero;
+        public string MoveMarkerLabel => HasVisibleMoveMarker ? moveMarkerLabel : string.Empty;
+        public bool HasRecentControlGroupAssignment =>
+            lastAssignedControlGroup > 0 && Time.time - lastControlGroupAssignTime <= ControlGroupAssignHighlightDuration;
+        public string RecentControlGroupAssignmentLabel => HasRecentControlGroupAssignment ? $"F{lastAssignedControlGroup}" : string.Empty;
+        public bool HasRecentControlGroupRecall =>
+            lastRecalledControlGroup > 0 && Time.time - lastControlGroupRecallTime <= ControlGroupRecallHighlightDuration;
+        public string RecentControlGroupRecallLabel => HasRecentControlGroupRecall ? $"F{lastRecalledControlGroup}" : string.Empty;
+        public Color MoveMarkerColor
+        {
+            get
+            {
+                if (moveMarker == null)
+                {
+                    return Color.white;
+                }
+
+                Renderer markerRenderer = moveMarker.GetComponent<Renderer>();
+                return markerRenderer != null ? markerRenderer.material.color : Color.white;
+            }
+        }
 
         private void Awake()
         {
@@ -75,13 +144,15 @@ namespace Game.Selection
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {
                 dragStartScreenPosition = Mouse.current.position.ReadValue();
-                isDraggingSelection = true;
+                selectionStartedOverHud = PrototypeHudLayoutUtility.IsScreenPositionOverInteractiveHud(dragStartScreenPosition);
+                isDraggingSelection = !selectionStartedOverHud;
             }
 
             if (Mouse.current.leftButton.wasReleasedThisFrame)
             {
                 HandleSelectionRelease();
                 isDraggingSelection = false;
+                selectionStartedOverHud = false;
             }
 
             if (Mouse.current.rightButton.wasPressedThisFrame)
@@ -112,6 +183,114 @@ namespace Game.Selection
         public string GetControlGroupSummary()
         {
             return PrototypeSelectionUtility.BuildControlGroupSummary(controlGroups);
+        }
+
+        public void GetControlGroupMarkers(List<ControlGroupMarkerInfo> results)
+        {
+            if (results == null)
+            {
+                return;
+            }
+
+            results.Clear();
+
+            for (int index = 1; index <= 5; index++)
+            {
+                if (!controlGroups.TryGetValue(index, out List<SelectableUnit> units) || units == null || units.Count == 0)
+                {
+                    continue;
+                }
+
+                int aliveCount = 0;
+                int selectedCount = 0;
+
+                foreach (SelectableUnit unit in units)
+                {
+                    if (unit == null)
+                    {
+                        continue;
+                    }
+
+                    aliveCount++;
+
+                    if (selectedUnits.Contains(unit))
+                    {
+                        selectedCount++;
+                    }
+                }
+
+                if (aliveCount <= 0)
+                {
+                    continue;
+                }
+
+                Vector3 center = PrototypeSelectionUtility.GetSelectionCenter(units);
+                bool hasSelectedMember = selectedCount > 0;
+                bool isActive = hasSelectedMember || lastRecalledControlGroup == index;
+                float recallEmphasis = 0f;
+
+                if (lastRecalledControlGroup == index)
+                {
+                    float age = Time.time - lastControlGroupRecallTime;
+                    recallEmphasis = Mathf.Clamp01(1f - age / ControlGroupRecallHighlightDuration);
+                }
+
+                float assignmentEmphasis = 0f;
+
+                if (lastAssignedControlGroup == index)
+                {
+                    float age = Time.time - lastControlGroupAssignTime;
+                    assignmentEmphasis = Mathf.Clamp01(1f - age / ControlGroupAssignHighlightDuration);
+                }
+
+                results.Add(new ControlGroupMarkerInfo(index, center, aliveCount, selectedCount, isActive, recallEmphasis, assignmentEmphasis));
+            }
+        }
+
+        public void GetSelectedControlGroupInfos(List<SelectedControlGroupInfo> results)
+        {
+            if (results == null)
+            {
+                return;
+            }
+
+            results.Clear();
+
+            if (selectedUnits.Count == 0)
+            {
+                return;
+            }
+
+            for (int index = 1; index <= 5; index++)
+            {
+                if (!controlGroups.TryGetValue(index, out List<SelectableUnit> units) || units == null || units.Count == 0)
+                {
+                    continue;
+                }
+
+                int aliveCount = 0;
+                int selectedCount = 0;
+
+                foreach (SelectableUnit unit in units)
+                {
+                    if (unit == null)
+                    {
+                        continue;
+                    }
+
+                    aliveCount++;
+
+                    if (selectedUnits.Contains(unit))
+                    {
+                        selectedCount++;
+                    }
+                }
+
+                if (selectedCount > 0 && aliveCount > 0)
+                {
+                    results.Add(new SelectedControlGroupInfo(index, selectedCount, aliveCount));
+                }
+            }
         }
 
         private void RemoveDestroyedControlGroupUnits()
@@ -190,6 +369,8 @@ namespace Game.Selection
             }
 
             controlGroups[groupIndex] = groupUnits;
+            lastAssignedControlGroup = groupIndex;
+            lastControlGroupAssignTime = Time.time;
         }
 
         private void RecallControlGroup(int groupIndex)
@@ -263,6 +444,8 @@ namespace Game.Selection
 
         private void IssueHoldCommand()
         {
+            Vector3 holdPoint = GetSelectionCenter();
+
             foreach (SelectableUnit unit in selectedUnits)
             {
                 if (unit != null)
@@ -270,6 +453,8 @@ namespace Game.Selection
                     unit.HoldPosition();
                 }
             }
+
+            ShowMoveMarker(holdPoint, new Color(0.9f, 0.82f, 1f, 0.92f), "Hold");
         }
 
         private void IssueGuardCommand()
@@ -288,7 +473,7 @@ namespace Game.Selection
                 }
             }
 
-            ShowMoveMarker(guardPoint, new Color(0.55f, 0.95f, 0.45f, 0.9f));
+            ShowMoveMarker(guardPoint, new Color(0.55f, 0.95f, 0.45f, 0.9f), "Guard");
         }
 
         private void IssueFallbackCommand()
@@ -307,7 +492,7 @@ namespace Game.Selection
                 }
             }
 
-            ShowMoveMarker(fallbackPoint, new Color(0.45f, 0.85f, 1f, 0.9f));
+            ShowMoveMarker(fallbackPoint, new Color(0.45f, 0.85f, 1f, 0.9f), "Fallback");
         }
 
         private Vector3 GetSelectionCenter()
@@ -328,6 +513,11 @@ namespace Game.Selection
 
         private void HandleSelectionRelease()
         {
+            if (selectionStartedOverHud)
+            {
+                return;
+            }
+
             Vector2 releasePosition = Mouse.current.position.ReadValue();
 
             if (Vector2.Distance(dragStartScreenPosition, releasePosition) < 10f)
@@ -419,6 +609,17 @@ namespace Game.Selection
 
         private void TryIssueCommand()
         {
+            if (Mouse.current == null)
+            {
+                return;
+            }
+
+            Vector2 mousePosition = Mouse.current.position.ReadValue();
+            if (PrototypeHudLayoutUtility.IsScreenPositionOverInteractiveHud(mousePosition))
+            {
+                return;
+            }
+
             if (!TryGetMouseRaycastHit(out RaycastHit hit))
             {
                 return;
@@ -442,7 +643,7 @@ namespace Game.Selection
                     }
                 }
 
-                ShowMoveMarker(hit.point, new Color(1f, 0.9f, 0.25f, 0.9f));
+                ShowMoveMarker(hit.point, new Color(1f, 0.9f, 0.25f, 0.9f), "Rally");
                 return;
             }
 
@@ -467,7 +668,7 @@ namespace Game.Selection
                     }
                 }
 
-                ShowMoveMarker(hit.point, new Color(1f, 0.45f, 0.25f, 0.9f));
+                ShowMoveMarker(hit.point, new Color(1f, 0.45f, 0.25f, 0.9f), "Attack");
                 return;
             }
 
@@ -476,7 +677,7 @@ namespace Game.Selection
 
             if (IsAttackMoveModifierPressed())
             {
-                ShowMoveMarker(targetPoint, new Color(1f, 0.65f, 0.2f, 0.9f));
+                ShowMoveMarker(targetPoint, new Color(1f, 0.65f, 0.2f, 0.9f), "Attack Move");
 
                 for (int index = 0; index < selectedUnits.Count; index++)
                 {
@@ -489,7 +690,7 @@ namespace Game.Selection
                 return;
             }
 
-            ShowMoveMarker(targetPoint, new Color(0.2f, 0.8f, 1f, 0.8f));
+            ShowMoveMarker(targetPoint, new Color(0.2f, 0.8f, 1f, 0.8f), "Move");
 
             for (int index = 0; index < selectedUnits.Count; index++)
             {
@@ -528,7 +729,7 @@ namespace Game.Selection
 
             Vector3 targetPoint = priorityNode.transform.position;
             List<Vector3> formationPoints = PrototypeSelectionUtility.BuildFormationPoints(targetPoint, selectedUnits.Count, 4.4f);
-            ShowMoveMarker(targetPoint, new Color(0.95f, 0.72f, 0.2f, 0.95f));
+            ShowMoveMarker(targetPoint, new Color(0.95f, 0.72f, 0.2f, 0.95f), "Assault");
 
             for (int index = 0; index < selectedUnits.Count; index++)
             {
@@ -607,7 +808,7 @@ namespace Game.Selection
             moveMarker.SetActive(false);
         }
 
-        private void ShowMoveMarker(Vector3 position, Color color)
+        private void ShowMoveMarker(Vector3 position, Color color, string label)
         {
             if (moveMarker == null)
             {
@@ -616,10 +817,11 @@ namespace Game.Selection
 
             Renderer markerRenderer = moveMarker.GetComponent<Renderer>();
             markerRenderer.material.color = color;
+            moveMarkerLabel = string.IsNullOrWhiteSpace(label) ? "Move" : label;
             moveMarker.transform.position = new Vector3(position.x, 0.1f, position.z);
             moveMarker.SetActive(true);
             CancelInvoke(nameof(HideMoveMarker));
-            Invoke(nameof(HideMoveMarker), 0.6f);
+            Invoke(nameof(HideMoveMarker), CommandMarkerLifetime);
         }
 
         private void HideMoveMarker()
@@ -628,6 +830,8 @@ namespace Game.Selection
             {
                 moveMarker.SetActive(false);
             }
+
+            moveMarkerLabel = string.Empty;
         }
     }
 }

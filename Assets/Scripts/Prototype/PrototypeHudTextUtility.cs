@@ -32,6 +32,36 @@ namespace Game.Prototype
             return $"Ctrl+F1-F5 assign | F1-F5 recall | double-tap focus | Groups {summary}";
         }
 
+        public static string BuildCommandControlLine(PrototypeSelectionController selectionController)
+        {
+            string commandLabel = "Ready";
+
+            if (selectionController != null && !string.IsNullOrWhiteSpace(selectionController.MoveMarkerLabel))
+            {
+                commandLabel = selectionController.MoveMarkerLabel;
+            }
+
+            string groupSummary = selectionController != null ? selectionController.GetControlGroupSummary() : "None";
+            string commandHint = commandLabel == "Ready"
+                ? "H hold G guard B fall A atk Alt rally"
+                : commandLabel;
+            string groupEventLabel = string.Empty;
+
+            if (selectionController != null)
+            {
+                if (selectionController.HasRecentControlGroupAssignment)
+                {
+                    groupEventLabel = $" | Set {selectionController.RecentControlGroupAssignmentLabel}";
+                }
+                else if (selectionController.HasRecentControlGroupRecall)
+                {
+                    groupEventLabel = $" | Focus {selectionController.RecentControlGroupRecallLabel}";
+                }
+            }
+
+            return Shorten($"Cmd {commandHint}{groupEventLabel} | Groups {groupSummary}", 58);
+        }
+
         public static string BuildDirectiveLine(BattleDirectiveController directiveController, List<ControlNode> controlNodes)
         {
             int totalNodes = controlNodes.Count;

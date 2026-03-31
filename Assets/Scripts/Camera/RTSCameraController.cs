@@ -28,6 +28,8 @@ namespace Game.CameraSystem
         [SerializeField] private Vector2 xBounds = new(-1600f, 1600f);
         [SerializeField] private Vector2 zBounds = new(-1600f, 1600f);
         [SerializeField] private float mapBoundsExtension = 240f;
+        private readonly Vector3[] defaultViewportCornerBuffer = new Vector3[4];
+        private Camera attachedCamera;
 
         public void ApplyMapProfile(BattlefieldMapProfile profile)
         {
@@ -89,6 +91,10 @@ namespace Game.CameraSystem
             }
 
             Vector2 mousePosition = Mouse.current.position.ReadValue();
+            if (ShouldIgnoreEdgePan(mousePosition))
+            {
+                mousePosition = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+            }
 
             if (mousePosition.x <= edgePanSize)
             {
@@ -187,6 +193,64 @@ namespace Game.CameraSystem
             position.z = worldPoint.z;
             transform.position = position;
             ClampPosition();
+        }
+
+        public bool TryGetViewportGroundCorners(Vector3[] cornersBuffer, float groundY = 0f)
+        {
+            if (cornersBuffer == null || cornersBuffer.Length < 4)
+            {
+                return false;
+            }
+
+            Camera sourceCamera = GetAttachedCamera();
+            if (sourceCamera == null)
+            {
+                return false;
+            }
+
+            Plane groundPlane = new(Vector3.up, new Vector3(0f, groundY, 0f));
+            bool hasAnyHit = false;
+
+            cornersBuffer[0] = SampleGroundPoint(sourceCamera.ViewportPointToRay(new Vector3(0f, 0f, 0f)), groundPlane, transform.position.y, groundY, ref hasAnyHit);
+            cornersBuffer[1] = SampleGroundPoint(sourceCamera.ViewportPointToRay(new Vector3(0f, 1f, 0f)), groundPlane, transform.position.y, groundY, ref hasAnyHit);
+            cornersBuffer[2] = SampleGroundPoint(sourceCamera.ViewportPointToRay(new Vector3(1f, 1f, 0f)), groundPlane, transform.position.y, groundY, ref hasAnyHit);
+            cornersBuffer[3] = SampleGroundPoint(sourceCamera.ViewportPointToRay(new Vector3(1f, 0f, 0f)), groundPlane, transform.position.y, groundY, ref hasAnyHit);
+            return hasAnyHit;
+        }
+
+        public bool TryGetViewportGroundCorners(out Vector3[] corners, float groundY = 0f)
+        {
+            corners = defaultViewportCornerBuffer;
+            return TryGetViewportGroundCorners(corners, groundY);
+        }
+
+        private bool ShouldIgnoreEdgePan(Vector2 mousePosition)
+        {
+            return PrototypeHudLayoutUtility.IsScreenPositionOverInteractiveHud(mousePosition);
+        }
+
+        private static Vector3 SampleGroundPoint(Ray ray, Plane groundPlane, float cameraHeight, float groundY, ref bool hasAnyHit)
+        {
+            if (groundPlane.Raycast(ray, out float enter))
+            {
+                hasAnyHit = true;
+                return ray.GetPoint(enter);
+            }
+
+            float fallbackDistance = Mathf.Max(cameraHeight * 2f, 400f);
+            Vector3 fallbackPoint = ray.origin + ray.direction * fallbackDistance;
+            fallbackPoint.y = groundY;
+            return fallbackPoint;
+        }
+
+        private Camera GetAttachedCamera()
+        {
+            if (attachedCamera == null)
+            {
+                attachedCamera = GetComponent<Camera>();
+            }
+
+            return attachedCamera;
         }
     }
 }

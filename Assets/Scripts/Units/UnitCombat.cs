@@ -44,10 +44,22 @@ namespace Game.Units
         private bool hasGuardPoint;
         private Vector3 guardPoint;
         private float guardRadius = 18f;
+        private Transform engagementAnchor;
+        private Transform engagementBeam;
+        private Renderer engagementBeamRenderer;
+        private Transform engagementTip;
+        private Renderer engagementTipRenderer;
+        private Transform orderAnchorVisual;
+        private Transform orderAnchorBeam;
+        private Renderer orderAnchorBeamRenderer;
+        private Transform orderAnchorMarker;
+        private Renderer orderAnchorMarkerRenderer;
+        private float recentAttackPulse;
 
         public CombatTarget CurrentTarget => currentTarget;
         public bool HasAttackMoveDestination => hasAttackMoveDestination;
         public string OrderLabel => BuildOrderLabel();
+        public float RecentAttackPulse => recentAttackPulse;
 
         private void Awake()
         {
@@ -57,6 +69,10 @@ namespace Game.Units
             abilityState = GetComponent<UnitAbilityState>();
             selectableUnit = GetComponent<SelectableUnit>();
             roleController = GetComponent<AdvancedUnitRoleController>();
+            EnsureEngagementVisuals();
+            EnsureOrderAnchorVisuals();
+            UpdateEngagementVisuals();
+            UpdateOrderAnchorVisuals();
         }
 
         private void OnEnable()
@@ -76,6 +92,11 @@ namespace Game.Units
                 cooldownTimer -= Time.deltaTime;
             }
 
+            if (recentAttackPulse > 0f)
+            {
+                recentAttackPulse = Mathf.Max(0f, recentAttackPulse - Time.deltaTime * 3.6f);
+            }
+
             if (retargetTimer > 0f)
             {
                 retargetTimer -= Time.deltaTime;
@@ -83,6 +104,8 @@ namespace Game.Units
 
             if (!health.IsAlive)
             {
+                UpdateEngagementVisuals();
+                UpdateOrderAnchorVisuals();
                 return;
             }
 
@@ -100,6 +123,8 @@ namespace Game.Units
 
             if (currentTarget == null)
             {
+                UpdateEngagementVisuals();
+                UpdateOrderAnchorVisuals();
                 if (RunGuardOrderIfNeeded())
                 {
                     return;
@@ -117,11 +142,15 @@ namespace Game.Units
             if (roleController != null && !roleController.AllowsCombat())
             {
                 currentTarget = null;
+                UpdateEngagementVisuals();
+                UpdateOrderAnchorVisuals();
                 return;
             }
 
             Vector3 targetPosition = currentTarget.transform.position;
             float distance = Vector3.Distance(transform.position, targetPosition);
+            UpdateEngagementVisuals();
+            UpdateOrderAnchorVisuals();
 
             if (distance > attackRange)
             {
@@ -146,6 +175,7 @@ namespace Game.Units
                 ApplyDirectDamage(currentTarget);
             }
 
+            recentAttackPulse = 1f;
             float cooldownMultiplier = abilityState != null ? abilityState.GetAttackCooldownMultiplier() : 1f;
             cooldownTimer = attackCooldown * cooldownMultiplier;
         }
@@ -182,6 +212,10 @@ namespace Game.Units
             abilityState = GetComponent<UnitAbilityState>();
             selectableUnit = GetComponent<SelectableUnit>();
             roleController = GetComponent<AdvancedUnitRoleController>();
+            EnsureEngagementVisuals();
+            EnsureOrderAnchorVisuals();
+            UpdateEngagementVisuals();
+            UpdateOrderAnchorVisuals();
         }
 
         public void SetTarget(CombatTarget target)
@@ -241,20 +275,60 @@ namespace Game.Units
 
         public static void SpawnImpactEffect(Vector3 position, float scale, Color color)
         {
-            GameObject effect = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            effect.name = "Impact Effect";
-            effect.transform.position = position;
-            effect.transform.localScale = Vector3.one * Mathf.Max(0.2f, scale);
+            float effectScale = Mathf.Max(0.2f, scale);
 
-            Collider effectCollider = effect.GetComponent<Collider>();
-            if (effectCollider != null)
+            GameObject root = new("Impact Effect");
+            root.transform.position = position;
+
+            GameObject flash = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            flash.name = "Flash";
+            flash.transform.SetParent(root.transform);
+            flash.transform.localPosition = Vector3.zero;
+            flash.transform.localScale = Vector3.one * effectScale;
+            Collider flashCollider = flash.GetComponent<Collider>();
+            if (flashCollider != null)
             {
-                effectCollider.enabled = false;
+                flashCollider.enabled = false;
             }
 
-            Renderer rendererComponent = effect.GetComponent<Renderer>();
-            rendererComponent.material.color = color;
-            Destroy(effect, 0.22f);
+            Renderer flashRenderer = flash.GetComponent<Renderer>();
+            flashRenderer.material.color = Color.Lerp(color, Color.white, 0.35f);
+
+            GameObject ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            ring.name = "Shock Ring";
+            ring.transform.SetParent(root.transform);
+            ring.transform.localPosition = new Vector3(0f, -0.08f, 0f);
+            ring.transform.localScale = new Vector3(effectScale * 1.35f, 0.03f, effectScale * 1.35f);
+            Collider ringCollider = ring.GetComponent<Collider>();
+            if (ringCollider != null)
+            {
+                ringCollider.enabled = false;
+            }
+
+            Renderer ringRenderer = ring.GetComponent<Renderer>();
+            ringRenderer.material.color = new Color(color.r, color.g, color.b, 0.85f);
+
+            for (int i = 0; i < 4; i++)
+            {
+                float angle = i * 90f;
+                float radians = angle * Mathf.Deg2Rad;
+                GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                spark.name = $"Spark {i + 1}";
+                spark.transform.SetParent(root.transform);
+                spark.transform.localPosition = new Vector3(Mathf.Cos(radians) * effectScale * 0.24f, 0f, Mathf.Sin(radians) * effectScale * 0.24f);
+                spark.transform.localRotation = Quaternion.Euler(0f, angle, 24f);
+                spark.transform.localScale = new Vector3(0.08f, 0.08f, effectScale * 0.65f);
+                Collider sparkCollider = spark.GetComponent<Collider>();
+                if (sparkCollider != null)
+                {
+                    sparkCollider.enabled = false;
+                }
+
+                Renderer sparkRenderer = spark.GetComponent<Renderer>();
+                sparkRenderer.material.color = Color.Lerp(color, Color.white, 0.18f);
+            }
+
+            Destroy(root, 0.24f);
         }
 
         private CombatTarget FindClosestEnemyTarget()
@@ -573,6 +647,215 @@ namespace Game.Units
                 transform.rotation,
                 Quaternion.LookRotation(direction.normalized, Vector3.up),
                 540f * Time.deltaTime);
+        }
+
+        private void EnsureEngagementVisuals()
+        {
+            if (engagementAnchor != null)
+            {
+                return;
+            }
+
+            engagementAnchor = new GameObject("Engagement Anchor").transform;
+            engagementAnchor.SetParent(transform);
+            engagementAnchor.localPosition = new Vector3(0f, 0.82f, 0f);
+            engagementAnchor.localRotation = Quaternion.identity;
+            engagementAnchor.localScale = Vector3.one;
+
+            engagementBeam = CreateEngagementPrimitive(
+                engagementAnchor,
+                PrimitiveType.Cube,
+                "Engagement Beam",
+                new Vector3(0f, 0f, 0.4f),
+                new Vector3(0.05f, 0.05f, 0.8f),
+                new Color(1f, 0.42f, 0.24f));
+            engagementBeamRenderer = engagementBeam.GetComponent<Renderer>();
+
+            engagementTip = CreateEngagementPrimitive(
+                engagementAnchor,
+                PrimitiveType.Sphere,
+                "Engagement Tip",
+                new Vector3(0f, 0f, 0.82f),
+                new Vector3(0.12f, 0.12f, 0.12f),
+                new Color(1f, 0.42f, 0.24f));
+            engagementTipRenderer = engagementTip.GetComponent<Renderer>();
+        }
+
+        private void UpdateEngagementVisuals()
+        {
+            if (engagementAnchor == null)
+            {
+                return;
+            }
+
+            bool show = health != null
+                && health.IsAlive
+                && currentTarget != null
+                && currentTarget.IsAlive
+                && currentTarget.Team != owner.Team;
+            engagementAnchor.gameObject.SetActive(show);
+
+            if (!show)
+            {
+                return;
+            }
+
+            Vector3 targetPosition = currentTarget.transform.position + Vector3.up * 0.72f;
+            Vector3 localTarget = transform.InverseTransformPoint(targetPosition);
+            Vector3 planarTarget = new Vector3(localTarget.x, Mathf.Clamp(localTarget.y, -0.35f, 0.65f), localTarget.z);
+            float distance = Mathf.Max(0.12f, planarTarget.magnitude);
+            Vector3 direction = planarTarget / distance;
+            float pulse = 0.88f + Mathf.PingPong(Time.time * 4.4f, 0.18f);
+            Color linkColor = usesProjectile ? new Color(1f, 0.56f, 0.24f) : new Color(1f, 0.34f, 0.22f);
+
+            if (engagementAnchor != null)
+            {
+                engagementAnchor.localPosition = new Vector3(0f, 0.82f + Mathf.PingPong(Time.time * 1.2f, 0.06f), 0f);
+                engagementAnchor.localRotation = Quaternion.LookRotation(direction, Vector3.up);
+            }
+
+            if (engagementBeam != null)
+            {
+                engagementBeam.localPosition = new Vector3(0f, 0f, distance * 0.5f);
+                engagementBeam.localScale = new Vector3(0.045f, 0.045f, distance);
+            }
+
+            if (engagementBeamRenderer != null)
+            {
+                engagementBeamRenderer.material.color = linkColor * pulse;
+            }
+
+            if (engagementTip != null)
+            {
+                engagementTip.localPosition = new Vector3(0f, 0f, distance);
+                engagementTip.localScale = Vector3.one * (0.1f + Mathf.PingPong(Time.time * 2.8f, 0.03f));
+            }
+
+            if (engagementTipRenderer != null)
+            {
+                engagementTipRenderer.material.color = Color.Lerp(linkColor, Color.white, 0.18f) * pulse;
+            }
+        }
+
+        private static Transform CreateEngagementPrimitive(Transform parent, PrimitiveType primitiveType, string objectName, Vector3 localPosition, Vector3 localScale, Color color)
+        {
+            GameObject child = GameObject.CreatePrimitive(primitiveType);
+            child.name = objectName;
+            child.transform.SetParent(parent);
+            child.transform.localPosition = localPosition;
+            child.transform.localRotation = Quaternion.identity;
+            child.transform.localScale = localScale;
+
+            Collider collider = child.GetComponent<Collider>();
+            if (collider != null)
+            {
+                collider.enabled = false;
+            }
+
+            Renderer rendererComponent = child.GetComponent<Renderer>();
+            if (rendererComponent != null)
+            {
+                rendererComponent.material.color = color;
+            }
+
+            return child.transform;
+        }
+
+        private void EnsureOrderAnchorVisuals()
+        {
+            if (orderAnchorVisual != null)
+            {
+                return;
+            }
+
+            orderAnchorVisual = new GameObject("Order Anchor Visual").transform;
+            orderAnchorVisual.SetParent(transform);
+            orderAnchorVisual.localPosition = new Vector3(0f, 0.42f, 0f);
+            orderAnchorVisual.localRotation = Quaternion.identity;
+            orderAnchorVisual.localScale = Vector3.one;
+
+            orderAnchorBeam = CreateEngagementPrimitive(
+                orderAnchorVisual,
+                PrimitiveType.Cube,
+                "Order Anchor Beam",
+                new Vector3(0f, 0f, 0.5f),
+                new Vector3(0.04f, 0.04f, 1f),
+                new Color(0.34f, 0.95f, 1f));
+            orderAnchorBeamRenderer = orderAnchorBeam.GetComponent<Renderer>();
+
+            orderAnchorMarker = CreateEngagementPrimitive(
+                orderAnchorVisual,
+                PrimitiveType.Cylinder,
+                "Order Anchor Marker",
+                new Vector3(0f, -0.1f, 1f),
+                new Vector3(0.12f, 0.04f, 0.12f),
+                new Color(0.34f, 0.95f, 1f));
+            orderAnchorMarkerRenderer = orderAnchorMarker.GetComponent<Renderer>();
+        }
+
+        private void UpdateOrderAnchorVisuals()
+        {
+            if (orderAnchorVisual == null)
+            {
+                return;
+            }
+
+            bool canShow = health != null
+                && health.IsAlive
+                && selectableUnit != null
+                && selectableUnit.IsSelected
+                && currentTarget == null;
+
+            bool hasAnchor = canShow && (hasHoldPosition || hasGuardPoint || hasAttackMoveDestination);
+            orderAnchorVisual.gameObject.SetActive(hasAnchor);
+
+            if (!hasAnchor)
+            {
+                return;
+            }
+
+            Vector3 anchorWorld = hasGuardPoint
+                ? guardPoint
+                : hasHoldPosition
+                    ? holdPosition
+                    : attackMoveDestination;
+            Vector3 targetPoint = new Vector3(anchorWorld.x, transform.position.y + 0.08f, anchorWorld.z);
+            Vector3 localTarget = transform.InverseTransformPoint(targetPoint);
+            Vector3 planarTarget = new Vector3(localTarget.x, Mathf.Clamp(localTarget.y, -0.25f, 0.35f), localTarget.z);
+            float distance = Mathf.Max(0.2f, planarTarget.magnitude);
+            Vector3 direction = planarTarget / distance;
+            float pulse = 0.86f + Mathf.PingPong(Time.time * 3.2f, 0.16f);
+
+            Color anchorColor = hasGuardPoint
+                ? new Color(1f, 0.86f, 0.34f)
+                : hasHoldPosition
+                    ? new Color(0.52f, 0.76f, 1f)
+                    : new Color(0.34f, 0.95f, 1f);
+
+            orderAnchorVisual.localPosition = new Vector3(0f, 0.42f + Mathf.PingPong(Time.time * 1.2f, 0.04f), 0f);
+            orderAnchorVisual.localRotation = Quaternion.LookRotation(direction, Vector3.up);
+
+            if (orderAnchorBeam != null)
+            {
+                orderAnchorBeam.localPosition = new Vector3(0f, 0f, distance * 0.5f);
+                orderAnchorBeam.localScale = new Vector3(0.035f, 0.035f, distance);
+            }
+
+            if (orderAnchorBeamRenderer != null)
+            {
+                orderAnchorBeamRenderer.material.color = anchorColor * pulse;
+            }
+
+            if (orderAnchorMarker != null)
+            {
+                orderAnchorMarker.localPosition = new Vector3(0f, -0.08f, distance);
+                orderAnchorMarker.localScale = new Vector3(0.12f + Mathf.PingPong(Time.time * 1.5f, 0.03f), 0.04f, 0.12f + Mathf.PingPong(Time.time * 1.5f, 0.03f));
+            }
+
+            if (orderAnchorMarkerRenderer != null)
+            {
+                orderAnchorMarkerRenderer.material.color = Color.Lerp(anchorColor, Color.white, 0.14f) * pulse;
+            }
         }
     }
 }
