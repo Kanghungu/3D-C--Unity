@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <style>
+    .title { font: 800 34px 'Segoe UI', Arial, sans-serif; fill: #eef2f8; }
+    .sub { font: 600 16px 'Segoe UI', Arial, sans-serif; fill: #cfd8e5; }
+    .label { font: 700 15px 'Segoe UI', Arial, sans-serif; fill: #e6edf7; }
+    .note { font: 500 13px 'Segoe UI', Arial, sans-serif; fill: #c1cada; }
+    .h1 { fill: #1a2230; } .h2 { fill: #39485c; } .h3 { fill: #7f95af; } .blue { fill: #8fe1ff; } .gold { fill: #f2c672; }
+  </style>
+  <rect width="1600" height="900" fill="#0d111a"/>
+  <circle cx="1380" cy="192" r="142" fill="#1b2940"/>
+  <ellipse cx="1380" cy="192" rx="202" ry="42" fill="none" stroke="#43556d" stroke-width="6" opacity=".55"/>
+  <rect x="18" y="18" width="1564" height="864" rx="24" fill="#10141d" stroke="#5d677d" stroke-width="3"/>
+  <text x="48" y="72" class="title">FLEET DETAIL BOARD</text>
+  <text x="48" y="102" class="sub">정찰함부터 성전 전함까지, 함급마다 다른 실루엣과 엔진/함교/무장 리듬이 보여야 한다</text>
+  <g fill="#dce9ff" opacity=".8">
+    <circle cx="116" cy="64" r="1.8"/><circle cx="242" cy="122" r="1.4"/><circle cx="388" cy="88" r="1.8"/><circle cx="522" cy="54" r="1.5"/><circle cx="694" cy="98" r="1.8"/><circle cx="824" cy="62" r="1.4"/><circle cx="976" cy="112" r="1.8"/><circle cx="1122" cy="76" r="1.6"/><circle cx="1284" cy="108" r="1.8"/><circle cx="1512" cy="72" r="1.6"/>
+  </g>
+
+  <g transform="translate(36,132)">
+    <rect width="1528" height="312" rx="20" fill="#171c27" stroke="#5d677d" stroke-width="2"/>
+    <text x="20" y="30" class="label">Class Variety</text>
+    <g transform="translate(22,64)">
+      <g transform="translate(0,0)"><rect width="214" height="196" rx="16" fill="#0f131b"/><polygon points="18 104 80 66 134 72 188 96 146 116 62 118" class="h2"/><polygon points="70 72 108 56 136 66 112 80 82 82" class="h3"/><rect x="146" y="94" width="28" height="8" rx="4" class="blue"/><text x="12" y="160" class="label">Scout</text></g>
+      <g transform="translate(232,0)"><rect width="214" height="196" rx="16" fill="#0f131b"/><polygon points="12 112 82 54 160 50 198 92 160 118 62 122" class="h1"/><polygon points="88 62 136 38 164 58 128 74 94 74" class="h3"/><rect x="154" y="88" width="36" height="10" rx="5" class="blue"/><text x="12" y="160" class="label">Destroyer</text></g>
+      <g transform="translate(464,0)"><rect width="214" height="196" rx="16" fill="#0f131b"/><polygon points="10 118 84 48 172 46 204 98 172 126 70 130" class="h2"/><rect x="94" y="42" width="44" height="20" rx="10" class="h3"/><rect x="162" y="92" width="30" height="10" rx="5" class="blue"/><text x="12" y="160" class="label">Cruiser</text></g>
+      <g transform="translate(696,0)"><rect width="214" height="196" rx="16" fill="#0f131b"/><polygon points="12 122 92 50 174 58 202 104 176 130 78 134" class="h1"/><rect x="90" y="40" width="42" height="28" rx="10" class="h3"/><rect x="162" y="96" width="32" height="10" rx="5" class="blue"/><text x="12" y="160" class="label">Carrier</text></g>
+      <g transform="translate(928,0)"><rect width="262" height="196" rx="16" fill="#0f131b"/><polygon points="12 126 94 42 200 36 246 102 212 134 84 142" class="h1"/><polygon points="98 44 144 18 184 40 154 60 112 62" class="h3"/><rect x="198" y="98" width="34" height="12" rx="6" class="blue"/><rect x="190" y="116" width="28" height="8" rx="4" class="gold"/><text x="12" y="160" class="label">Cathedral Battleship</text></g>
+    </g>
+  </g>
+
+  <g transform="translate(36,476)">
+    <rect width="980" height="368" rx="20" fill="#171c27" stroke="#5d677d" stroke-width="2"/>
+    <text x="20" y="30" class="label">Capital Detail Cues</text>
+    <g transform="translate(26,64)">
+      <rect width="928" height="140" rx="16" fill="#0f131b"/>
+      <g transform="translate(24,18) scale(1.55)">
+        <polygon points="0 78 56 28 126 18 170 52 194 86 148 96 50 96" class="h1"/>
+        <polygon points="62 26 92 10 122 20 102 36 68 38" class="h3"/>
+        <rect x="146" y="66" width="26" height="10" rx="5" class="blue"/>
+        <rect x="134" y="80" width="20" height="8" rx="4" class="gold"/>
+      </g>
+      <text x="378" y="34" class="note">- flat wedge로 끝내지 말고 함교나 스파이어가 필요하다</text>
+      <text x="378" y="58" class="note">- 엔진 블록, 측면 포열, 주포 라인이 읽혀야 한다</text>
+      <text x="378" y="82" class="note">- 항모면 격납고, 전함이면 포문과 장갑 리브가 보여야 한다</text>
+      <text x="378" y="106" class="note">- wreck 상태도 생각하면 전투 감각이 훨씬 살아난다</text>
+    </g>
+    <g transform="translate(26,224)">
+      <rect width="288" height="120" rx="16" fill="#0f131b"/><text x="16" y="28" class="label">Small Craft</text><text x="16" y="56" class="note">빠르고 날카롭지만 엔진과 무장 정체성은 있어야 한다.</text>
+      <rect x="320" width="288" height="120" rx="16" fill="#0f131b"/><text x="336" y="28" class="label">Mid Capital</text><text x="336" y="56" class="note">구축함과 순양함은 전개 가능한 전함처럼 보여야 한다.</text>
+      <rect x="614" width="314" height="120" rx="16" fill="#0f131b"/><text x="630" y="28" class="label">Great Capital</text><text x="630" y="56" class="note">장엄하지만 병기 역할이 명확한 성전 함선이어야 한다.</text>
+    </g>
+  </g>
+
+  <g transform="translate(1046,476)">
+    <rect width="518" height="368" rx="20" fill="#171c27" stroke="#5d677d" stroke-width="2"/>
+    <text x="20" y="30" class="label">Orbital War Mood</text>
+    <g transform="translate(20,60)">
+      <rect width="478" height="168" rx="16" fill="#0f131b"/>
+      <circle cx="370" cy="78" r="60" fill="#21314b" opacity=".88"/>
+      <ellipse cx="370" cy="78" rx="92" ry="18" fill="none" stroke="#425572" stroke-width="4" opacity=".65"/>
+      <polygon points="42 102 116 42 194 40 240 92 198 116 92 118" class="h1"/>
+      <polygon points="118 46 160 20 190 42 160 58 126 58" class="h3"/>
+      <rect x="198" y="82" width="28" height="10" rx="5" class="blue"/>
+    </g>
+    <g transform="translate(20,250)">
+      <rect width="478" height="96" rx="16" fill="#0f131b"/>
+      <text x="16" y="28" class="note">지상전과 분리된 느낌이 아니라, 함대 그림자와 궤도 타격으로 같은 전쟁의 일부처럼 보여야 한다.</text>
+      <text x="16" y="56" class="note">모든 함선을 같은 삼각형으로 만들지 않는 것이 핵심이다.</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="battleSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#727983"/><stop offset="60%" stop-color="#b49174"/><stop offset="100%" stop-color="#3f2c21"/></linearGradient>
+    <linearGradient id="battleGround" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8a6248"/><stop offset="100%" stop-color="#241712"/></linearGradient>
+    <radialGradient id="blast" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff1c8"/><stop offset="40%" stop-color="#ffc268"/><stop offset="100%" stop-color="#ff6b22" stop-opacity="0"/></radialGradient>
+    <style>
+      .title { font: 800 34px 'Segoe UI', Arial, sans-serif; fill: #f3ead8; }
+      .sub { font: 600 16px 'Segoe UI', Arial, sans-serif; fill: #e0c9ab; }
+      .label { font: 700 16px 'Segoe UI', Arial, sans-serif; fill: #f0dcb1; }
+      .note { font: 500 13px 'Segoe UI', Arial, sans-serif; fill: #d7c7b5; }
+      .m1 { fill: #171d25; } .m2 { fill: #2e3946; } .m3 { fill: #718397; } .m4 { fill: #495767; }
+      .gold { fill: #efc474; } .blue { fill: #89d7f4; } .red { fill: #d56f58; } .smoke { fill: #2a201c; opacity: .78; }
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="#161920"/>
+  <rect x="18" y="18" width="1564" height="864" rx="24" fill="#111318" stroke="#7f6348" stroke-width="3"/>
+  <text x="48" y="72" class="title">SUPPORT RIG</text>
+  <text x="48" y="102" class="sub">??/?? ?? ?? ??</text>
+  <g transform="translate(36,136)"><rect width="1528" height="708" rx="20" fill="#181b22"/><rect x="74" y="112" width="300" height="420" rx="22" fill="#10141a" stroke="#67513b" stroke-width="2"/><g transform="translate(84,118)"><rect x="46" y="172" width="164" height="38" rx="12" class="m2"/><rect x="92" y="136" width="72" height="36" rx="10" class="m3"/><rect x="152" y="146" width="88" height="8" rx="4" class="gold"/><rect x="54" y="122" width="32" height="18" rx="8" class="blue"/></g><text x="102" y="580" class="label">Support Rig</text><text x="102" y="610" class="note">??, ??, ??, ??/???? ??? ??? ??.</text><rect x="420" y="112" width="1010" height="420" rx="22" fill="#10141a" stroke="#67513b" stroke-width="2"/><text x="448" y="160" class="label">Detail Layer Checklist</text><text x="448" y="204" class="note">- armor plates and secondary ribs</text><text x="448" y="232" class="note">- visible mobility system</text><text x="448" y="260" class="note">- turret or gun line length</text><text x="448" y="288" class="note">- engine or power unit mass</text></g>
+</svg>

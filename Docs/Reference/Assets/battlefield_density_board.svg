@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#717782"/>
+      <stop offset="60%" stop-color="#b08f73"/>
+      <stop offset="100%" stop-color="#3e2b20"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8a6248"/>
+      <stop offset="100%" stop-color="#241712"/>
+    </linearGradient>
+    <radialGradient id="blast" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fff2c5"/>
+      <stop offset="40%" stop-color="#ffbf65"/>
+      <stop offset="100%" stop-color="#ff6a22" stop-opacity="0"/>
+    </radialGradient>
+    <style>
+      .title { font: 800 34px 'Segoe UI', Arial, sans-serif; fill: #f3ead8; }
+      .sub { font: 600 16px 'Segoe UI', Arial, sans-serif; fill: #e0c9ab; }
+      .label { font: 700 15px 'Segoe UI', Arial, sans-serif; fill: #edd8af; }
+      .note { font: 500 13px 'Segoe UI', Arial, sans-serif; fill: #d6c5b1; }
+      .dark { fill: #221915; }
+      .mid { fill: #2f3947; }
+      .light { fill: #6e7e92; }
+      .gold { fill: #efc474; }
+      .blue { fill: #89d7f4; }
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="#161920"/>
+  <rect x="18" y="18" width="1564" height="864" rx="24" fill="#111318" stroke="#7f6348" stroke-width="3"/>
+  <text x="48" y="72" class="title">BATTLEFIELD DENSITY BOARD</text>
+  <text x="48" y="102" class="sub">참호, 랜드마크, 워커, 전차, 보병, 연기 기둥, 궤도 위협이 같이 읽히는 전장 기준</text>
+  <g transform="translate(36,132)">
+    <rect width="1528" height="492" rx="20" fill="url(#sky)"/>
+    <path d="M0 352 C160 300 280 390 420 346 C566 300 692 392 852 346 C1004 300 1140 388 1288 344 C1398 314 1472 324 1528 312 L1528 492 L0 492 Z" fill="url(#ground)"/>
+    <ellipse cx="194" cy="124" rx="34" ry="86" fill="#2d231d" opacity=".7"/>
+    <ellipse cx="736" cy="88" rx="30" ry="92" fill="#2d231d" opacity=".7"/>
+    <ellipse cx="1248" cy="120" rx="40" ry="110" fill="#2d231d" opacity=".7"/>
+    <circle cx="182" cy="274" r="54" fill="url(#blast)"/>
+    <circle cx="612" cy="332" r="46" fill="url(#blast)"/>
+    <circle cx="984" cy="276" r="62" fill="url(#blast)"/>
+    <circle cx="1324" cy="254" r="52" fill="url(#blast)"/>
+    <rect x="84" y="344" width="196" height="26" rx="6" fill="#261b15"/>
+    <rect x="330" y="370" width="188" height="26" rx="6" fill="#261b15"/>
+    <rect x="586" y="342" width="238" height="28" rx="6" fill="#261b15"/>
+    <rect x="876" y="370" width="198" height="26" rx="6" fill="#261b15"/>
+    <rect x="1142" y="344" width="238" height="28" rx="6" fill="#261b15"/>
+    <path d="M94 320 l22 22 m-6 -28 l24 22 m18 -18 l22 22 m22 -18 l18 20" stroke="#18120f" stroke-width="4"/>
+    <path d="M598 316 l22 22 m-6 -28 l24 22 m18 -18 l22 22 m22 -18 l18 20" stroke="#18120f" stroke-width="4"/>
+    <path d="M1154 316 l22 22 m-6 -28 l24 22 m18 -18 l22 22 m22 -18 l18 20" stroke="#18120f" stroke-width="4"/>
+    <g transform="translate(1040,40)">
+      <polygon points="0 92 88 24 176 28 242 78 180 102 52 106" fill="#202731"/>
+      <polygon points="86 30 130 12 166 28 126 44 94 46" fill="#72839a"/>
+      <rect x="180" y="74" width="36" height="10" rx="5" class="blue"/>
+      <rect x="188" y="86" width="24" height="6" rx="3" class="gold"/>
+    </g>
+    <g transform="translate(1238,126) scale(.9)">
+      <polygon points="0 118 96 28 226 24 306 88 246 120 82 124" fill="#1e2631"/>
+      <polygon points="108 28 164 8 206 26 150 44 118 44" fill="#73839a"/>
+      <rect x="224" y="86" width="44" height="12" rx="6" class="blue"/>
+    </g>
+    <g transform="translate(98,222)">
+      <circle cx="18" cy="10" r="8" class="light"/>
+      <path d="M6 20 L30 20 L38 56 L0 56 Z" class="mid"/>
+      <rect x="34" y="34" width="46" height="6" rx="3" class="blue"/>
+    </g>
+    <g transform="translate(188,212)">
+      <circle cx="18" cy="10" r="8" class="light"/>
+      <path d="M6 20 L30 20 L38 58 L0 58 Z" class="mid"/>
+      <rect x="-14" y="26" width="34" height="50" rx="8" class="blue"/>
+      <rect x="36" y="34" width="42" height="6" rx="3" class="gold"/>
+    </g>
+    <g transform="translate(318,188)">
+      <rect x="12" y="76" width="92" height="30" rx="10" class="mid"/>
+      <rect x="40" y="42" width="42" height="34" rx="8" class="light"/>
+      <rect x="78" y="20" width="14" height="52" rx="7" class="light"/>
+      <rect x="88" y="28" width="64" height="8" rx="4" class="gold"/>
+      <rect x="0" y="88" width="22" height="40" rx="8" fill="#465565"/>
+      <rect x="34" y="106" width="18" height="58" rx="8" fill="#465565"/>
+      <rect x="72" y="106" width="18" height="58" rx="8" fill="#465565"/>
+    </g>
+    <g transform="translate(1132,258)">
+      <rect x="0" y="50" width="118" height="34" rx="10" class="mid"/>
+      <rect x="22" y="24" width="50" height="28" rx="8" class="light"/>
+      <rect x="72" y="12" width="20" height="20" rx="6" class="light"/>
+      <rect x="84" y="26" width="62" height="8" rx="4" class="blue"/>
+      <circle cx="18" cy="88" r="16" fill="#131920"/>
+      <circle cx="86" cy="88" r="16" fill="#131920"/>
+    </g>
+  </g>
+  <g transform="translate(40,648)">
+    <rect width="476" height="196" rx="18" fill="#11141a" stroke="#6d553f" stroke-width="2"/>
+    <text x="18" y="30" class="label">Do Add</text>
+    <text x="18" y="60" class="note">- trench bands, crater chains, broken roads</text>
+    <text x="18" y="84" class="note">- shrine landmark, smoke pillars, hot explosion zones</text>
+    <text x="18" y="108" class="note">- different lanes for infantry, armor, and walkers</text>
+    <text x="18" y="132" class="note">- orbital shadows or strike beams for scale</text>
+  </g>
+  <g transform="translate(560,648)">
+    <rect width="476" height="196" rx="18" fill="#11141a" stroke="#6d553f" stroke-width="2"/>
+    <text x="18" y="30" class="label">Target Feeling</text>
+    <text x="18" y="60" class="note">- empty map가 아니라 이미 상처 입은 전쟁터</text>
+    <text x="18" y="84" class="note">- 보병과 대형 병기가 동시에 존재하는 밀도</text>
+    <text x="18" y="108" class="note">- 제국 성지 전쟁이라는 세계관 규모</text>
+  </g>
+  <g transform="translate(1080,648)">
+    <rect width="476" height="196" rx="18" fill="#11141a" stroke="#6d553f" stroke-width="2"/>
+    <text x="18" y="30" class="label">Avoid</text>
+    <text x="18" y="60" class="note">- giant empty plane + few props</text>
+    <text x="18" y="84" class="note">- identical rhythm across whole battlefield</text>
+    <text x="18" y="108" class="note">- clean ground with no history or damage</text>
+  </g>
+</svg>

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <style>
+    .title { font: 800 34px 'Segoe UI', Arial, sans-serif; fill: #f3ead8; }
+    .sub { font: 600 16px 'Segoe UI', Arial, sans-serif; fill: #e0c9ab; }
+    .label { font: 700 18px 'Segoe UI', Arial, sans-serif; fill: #efd8ae; }
+    .note { font: 500 13px 'Segoe UI', Arial, sans-serif; fill: #d5c4b1; }
+    .m1 { fill: #171d25; } .m2 { fill: #2e3946; } .m3 { fill: #718397; } .blue { fill: #89d7f4; } .gold { fill: #efc474; }
+  </style>
+  <rect width="1600" height="900" fill="#171920"/>
+  <rect x="18" y="18" width="1564" height="864" rx="24" fill="#111318" stroke="#7f6348" stroke-width="3"/>
+  <text x="48" y="72" class="title">IMPERIAL CRUSADE MASTER BOARD</text>
+  <text x="48" y="102" class="sub">한 장 요약용 보드. 실제 작업할 때는 아래 세 축을 각각 따로 보고 판단한다.</text>
+
+  <g transform="translate(36,142)">
+    <rect width="492" height="690" rx="20" fill="#1a1c23" stroke="#6e5840" stroke-width="2"/>
+    <text x="18" y="32" class="label">1. Dense Battlefield</text>
+    <rect x="18" y="52" width="456" height="394" rx="18" fill="#6d716f"/>
+    <path d="M18 330 C120 284 220 350 312 316 C386 290 430 326 474 314 L474 446 L18 446 Z" fill="#493328"/>
+    <circle cx="118" cy="262" r="40" fill="#ffb65c" opacity=".55"/>
+    <circle cx="316" cy="302" r="34" fill="#ffb65c" opacity=".5"/>
+    <ellipse cx="104" cy="154" rx="24" ry="68" fill="#2a201c" opacity=".7"/>
+    <ellipse cx="330" cy="126" rx="26" ry="80" fill="#2a201c" opacity=".7"/>
+    <rect x="68" y="312" width="132" height="20" rx="5" fill="#241914"/><rect x="236" y="328" width="156" height="20" rx="5" fill="#241914"/>
+    <polygon points="332 150 394 100 450 110 470 146 430 164 360 166" class="m1"/><rect x="424" y="138" width="20" height="8" rx="4" class="blue"/>
+    <text x="18" y="486" class="note">참호, 잔해, 연기, 화염, 워커, 전차, 궤도 위협까지 같이 읽혀야 한다.</text>
+  </g>
+
+  <g transform="translate(554,142)">
+    <rect width="492" height="690" rx="20" fill="#1a1c23" stroke="#6e5840" stroke-width="2"/>
+    <text x="18" y="32" class="label">2. Ground Units</text>
+    <rect x="18" y="52" width="456" height="394" rx="18" fill="#12161c"/>
+    <g transform="translate(40,88)">
+      <circle cx="26" cy="22" r="12" class="m3"/><path d="M10 40 L42 40 L52 92 L0 92 Z" class="m2"/><rect x="50" y="58" width="56" height="8" rx="4" class="gold"/>
+      <circle cx="148" cy="22" r="12" class="m3"/><path d="M130 40 L164 40 L172 94 L118 94 Z" class="m2"/><rect x="106" y="50" width="34" height="72" rx="8" class="blue"/>
+      <circle cx="268" cy="22" r="12" class="m3"/><path d="M250 40 L282 40 L292 90 L240 90 Z" class="m2"/><rect x="292" y="56" width="54" height="8" rx="4" class="blue"/>
+      <rect x="10" y="180" width="88" height="28" rx="10" class="m2"/><rect x="36" y="148" width="38" height="32" rx="8" class="m3"/><rect x="70" y="156" width="56" height="8" rx="4" class="gold"/>
+      <rect x="154" y="172" width="92" height="28" rx="10" class="m2"/><polygon points="160 170 202 144 248 150 270 176 244 186 178 188" class="m3"/>
+      <rect x="270" y="170" width="48" height="8" rx="4" class="blue"/>
+    </g>
+    <text x="18" y="486" class="note">보병, 실드 유닛, 사수, 워커, 전차가 색이 아니라 실루엣으로 구분되어야 한다.</text>
+  </g>
+
+  <g transform="translate(1072,142)">
+    <rect width="492" height="690" rx="20" fill="#1a1c23" stroke="#6e5840" stroke-width="2"/>
+    <text x="18" y="32" class="label">3. Fleet Variety</text>
+    <rect x="18" y="52" width="456" height="394" rx="18" fill="#101521"/>
+    <circle cx="390" cy="110" r="66" fill="#1e2c41"/>
+    <ellipse cx="390" cy="110" rx="96" ry="18" fill="none" stroke="#41546c" stroke-width="4" opacity=".6"/>
+    <polygon points="34 216 92 180 142 186 188 208 150 224 74 226" class="m2"/>
+    <polygon points="46 312 118 252 196 248 230 292 194 320 96 324" class="m1"/>
+    <polygon points="246 294 328 226 422 220 462 286 422 322 302 328" class="m1"/>
+    <polygon points="314 228 354 206 388 224 362 242 326 244" class="m3"/>
+    <rect x="156" y="206" width="24" height="8" rx="4" class="blue"/><rect x="396" y="280" width="28" height="10" rx="5" class="blue"/><rect x="388" y="296" width="22" height="7" rx="4" class="gold"/>
+    <text x="18" y="486" class="note">정찰함, 구축함, 순양함, 전함이 전부 다른 리듬을 가져야 한다.</text>
+  </g>
+</svg>
