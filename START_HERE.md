@@ -1,4 +1,4 @@
-# START_HERE.md
+﻿# START_HERE.md
 
 ## 이 문서의 역할
 - 집에서 AI에게 작업을 맡길 때 가장 먼저 보여주는 실행용 문서다.
@@ -13,7 +13,7 @@
 5. `DEVLOG.md`
 6. `HOME_AI_PROMPTS.md`
 7. `HOME_AI_HARNESS.md`
-8. 필요할 때 `Docs/Reference/BATTLEFIELD_DIAGRAM.md`, `Docs/Reference/SYSTEM_FLOW_DIAGRAM.md`, `Docs/Reference/ANIMATION_STATE_DIAGRAM.md`, `Docs/Reference/ART_DIRECTION.md`, `Docs/Reference/VISUAL_REFERENCE_LINKS.md`
+8. 필요할 때 `Docs/Reference/BATTLEFIELD_DIAGRAM.md`, `Docs/Reference/SYSTEM_FLOW_DIAGRAM.md`, `Docs/Reference/ANIMATION_STATE_DIAGRAM.md`, `Docs/Reference/ART_DIRECTION.md`, `Docs/Reference/VISUAL_REFERENCE_LINKS.md`, `Docs/Reference/MESHY_MODELING_GUIDE.md`
 
 ## 집에서 작업 시작 전에
 - 가능하면 PowerShell에서 `./scripts/Start-HomeWork.ps1`를 먼저 실행한다.

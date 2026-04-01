@@ -1,4 +1,4 @@
-# 3D-Unity
+﻿# 3D-Unity
 
 Unity 기반 3D SF 싱글플레이 RTS 전투 프로토타입 프로젝트입니다.
 
@@ -54,6 +54,7 @@ Unity 기반 3D SF 싱글플레이 RTS 전투 프로토타입 프로젝트입니
 - `Docs/Reference/COMBAT_DESIGN.md`
 - `Docs/Reference/GDD.md`
 - `Docs/Reference/HISTORY.md`
+- `Docs/Reference/MESHY_MODELING_GUIDE.md`
 - `Docs/Reference/MINDMAP.md`
 - `Docs/Reference/ROADMAP.md`
 - `Docs/Reference/SYSTEM_FLOW_DIAGRAM.md`
