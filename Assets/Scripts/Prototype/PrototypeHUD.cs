@@ -407,40 +407,134 @@ namespace Game.Prototype
 
             GUI.Label(new Rect(rect.x + 10f, rect.y + 36f, rect.width - 20f, 20f), $"선택 부대  {selectedUnits.Count}", labelStyle);
             DrawSelectionEventBadges(new Rect(rect.x + 110f, rect.y + 36f, rect.width - 120f, 20f), selectionController);
-            DrawSelectionBadges(new Rect(rect.x + 10f, rect.y + 60f, rect.width - 20f, 50f), selectedUnits);
-            GUI.Label(new Rect(rect.x + 10f, rect.y + 116f, rect.width - 20f, 16f), PrototypeHudTextUtility.BuildSelectionOrdersSummary(selectedUnits), tinyStyle);
-            GUI.Label(new Rect(rect.x + 10f, rect.y + 133f, rect.width - 20f, 16f), PrototypeHudTextUtility.BuildSelectionPriorityLine(selectedUnits), tinyStyle);
+            DrawSelectionIcons(new Rect(rect.x + 8f, rect.y + 58f, rect.width - 16f, 90f), selectedUnits);
+            GUI.Label(new Rect(rect.x + 10f, rect.y + 152f, rect.width - 20f, 16f), PrototypeHudTextUtility.BuildSelectionOrdersSummary(selectedUnits), tinyStyle);
             GUI.Label(new Rect(rect.x + 10f, rect.y + rect.height - 18f, rect.width - 20f, 16f), PrototypeHudTextUtility.BuildCommandControlLine(selectionController), tinyStyle);
         }
 
-        private void DrawSelectionBadges(Rect rect, IReadOnlyList<SelectableUnit> selectedUnits)
+        private void DrawSelectionIcons(Rect rect, IReadOnlyList<SelectableUnit> selectedUnits)
         {
-            List<string> badgeLines = PrototypeHudTextUtility.BuildSelectionGroupLines(selectedUnits, 6);
-            float badgeX = rect.x;
-            float badgeY = rect.y;
-            float badgeHeight = 18f;
-            float gap = 6f;
+            if (selectedUnits == null || selectedUnits.Count == 0) return;
 
-            foreach (string badge in badgeLines)
+            const float iconSize = 40f;
+            const float gap = 4f;
+            const float step = iconSize + gap;
+
+            int cols = Mathf.Max(1, Mathf.FloorToInt((rect.width + gap) / step));
+            int maxVisible = cols * 2; // 최대 2행
+
+            GUIStyle iconLabelStyle = new GUIStyle(GUI.skin.label)
             {
-                float width = Mathf.Min(rect.width, 16f + badge.Length * 6.4f);
+                fontSize = 13,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = new Color(1f, 1f, 1f, 0.95f) }
+            };
+            GUIStyle countStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 9,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.LowerRight,
+                normal = { textColor = new Color(1f, 1f, 0.6f, 1f) }
+            };
 
-                if (badgeX + width > rect.xMax)
+            int drawn = 0;
+            foreach (SelectableUnit unit in selectedUnits)
+            {
+                if (unit == null) continue;
+                if (drawn >= maxVisible) break;
+
+                int col = drawn % cols;
+                int row = drawn / cols;
+                Rect iconRect = new Rect(rect.x + col * step, rect.y + row * step, iconSize, iconSize);
+
+                // 배경: 병종별 색상
+                Color bg = GetArchetypeIconColor(unit.Archetype);
+                DrawSolidRect(iconRect, bg);
+                DrawRectOutline(iconRect, new Color(1f, 1f, 1f, 0.25f), 1f);
+
+                // 체력바 (하단 4px)
+                UnitHealth health = unit.GetComponent<UnitHealth>();
+                if (health != null)
                 {
-                    badgeX = rect.x;
-                    badgeY += badgeHeight + 4f;
+                    Rect hpBg = new Rect(iconRect.x, iconRect.yMax - 4f, iconSize, 4f);
+                    DrawSolidRect(hpBg, new Color(0.1f, 0.1f, 0.1f, 0.8f));
+                    Color hpColor = health.Normalized <= 0.35f
+                        ? new Color(0.9f, 0.2f, 0.15f)
+                        : new Color(0.22f, 0.85f, 0.3f);
+                    DrawSolidRect(new Rect(hpBg.x, hpBg.y, hpBg.width * health.Normalized, hpBg.height), hpColor);
                 }
 
-                Rect badgeRect = new Rect(badgeX, badgeY, width, badgeHeight);
-                GUI.Box(badgeRect, GUIContent.none, badgeStyle);
-                GUI.Label(new Rect(badgeRect.x + 8f, badgeRect.y + 1f, badgeRect.width - 12f, badgeRect.height - 2f), badge, tinyStyle);
-                badgeX += width + gap;
-
-                if (badgeY + badgeHeight > rect.yMax)
+                // 선택 하이라이트
+                if (unit.IsSelected)
                 {
-                    break;
+                    DrawRectOutline(iconRect, new Color(0.2f, 0.9f, 1f, 0.9f), 2f);
+                }
+
+                // 병종 심볼
+                GUI.Label(new Rect(iconRect.x, iconRect.y, iconRect.width, iconRect.height - 4f),
+                    GetArchetypeSymbol(unit.Archetype), iconLabelStyle);
+
+                drawn++;
+            }
+
+            // 넘치는 유닛 표시
+            int overflow = 0;
+            foreach (SelectableUnit unit in selectedUnits)
+            {
+                if (unit != null) overflow++;
+            }
+            overflow -= drawn;
+
+            if (overflow > 0)
+            {
+                int lastCol = (drawn - 1) % cols;
+                int lastRow = (drawn - 1) / cols;
+                // 마지막 자리 다음 칸
+                int nextCol = drawn % cols;
+                int nextRow = drawn / cols;
+                if (nextRow < 2)
+                {
+                    Rect overRect = new Rect(rect.x + nextCol * step, rect.y + nextRow * step, iconSize, iconSize);
+                    DrawSolidRect(overRect, new Color(0.12f, 0.14f, 0.18f, 0.92f));
+                    DrawRectOutline(overRect, new Color(0.5f, 0.6f, 0.7f, 0.6f), 1f);
+                    GUI.Label(overRect, $"+{overflow}", iconLabelStyle);
                 }
             }
+        }
+
+        private static Color GetArchetypeIconColor(UnitArchetype archetype)
+        {
+            return archetype switch
+            {
+                UnitArchetype.Spearman       => new Color(0.18f, 0.42f, 0.72f, 0.92f),
+                UnitArchetype.ShieldInfantry => new Color(0.22f, 0.52f, 0.30f, 0.92f),
+                UnitArchetype.Rifleman       => new Color(0.52f, 0.32f, 0.12f, 0.92f),
+                UnitArchetype.Artillery      => new Color(0.45f, 0.18f, 0.18f, 0.92f),
+                UnitArchetype.SpecialWarrior => new Color(0.38f, 0.18f, 0.52f, 0.92f),
+                UnitArchetype.RoyalGuard     => new Color(0.62f, 0.48f, 0.10f, 0.92f),
+                UnitArchetype.Fighter        => new Color(0.14f, 0.36f, 0.54f, 0.92f),
+                UnitArchetype.MobileFortress => new Color(0.28f, 0.28f, 0.32f, 0.92f),
+                UnitArchetype.AirborneCitadel=> new Color(0.20f, 0.28f, 0.44f, 0.92f),
+                _                            => new Color(0.20f, 0.22f, 0.26f, 0.92f),
+            };
+        }
+
+        private static string GetArchetypeSymbol(UnitArchetype archetype)
+        {
+            return archetype switch
+            {
+                UnitArchetype.Spearman       => "창",
+                UnitArchetype.ShieldInfantry => "방",
+                UnitArchetype.Rifleman       => "총",
+                UnitArchetype.Artillery      => "포",
+                UnitArchetype.SpecialWarrior => "특",
+                UnitArchetype.RoyalGuard     => "친",
+                UnitArchetype.Fighter        => "기",
+                UnitArchetype.MobileFortress => "이",
+                UnitArchetype.AirborneCitadel=> "비",
+                _                            => "?",
+            };
         }
 
         private void DrawSelectionEventBadges(Rect rect, PrototypeSelectionController selectionController)
@@ -821,9 +915,6 @@ namespace Game.Prototype
                 return;
             }
 
-            Vector2 minPoint = new(float.MaxValue, float.MaxValue);
-            Vector2 maxPoint = new(float.MinValue, float.MinValue);
-
             if (!cameraController.TryGetViewportGroundCorners(cameraViewportWorldCorners))
             {
                 return;
@@ -833,21 +924,12 @@ namespace Game.Prototype
             {
                 Vector3 worldPoint = mapProfile.ClampWorldPoint(cameraViewportWorldCorners[i], 2f);
                 Vector2 normalized = mapProfile.WorldToNormalized(worldPoint);
-                Vector2 minimapPoint = new(
+                minimapViewportCorners[i] = new Vector2(
                     mapRect.x + normalized.x * mapRect.width,
                     mapRect.y + normalized.y * mapRect.height);
-
-                minimapViewportCorners[i] = minimapPoint;
-                minPoint.x = Mathf.Min(minPoint.x, minimapPoint.x);
-                minPoint.y = Mathf.Min(minPoint.y, minimapPoint.y);
-                maxPoint.x = Mathf.Max(maxPoint.x, minimapPoint.x);
-                maxPoint.y = Mathf.Max(maxPoint.y, minimapPoint.y);
             }
 
-            Rect fillRect = Rect.MinMaxRect(minPoint.x, minPoint.y, maxPoint.x, maxPoint.y);
-            DrawSolidRect(fillRect, new Color(0.9f, 0.96f, 1f, 0.08f));
-            DrawRectOutline(fillRect, new Color(0.08f, 0.12f, 0.16f, 0.95f), 3.25f);
-
+            // 실제 꼭짓점을 잇는 경계선 (AABB 제거 — 사다리꼴 그대로)
             for (int i = 0; i < minimapViewportCorners.Length; i++)
             {
                 Vector2 start = minimapViewportCorners[i];
@@ -855,11 +937,12 @@ namespace Game.Prototype
                 DrawLine(start, end, new Color(0.92f, 0.98f, 1f, 0.98f), 1.8f);
             }
 
-            float cornerLength = Mathf.Clamp(Mathf.Min(fillRect.width, fillRect.height) * 0.22f, 6f, 18f);
-            Color cornerColor = new Color(1f, 0.94f, 0.52f, 0.98f);
-            DrawViewportCornerBrackets(fillRect, cornerLength, cornerColor, 2.1f);
+            // 코너 브라켓도 실제 꼭짓점 기준으로
+            DrawViewportCornerBracketsFromCorners(minimapViewportCorners, new Color(1f, 0.94f, 0.52f, 0.98f), 0.2f, 2.1f);
 
-            Vector2 center = fillRect.center;
+            // 뷰포트 중심 = 4꼭짓점 평균 (AABB 중심 아님)
+            Vector2 center = (minimapViewportCorners[0] + minimapViewportCorners[1]
+                            + minimapViewportCorners[2] + minimapViewportCorners[3]) * 0.25f;
             Vector2 forwardMidpoint = (minimapViewportCorners[1] + minimapViewportCorners[2]) * 0.5f;
             DrawLine(center, forwardMidpoint, new Color(1f, 0.94f, 0.52f, 0.92f), 1.2f);
             DrawSolidRect(new Rect(center.x - 2f, center.y - 2f, 4f, 4f), new Color(1f, 1f, 1f, 0.96f));
@@ -1210,7 +1293,7 @@ namespace Game.Prototype
                 return;
             }
 
-            cameraController.SnapToWorldPoint(worldPoint);
+            cameraController.CenterViewOnWorldPoint(worldPoint);
             currentEvent.Use();
         }
 
@@ -1281,6 +1364,23 @@ namespace Game.Prototype
 
             DrawLine(bottomLeft, bottomLeft + Vector2.right * cornerLength, color, thickness);
             DrawLine(bottomLeft, bottomLeft + Vector2.up * cornerLength, color, thickness);
+        }
+
+        // 실제 뷰포트 꼭짓점(사다리꼴) 기준 코너 브라켓
+        private void DrawViewportCornerBracketsFromCorners(Vector2[] corners, Color color, float edgeFraction, float thickness)
+        {
+            for (int i = 0; i < corners.Length; i++)
+            {
+                Vector2 c    = corners[i];
+                Vector2 prev = corners[(i + corners.Length - 1) % corners.Length];
+                Vector2 next = corners[(i + 1) % corners.Length];
+
+                float lenA = Mathf.Clamp(Vector2.Distance(c, prev) * edgeFraction, 5f, 18f);
+                float lenB = Mathf.Clamp(Vector2.Distance(c, next) * edgeFraction, 5f, 18f);
+
+                DrawLine(c, c + (prev - c).normalized * lenA, color, thickness);
+                DrawLine(c, c + (next - c).normalized * lenB, color, thickness);
+            }
         }
 
         private static bool IsMinimapNavigationEvent(Event currentEvent)
