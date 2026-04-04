@@ -115,8 +115,7 @@ namespace Game.Prototype
             canopy.transform.SetParent(parent);
             canopy.GetComponent<Renderer>().material.color = canopyColor;
 
-            EnsureFogObject(trunk,  BattlefieldFogRequirement.Explored);
-            EnsureFogObject(canopy, BattlefieldFogRequirement.Explored);
+            // 나무는 배경 오브젝트 — 안개전 숨김 대상에서 제외
         }
 
         // ── 죽은 나무 (전장 분위기용) ──────────────────────────────────────────
@@ -150,10 +149,8 @@ namespace Game.Prototype
                 branch.transform.eulerAngles = new Vector3(bAngle, bYaw, 0f);
                 branch.transform.SetParent(parent);
                 branch.GetComponent<Renderer>().material.color = charred;
-                EnsureFogObject(branch, BattlefieldFogRequirement.Explored);
             }
-
-            EnsureFogObject(trunk, BattlefieldFogRequirement.Explored);
+            // 죽은 나무도 배경 오브젝트 — 안개전 숨김 제외
         }
 
         // ── 풀 패치 ───────────────────────────────────────────────────────────
@@ -177,7 +174,7 @@ namespace Game.Prototype
                 blade.transform.SetParent(parent);
                 Color bladeColor = Color.Lerp(color, Color.black, Random.Range(0f, 0.25f));
                 blade.GetComponent<Renderer>().material.color = bladeColor;
-                EnsureFogObject(blade, BattlefieldFogRequirement.Explored);
+                // 풀도 배경 오브젝트 — 안개전 숨김 제외
             }
         }
 
