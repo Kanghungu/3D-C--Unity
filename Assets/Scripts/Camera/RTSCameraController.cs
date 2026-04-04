@@ -23,15 +23,13 @@ namespace Game.CameraSystem
         [SerializeField] private float rotationSpeed = 120f;
 
         [Header("Zoom")]
-        [SerializeField] private float zoomSpeed = 720f;
         [SerializeField] private float minHeight = 3f;
         [SerializeField] private float maxHeight = 820f;
-        [SerializeField] private float zoomSmoothTime = 0.18f;
         [SerializeField] private bool zoomTowardCursor = true;
         [SerializeField] private float zoomCursorFollowStrength = 0.12f;
 
-        private float _targetZoomHeight;
-        private float _zoomSmoothVelocity;
+        // 속도 기반 줌 — 스크롤 = 충격량, 매 프레임 지수 감쇠
+        private float _zoomVelocity;
 
         // 우클릭 드래그 패닝
         private bool _rightDragActive;
@@ -61,15 +59,13 @@ namespace Game.CameraSystem
             xBounds = new Vector2(profile.MinX - extension, profile.MaxX + extension);
             zBounds = new Vector2(profile.MinZ - extension, profile.MaxZ + extension);
             moveSpeed = Mathf.Max(moveSpeed, longestSide * 0.1f);
-            zoomSpeed = Mathf.Max(zoomSpeed, longestSide * 0.36f);
             minHeight = 3f;
             maxHeight = Mathf.Max(maxHeight, longestSide * 0.48f);
-            _targetZoomHeight = Mathf.Clamp(_targetZoomHeight, minHeight, maxHeight);
         }
 
         private void Awake()
         {
-            _targetZoomHeight = transform.position.y;
+            _zoomVelocity = 0f;
         }
 
         private void Update()
@@ -266,24 +262,46 @@ namespace Game.CameraSystem
         private void HandleZoom()
         {
             float scrollDelta = Mouse.current.scroll.ReadValue().y;
-
             if (Mathf.Approximately(scrollDelta, 0f))
             {
                 return;
             }
 
-            float heightBefore = _targetZoomHeight;
-            // 현재 높이의 14% 또는 최소 8유닛씩 이동 — Time.deltaTime 미사용(스크롤은 이산 이벤트)
-            float step = Mathf.Max(4f, _targetZoomHeight * 0.07f) * Mathf.Sign(scrollDelta);
-            _targetZoomHeight -= step;
-            _targetZoomHeight = Mathf.Clamp(_targetZoomHeight, minHeight, maxHeight);
+            // 현재 높이 비례 충격량 — 높을수록 빠르게, 낮을수록 섬세하게
+            float impulse = Mathf.Max(20f, transform.position.y * 1.8f);
+            _zoomVelocity -= Mathf.Sign(scrollDelta) * impulse;
+        }
 
-            if (!zoomTowardCursor)
+        private void ApplyZoomSmooth()
+        {
+            if (Mathf.Approximately(_zoomVelocity, 0f))
             {
                 return;
             }
 
-            // 커서가 가리키는 지면 좌표 쪽으로 XZ를 당겨준다
+            float prevY = transform.position.y;
+            Vector3 pos = transform.position;
+            pos.y += _zoomVelocity * Time.deltaTime;
+            pos.y = Mathf.Clamp(pos.y, minHeight, maxHeight);
+
+            // 경계에 닿으면 속도 제거
+            if (pos.y <= minHeight || pos.y >= maxHeight)
+            {
+                _zoomVelocity = 0f;
+            }
+
+            float deltaY = pos.y - prevY;
+            transform.position = pos;
+
+            // 지수 감쇠 — 약 0.25초 안에 속도가 거의 0으로
+            _zoomVelocity *= Mathf.Pow(0.003f, Time.deltaTime);
+
+            // 커서 방향 이동
+            if (!zoomTowardCursor || Mathf.Approximately(deltaY, 0f))
+            {
+                return;
+            }
+
             Camera cam = GetAttachedCamera();
             if (cam == null)
             {
@@ -298,19 +316,10 @@ namespace Game.CameraSystem
                 return;
             }
 
-            Vector3 cursorGroundPoint = ray.GetPoint(enter);
-            // 줌인 시 커서 방향으로 이동, 줌아웃 시 커서 반대 방향으로 후퇴
-            Vector3 towardCursor = cursorGroundPoint - transform.position;
+            Vector3 towardCursor = ray.GetPoint(enter) - transform.position;
             towardCursor.y = 0f;
-            float direction = heightBefore > _targetZoomHeight ? 1f : -1f;
-            transform.position += towardCursor * zoomCursorFollowStrength * direction;
-        }
-
-        private void ApplyZoomSmooth()
-        {
-            Vector3 pos = transform.position;
-            pos.y = Mathf.SmoothDamp(pos.y, _targetZoomHeight, ref _zoomSmoothVelocity, zoomSmoothTime);
-            transform.position = pos;
+            float zoomRatio = -deltaY / Mathf.Max(prevY, 1f);
+            transform.position += towardCursor * zoomRatio * zoomCursorFollowStrength;
         }
 
         private float EvaluateZoomMoveMultiplier()
