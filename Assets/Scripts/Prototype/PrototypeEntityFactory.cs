@@ -24,31 +24,34 @@ namespace Game.Prototype
             // 지상 유닛만 NavMeshAgent 부착 — 비행 유닛은 직접 이동 처리
             if (!definition.IsFlying)
             {
-                // 스폰 위치를 NavMesh 위로 보정 (NavMesh 밖에서 스폰되면 Agent 작동 안 함)
-                if (NavMesh.SamplePosition(position, out NavMeshHit navHit, 8f, NavMesh.AllAreas))
+                // 스폰 위치를 NavMesh 위로 보정 (반경을 넓게 잡아 후방 예비대 등 외곽 스폰도 처리)
+                bool onNavMesh = NavMesh.SamplePosition(position, out NavMeshHit navHit, 80f, NavMesh.AllAreas);
+                if (onNavMesh)
                 {
                     unit.transform.position = navHit.position;
+
+                    NavMeshAgent navAgent = unit.AddComponent<NavMeshAgent>();
+                    navAgent.height                = 2f;
+                    navAgent.radius                = 0.5f;
+                    navAgent.angularSpeed          = 540f;
+                    navAgent.acceleration          = 20f;
+                    navAgent.autoBraking           = false;
+                    navAgent.updateRotation        = false;
+                    navAgent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance;
+                    navAgent.avoidancePriority     = Random.Range(30, 70);
+
+                    float sy = unit.transform.localScale.y;
+                    navAgent.baseOffset = definition.Archetype switch
+                    {
+                        UnitArchetype.MobileFortress => 0f,
+                        UnitArchetype.Artillery      => -(sy * 0.12f),
+                        _                            => -(sy * 0.42f)
+                    };
                 }
-
-                NavMeshAgent navAgent = unit.AddComponent<NavMeshAgent>();
-                navAgent.height                = 2f;
-                navAgent.radius                = 0.5f;
-                navAgent.angularSpeed          = 540f;
-                navAgent.acceleration          = 20f;
-                navAgent.autoBraking           = false;
-                navAgent.updateRotation        = false;
-                navAgent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance;
-                navAgent.avoidancePriority     = Random.Range(30, 70);
-
-                // 자식 시각 모델이 지면에 닿도록 트랜스폼을 NavMesh 표면 아래로 내린다.
-                // baseOffset 만큼 transform.y 가 낮아지므로, 자식 최하단 로컬 Y × scaleY 만큼 오프셋.
-                float sy = unit.transform.localScale.y;
-                navAgent.baseOffset = definition.Archetype switch
+                else
                 {
-                    UnitArchetype.MobileFortress => 0f,           // 트랙 하단이 로컬 Y≈0
-                    UnitArchetype.Artillery      => -(sy * 0.12f), // 포가 하단 로컬 Y≈0.12
-                    _                            => -(sy * 0.42f)  // 보병 다리 중심 로컬 Y=0.42
-                };
+                    Debug.LogWarning($"[EntityFactory] NavMesh 범위 밖 스폰: {unit.name} @ {position} — NavMeshAgent 생략");
+                }
             }
 
             unit.AddComponent<UnitAbilityState>();

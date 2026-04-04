@@ -116,8 +116,11 @@ namespace Game.Prototype
             GameObject source = Resources.Load<GameObject>(SpearmanModelResourcePath);
             if (source == null)
             {
+                Debug.LogWarning($"[VisualFactory] FBX 로드 실패: Resources/{SpearmanModelResourcePath} — 프리미티브 폴백 사용");
                 return false;
             }
+
+            Debug.Log($"[VisualFactory] FBX 로드 성공: {source.name}, 렌더러 수={source.GetComponentsInChildren<Renderer>(true).Length}");
 
             GameObject visual = Object.Instantiate(source, root);
             visual.name = "SpearmanVisual";
