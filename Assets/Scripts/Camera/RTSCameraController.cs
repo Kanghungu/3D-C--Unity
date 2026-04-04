@@ -53,7 +53,7 @@ namespace Game.CameraSystem
             zBounds = new Vector2(profile.MinZ - extension, profile.MaxZ + extension);
             moveSpeed = Mathf.Max(moveSpeed, longestSide * 0.1f);
             zoomSpeed = Mathf.Max(zoomSpeed, longestSide * 0.36f);
-            minHeight = Mathf.Max(3f, longestSide * 0.002f);
+            minHeight = 3f;
             maxHeight = Mathf.Max(maxHeight, longestSide * 0.48f);
             _targetZoomHeight = Mathf.Clamp(_targetZoomHeight, minHeight, maxHeight);
         }
