@@ -55,26 +55,26 @@ namespace Game.Prototype
             }
 
             return totalNodes > 0
-                ? $"맵 {GetMapLabel()} | 거점 P{playerNodes}/{totalNodes} E{enemyNodes}/{totalNodes}"
-                : $"맵 {GetMapLabel()}";
+                ? $"거점   아군 {playerNodes}/{totalNodes}  /  적 {enemyNodes}/{totalNodes}"
+                : "거점   정보 없음";
         }
 
         public static string BuildOverviewForceLine(int playerUnits, int enemyUnits)
         {
             int delta = playerUnits - enemyUnits;
             string deltaLabel = delta > 0 ? $"+{delta}" : delta.ToString();
-            return $"병력 P{playerUnits} E{enemyUnits} | 차이 {deltaLabel}";
+            return $"병력   아군 {playerUnits}  /  적 {enemyUnits}   ({deltaLabel})";
         }
 
         public static string BuildOverviewBaseLine(BaseStructure playerBase, BaseStructure enemyBase)
         {
             string playerBaseLabel = playerBase != null
-                ? $"P{ToPercent(playerBase)} P{playerBase.CurrentPhase}"
-                : "P--";
+                ? $"{ToPercent(playerBase)}%"
+                : "--";
             string enemyBaseLabel = enemyBase != null
-                ? $"E{ToPercent(enemyBase)} P{enemyBase.CurrentPhase}"
-                : "E--";
-            return $"본진 {playerBaseLabel} | {enemyBaseLabel}";
+                ? $"{ToPercent(enemyBase)}%"
+                : "--";
+            return $"본진   아군 {playerBaseLabel}  /  적 {enemyBaseLabel}";
         }
 
         public static string BuildControlGroupLine(PrototypeSelectionController selectionController)
@@ -94,7 +94,7 @@ namespace Game.Prototype
 
             string groupSummary = selectionController != null ? selectionController.GetControlGroupSummary() : "None";
             string commandHint = commandLabel == "대기"
-                ? "H 고정 G 경계 B 후퇴 A 공격 Alt 랠리 Space 전선/생산선 Home 본진"
+                ? "A 공격   B 후퇴   H 고정   Space 시점 이동"
                 : commandLabel;
             string groupEventLabel = string.Empty;
 
@@ -198,7 +198,7 @@ namespace Game.Prototype
                 }
             }
 
-            return $"전선 압박 아군:{directiveController.GetStrategicPressureLabel(UnitTeam.Player)} / 적:{directiveController.GetStrategicPressureLabel(UnitTeam.Enemy)} | 대거점 아군:{grandPlayer} 적:{grandEnemy} | 주요 거점 아군:{majorPlayer} 적:{majorEnemy}";
+            return $"전선 압박   아군 {directiveController.GetStrategicPressureLabel(UnitTeam.Player)}  /  적 {directiveController.GetStrategicPressureLabel(UnitTeam.Enemy)}";
         }
 
         public static string BuildVictoryBody(PrototypeMatchController matchController, BaseStructure enemyBase, int enemyUnits)
@@ -488,7 +488,7 @@ namespace Game.Prototype
 
         public static string BuildProductionControlHint(BattleDirectiveController directiveController, List<ControlNode> controlNodes)
         {
-            string controlHint = "1-8 생산 | 본진 비상 최우선 | Shift 묶음 | Backspace 위기선 취소 | Alt+우클릭 랠리 | 본진 비상 추천 병종 조정";
+            string controlHint = "1-8 생산 선택   |   Alt+우클릭 랠리 지점 설정";
             if (directiveController == null || controlNodes == null)
             {
                 return controlHint;
@@ -580,7 +580,7 @@ namespace Game.Prototype
 
             if (playerBase.CurrentPhase >= 3)
             {
-                return $"본진 경보 적 {playerBase.NearbyHostileCount} / 수비 {playerBase.NearbyFriendlyCount} | P{playerBase.CurrentPhase} 방어 급함";
+                return $"본진   적 접근 {playerBase.NearbyHostileCount}  /  수비 {playerBase.NearbyFriendlyCount}   방어 급함";
             }
 
             return $"본진 경보 적 {playerBase.NearbyHostileCount} / 수비 {playerBase.NearbyFriendlyCount} | {ToDefenseUrgencyKorean(playerBase.DefenseUrgencyLabel)}";
