@@ -35,6 +35,7 @@ namespace Game.Prototype
         private readonly Vector3[] cameraViewportWorldCorners = new Vector3[4];
         private readonly List<PrototypeSelectionController.ControlGroupMarkerInfo> controlGroupMarkers = new();
         private readonly List<PrototypeSelectionController.SelectedControlGroupInfo> selectedControlGroupInfos = new();
+        private readonly List<Vector3> combatClusterBuffer = new();
 
         private void Update()
         {
@@ -260,6 +261,7 @@ namespace Game.Prototype
             }
 
             DrawUrgentMinimapAlerts(mapRect, mapProfile, playerBase, enemyBase, controlNodes);
+            DrawCombatAlerts(mapRect, mapProfile);
             DrawControlGroupMarkers(mapRect, mapProfile);
             DrawCommandMarkerOverlay(mapRect, mapProfile, selectedUnits);
             DrawSelectedUnitsOverlay(mapRect, mapProfile, selectedUnits);
@@ -1040,6 +1042,107 @@ namespace Game.Prototype
             {
                 DrawMinimapAlertMarker(mapRect, mapProfile, enemyBase.transform.position, new Color(0.34f, 0.92f, 1f, 0.72f * pulse), 16f, "총공");
             }
+        }
+
+        // 아군-적 유닛이 80유닛 이내에 있으면 교전 중으로 판단해 미니맵에 깜박이는 마커 표시
+        private void DrawCombatAlerts(Rect mapRect, BattlefieldMapProfile mapProfile)
+        {
+            if (mapProfile == null)
+            {
+                return;
+            }
+
+            const float contactRange = 80f;
+            const float clusterMergeRange = 120f;
+
+            combatClusterBuffer.Clear();
+
+            IReadOnlyList<SelectableUnit> allUnits = PrototypeRuntimeRegistry.GetSelectableUnits();
+            foreach (SelectableUnit unit in allUnits)
+            {
+                if (unit == null || unit.Team != UnitTeam.Enemy)
+                {
+                    continue;
+                }
+
+                Vector3 ePos = unit.transform.position;
+                bool inContact = false;
+                foreach (SelectableUnit other in allUnits)
+                {
+                    if (other == null || other.Team != UnitTeam.Player)
+                    {
+                        continue;
+                    }
+
+                    if ((other.transform.position - ePos).sqrMagnitude <= contactRange * contactRange)
+                    {
+                        inContact = true;
+                        break;
+                    }
+                }
+
+                if (!inContact)
+                {
+                    continue;
+                }
+
+                // 기존 클러스터와 합칠지 결정
+                bool merged = false;
+                for (int i = 0; i < combatClusterBuffer.Count; i++)
+                {
+                    if ((combatClusterBuffer[i] - ePos).sqrMagnitude <= clusterMergeRange * clusterMergeRange)
+                    {
+                        combatClusterBuffer[i] = (combatClusterBuffer[i] + ePos) * 0.5f;
+                        merged = true;
+                        break;
+                    }
+                }
+
+                if (!merged)
+                {
+                    combatClusterBuffer.Add(ePos);
+                }
+            }
+
+            if (combatClusterBuffer.Count == 0)
+            {
+                return;
+            }
+
+            // 빠른 깜박임 (1.8Hz)
+            float flash = 0.65f + Mathf.PingPong(Time.time * 3.6f, 0.35f);
+            Color markerColor = new Color(1f, 0.88f, 0.22f, 0.92f * flash);
+
+            foreach (Vector3 clusterPos in combatClusterBuffer)
+            {
+                DrawCombatMarker(mapRect, mapProfile, clusterPos, markerColor);
+            }
+        }
+
+        private void DrawCombatMarker(Rect mapRect, BattlefieldMapProfile mapProfile, Vector3 worldPosition, Color color)
+        {
+            Vector2 normalized = mapProfile.WorldToNormalized(worldPosition);
+            Vector2 center = new(
+                mapRect.x + normalized.x * mapRect.width,
+                mapRect.y + normalized.y * mapRect.height);
+
+            float s = 9f;
+            // X자 교전 표시
+            DrawLine(new Vector2(center.x - s, center.y - s), new Vector2(center.x + s, center.y + s), color, 1.8f);
+            DrawLine(new Vector2(center.x + s, center.y - s), new Vector2(center.x - s, center.y + s), color, 1.8f);
+            // 중심 점
+            DrawSolidRect(new Rect(center.x - 2f, center.y - 2f, 4f, 4f), color);
+
+            // "교전" 라벨
+            float labelWidth = 28f;
+            Rect labelRect = new Rect(
+                Mathf.Clamp(center.x - labelWidth * 0.5f, mapRect.xMin, mapRect.xMax - labelWidth),
+                Mathf.Max(mapRect.yMin, center.y - s - 13f),
+                labelWidth, 12f);
+            Color prev = GUI.color;
+            GUI.color = color;
+            GUI.Label(labelRect, "교전", minimapCommandLabelStyle);
+            GUI.color = prev;
         }
 
         private void DrawMinimapAlertMarker(Rect mapRect, BattlefieldMapProfile mapProfile, Vector3 worldPosition, Color color, float size, string label)
