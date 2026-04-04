@@ -9,7 +9,7 @@ namespace Game.Prototype
     public static class PrototypeHudLayoutUtility
     {
         private const float BottomBarMargin = 12f;
-        private const float BottomBarHeight = 176f;
+        private const float BottomBarHeight = 210f;
         private const float NewsWidth = 344f;
         private const float NewsHeight = 54f;
         private const float NewsTopMargin = 12f;
