@@ -375,6 +375,7 @@ namespace Game.Prototype
             if (FindAnyObjectByType<ThreatResponseController>() == null) gameObject.AddComponent<ThreatResponseController>();
             if (FindAnyObjectByType<BattleDirectiveController>() == null) gameObject.AddComponent<BattleDirectiveController>();
             if (FindAnyObjectByType<PrototypeMatchController>() == null) gameObject.AddComponent<PrototypeMatchController>();
+            if (FindAnyObjectByType<BattleStatsTracker>() == null) gameObject.AddComponent<BattleStatsTracker>();
         }
 
         private void SetupBases()

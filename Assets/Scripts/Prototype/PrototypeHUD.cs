@@ -26,6 +26,7 @@ namespace Game.Prototype
         private Texture2D overlayTexture;
         private Texture2D whiteTexture;
         private Texture2D circularMarkerTexture;
+        private bool showStatsPanel;
         private PrototypeMatchController cachedMatchController;
         private BattlefieldMapProfile cachedMapProfile;
         private BattlefieldVisionController cachedVisionController;
@@ -34,6 +35,15 @@ namespace Game.Prototype
         private readonly Vector3[] cameraViewportWorldCorners = new Vector3[4];
         private readonly List<PrototypeSelectionController.ControlGroupMarkerInfo> controlGroupMarkers = new();
         private readonly List<PrototypeSelectionController.SelectedControlGroupInfo> selectedControlGroupInfos = new();
+
+        private void Update()
+        {
+            if (UnityEngine.InputSystem.Keyboard.current != null &&
+                UnityEngine.InputSystem.Keyboard.current.tabKey.wasPressedThisFrame)
+            {
+                showStatsPanel = !showStatsPanel;
+            }
+        }
 
         private void OnGUI()
         {
@@ -57,10 +67,103 @@ namespace Game.Prototype
             DrawBottomBar(playerBase, enemyBase, playerProductions, controlNodes, playerUnits, enemyUnits, matchController, selectionController, directiveController);
             DrawTopRightNews(directiveController);
 
+            if (showStatsPanel)
+            {
+                DrawStatsPanel();
+            }
+
             if (matchController != null && matchController.IsFinished)
             {
                 DrawMatchOverlay(matchController.Result, playerBase, enemyBase, playerUnits, enemyUnits);
             }
+        }
+
+        private void DrawStatsPanel()
+        {
+            BattleStatsTracker stats = BattleStatsTracker.Instance;
+            if (stats == null) return;
+
+            int elapsed = Mathf.FloorToInt(stats.ElapsedSeconds);
+            string timeLabel = $"{elapsed / 60:D2}:{elapsed % 60:D2}";
+
+            const float panelW = 420f;
+            const float panelH = 340f;
+            float px = (Screen.width - panelW) * 0.5f;
+            float py = (Screen.height - panelH) * 0.5f;
+            Rect panel = new Rect(px, py, panelW, panelH);
+
+            // 배경
+            DrawSolidRect(panel, new Color(0.06f, 0.06f, 0.10f, 0.94f));
+            DrawRectOutline(panel, new Color(0.55f, 0.50f, 0.28f, 0.85f), 2f);
+
+            // 타이틀
+            GUI.Label(new Rect(px + 16f, py + 12f, panelW - 32f, 24f), "전투 통계   [Tab 닫기]", titleStyle);
+            GUI.Label(new Rect(px + 16f, py + 36f, panelW - 32f, 18f), $"경과 시간   {timeLabel}", tinyStyle);
+
+            // 헤더 구분선
+            DrawSolidRect(new Rect(px + 12f, py + 56f, panelW - 24f, 1f), new Color(0.55f, 0.50f, 0.28f, 0.5f));
+
+            // 컬럼 헤더
+            float col0 = px + 16f;
+            float col1 = px + 180f;
+            float col2 = px + 300f;
+            float rowH = 22f;
+            float rowY = py + 64f;
+
+            GUI.Label(new Rect(col0, rowY, 160f, rowH), "병종", titleStyle);
+            GUI.Label(new Rect(col1, rowY, 110f, rowH), "아군 처치", titleStyle);
+            GUI.Label(new Rect(col2, rowY, 110f, rowH), "적 처치", titleStyle);
+            rowY += rowH + 2f;
+            DrawSolidRect(new Rect(px + 12f, rowY, panelW - 24f, 1f), new Color(0.4f, 0.4f, 0.4f, 0.4f));
+            rowY += 4f;
+
+            // 병종별 행
+            (UnitArchetype arch, string label)[] rows =
+            {
+                (UnitArchetype.Spearman,       "창병"),
+                (UnitArchetype.ShieldInfantry, "방패 보병"),
+                (UnitArchetype.Rifleman,       "총병"),
+                (UnitArchetype.Artillery,      "포병"),
+                (UnitArchetype.SpecialWarrior, "특수 전사"),
+                (UnitArchetype.RoyalGuard,     "친위대"),
+                (UnitArchetype.Fighter,        "전투기"),
+                (UnitArchetype.MobileFortress, "이동 거점"),
+                (UnitArchetype.AirborneCitadel,"비행 거점"),
+            };
+
+            foreach ((UnitArchetype arch, string label) row in rows)
+            {
+                stats.PlayerKills.TryGetValue(row.arch, out int pKill);
+                stats.EnemyKills.TryGetValue(row.arch, out int eKill);
+                if (pKill == 0 && eKill == 0) continue;
+
+                GUI.Label(new Rect(col0, rowY, 160f, rowH), row.label, labelStyle);
+
+                Color pColor = pKill > 0 ? new Color(0.4f, 1f, 0.6f) : new Color(0.5f, 0.5f, 0.5f);
+                Color eColor = eKill > 0 ? new Color(1f, 0.45f, 0.25f) : new Color(0.5f, 0.5f, 0.5f);
+                GUIStyle pStyle = new GUIStyle(labelStyle) { normal = { textColor = pColor } };
+                GUIStyle eStyle = new GUIStyle(labelStyle) { normal = { textColor = eColor } };
+
+                GUI.Label(new Rect(col1, rowY, 110f, rowH), pKill.ToString(), pStyle);
+                GUI.Label(new Rect(col2, rowY, 110f, rowH), eKill.ToString(), eStyle);
+                rowY += rowH;
+            }
+
+            // 합계 구분선
+            DrawSolidRect(new Rect(px + 12f, rowY + 2f, panelW - 24f, 1f), new Color(0.55f, 0.50f, 0.28f, 0.5f));
+            rowY += 8f;
+
+            GUIStyle totalStyle = new GUIStyle(titleStyle);
+            GUI.Label(new Rect(col0, rowY, 160f, rowH), "합계", totalStyle);
+            GUI.Label(new Rect(col1, rowY, 110f, rowH), stats.TotalPlayerKills.ToString(), totalStyle);
+            GUI.Label(new Rect(col2, rowY, 110f, rowH), stats.TotalEnemyKills.ToString(), totalStyle);
+
+            // 살아있는 유닛 수
+            rowY += rowH + 6f;
+            int alive = PrototypeRuntimeQuery.CountUnits(UnitTeam.Player);
+            int aliveEnemy = PrototypeRuntimeQuery.CountUnits(UnitTeam.Enemy);
+            GUI.Label(new Rect(col0, rowY, panelW - 32f, rowH),
+                $"현재 생존   아군 {alive}  /  적 {aliveEnemy}", tinyStyle);
         }
 
         private void DrawBottomBar(
