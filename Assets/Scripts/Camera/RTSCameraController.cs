@@ -26,7 +26,7 @@ namespace Game.CameraSystem
         [SerializeField] private float zoomSpeed = 720f;
         [SerializeField] private float minHeight = 3f;
         [SerializeField] private float maxHeight = 820f;
-        [SerializeField] private float zoomSmoothSpeed = 12f;
+        [SerializeField] private float zoomSmoothSpeed = 6f;
         [SerializeField] private bool zoomTowardCursor = true;
         [SerializeField] private float zoomCursorFollowStrength = 0.12f;
 
@@ -273,7 +273,7 @@ namespace Game.CameraSystem
 
             float heightBefore = _targetZoomHeight;
             // 현재 높이의 14% 또는 최소 8유닛씩 이동 — Time.deltaTime 미사용(스크롤은 이산 이벤트)
-            float step = Mathf.Max(8f, _targetZoomHeight * 0.14f) * Mathf.Sign(scrollDelta);
+            float step = Mathf.Max(4f, _targetZoomHeight * 0.07f) * Mathf.Sign(scrollDelta);
             _targetZoomHeight -= step;
             _targetZoomHeight = Mathf.Clamp(_targetZoomHeight, minHeight, maxHeight);
 
