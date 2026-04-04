@@ -1,4 +1,4 @@
-using Game.CameraSystem;
+﻿using Game.CameraSystem;
 using Game.Selection;
 using Game.Units;
 using System.Collections.Generic;
@@ -83,21 +83,22 @@ namespace Game.Prototype
             Rect productionRect = new Rect(overviewRect.xMax + 12f, barRect.y + 12f, 424f, 152f);
             Rect selectionRect = new Rect(productionRect.xMax + 12f, barRect.y + 12f, Mathf.Max(220f, barRect.xMax - productionRect.xMax - 24f), 152f);
 
-            DrawMinimap(minimapRect, playerBase, playerProductions, controlNodes, selectionController != null ? selectionController.SelectedUnits : null);
-            DrawOverviewPanel(overviewRect, playerBase, enemyBase, controlNodes, playerUnits, enemyUnits, matchController, directiveController);
-            DrawProductionPanel(productionRect, playerProductions);
+            DrawMinimap(minimapRect, playerBase, enemyBase, playerProductions, controlNodes, selectionController != null ? selectionController.SelectedUnits : null);
+            DrawOverviewPanel(overviewRect, playerBase, enemyBase, playerProductions, controlNodes, playerUnits, enemyUnits, matchController, directiveController);
+            DrawProductionPanel(productionRect, playerProductions, directiveController, controlNodes);
             DrawSelectionPanel(selectionRect, selectionController);
         }
 
         private void DrawMinimap(
             Rect rect,
             BaseStructure playerBase,
+            BaseStructure enemyBase,
             List<ProductionStructure> playerProductions,
             List<ControlNode> controlNodes,
             IReadOnlyList<SelectableUnit> selectedUnits)
         {
             GUI.Box(rect, GUIContent.none, panelStyle);
-            GUI.Label(new Rect(rect.x + 8f, rect.y + 6f, 120f, 18f), "Minimap", titleStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 6f, 120f, 18f), "미니맵", titleStyle);
 
             Rect mapRect = new Rect(rect.x + 8f, rect.y + 26f, rect.width - 16f, rect.height - 34f);
             BattlefieldMapProfile mapProfile = GetMapProfile();
@@ -152,10 +153,11 @@ namespace Game.Prototype
                 DrawMapPoint(mapRect, unit.transform.position, mapProfile, color, size);
             }
 
+            DrawUrgentMinimapAlerts(mapRect, mapProfile, playerBase, enemyBase, controlNodes);
             DrawControlGroupMarkers(mapRect, mapProfile);
             DrawCommandMarkerOverlay(mapRect, mapProfile, selectedUnits);
             DrawSelectedUnitsOverlay(mapRect, mapProfile, selectedUnits);
-            GUI.Label(new Rect(rect.x + 88f, rect.y + 6f, rect.width - 96f, 18f), "LMB drag / jump", tinyStyle);
+            GUI.Label(new Rect(rect.x + 88f, rect.y + 6f, rect.width - 96f, 18f), "좌클릭 드래그 / 점프", tinyStyle);
         }
 
         private void DrawVisionOverlay(Rect mapRect, BattlefieldMapProfile mapProfile, BattlefieldVisionController visionController)
@@ -186,62 +188,70 @@ namespace Game.Prototype
             }
         }
 
-        private void DrawOverviewPanel(Rect rect, BaseStructure playerBase, BaseStructure enemyBase, List<ControlNode> controlNodes, int playerUnits, int enemyUnits, PrototypeMatchController matchController, BattleDirectiveController directiveController)
+        private void DrawOverviewPanel(Rect rect, BaseStructure playerBase, BaseStructure enemyBase, List<ProductionStructure> playerProductions, List<ControlNode> controlNodes, int playerUnits, int enemyUnits, PrototypeMatchController matchController, BattleDirectiveController directiveController)
         {
             GUI.Box(rect, GUIContent.none, panelStyle);
-            GUI.Label(new Rect(rect.x + 8f, rect.y + 6f, 160f, 18f), "Battle HUD", titleStyle);
-            GUI.Label(new Rect(rect.x + 8f, rect.y + 28f, rect.width - 16f, 18f), $"Map {GetMapLabel()}", labelStyle);
-            GUI.Label(new Rect(rect.x + 8f, rect.y + 46f, rect.width - 16f, 18f), $"Army  P:{playerUnits}  E:{enemyUnits}", labelStyle);
-            GUI.Label(new Rect(rect.x + 8f, rect.y + 64f, rect.width - 16f, 18f), $"Base  P:{ToPercent(playerBase)} ({GetPhaseLabel(playerBase)})  E:{ToPercent(enemyBase)} ({GetPhaseLabel(enemyBase)})", labelStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 6f, 160f, 18f), "전장 상황", titleStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 28f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildOverviewMapLine(controlNodes), labelStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 46f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildOverviewForceLine(playerUnits, enemyUnits), labelStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 64f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildOverviewBaseLine(playerBase, enemyBase), labelStyle);
             GUI.Label(new Rect(rect.x + 8f, rect.y + 82f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildStatus(matchController, playerBase, enemyBase, playerUnits, enemyUnits), tinyStyle);
             GUI.Label(new Rect(rect.x + 8f, rect.y + 100f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildStrategicPressureLine(directiveController, controlNodes), tinyStyle);
-            GUI.Label(new Rect(rect.x + 8f, rect.y + 118f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildControlNodeLine(controlNodes), tinyStyle);
-            GUI.Label(new Rect(rect.x + 8f, rect.y + 136f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildDirectiveLine(directiveController, controlNodes), tinyStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 118f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildBaseDefenseLine(playerBase), tinyStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 136f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildProductionNetworkLine(playerProductions, controlNodes), tinyStyle);
         }
 
-        private void DrawProductionPanel(Rect rect, List<ProductionStructure> playerProductions)
+        private void DrawProductionPanel(Rect rect, List<ProductionStructure> playerProductions, BattleDirectiveController directiveController, List<ControlNode> controlNodes)
         {
             GUI.Box(rect, GUIContent.none, panelStyle);
-            GUI.Label(new Rect(rect.x + 8f, rect.y + 6f, 160f, 18f), "Production", titleStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 6f, 160f, 18f), "생산", titleStyle);
 
             float lineY = rect.y + 28f;
+            float hintY = rect.yMax - 18f;
 
             if (playerProductions.Count == 0)
             {
-                GUI.Label(new Rect(rect.x + 8f, lineY, rect.width - 16f, 18f), "No active production structure.", labelStyle);
+                GUI.Label(new Rect(rect.x + 8f, lineY, rect.width - 16f, 18f), "활성 생산 건물이 없습니다.", labelStyle);
                 return;
             }
 
             foreach (ProductionStructure structure in playerProductions)
             {
+                if (lineY + 36f > hintY - 2f)
+                {
+                    break;
+                }
+
                 GUI.Label(new Rect(rect.x + 8f, lineY, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildProductionLine(structure), tinyStyle);
                 lineY += 18f;
-                GUI.Label(new Rect(rect.x + 8f, lineY, rect.width - 16f, 18f), $"Rally {structure.RallyLabel}", tinyStyle);
+                GUI.Label(new Rect(rect.x + 8f, lineY, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildProductionDetailLine(structure), tinyStyle);
                 lineY += 18f;
             }
+
+            GUI.Label(new Rect(rect.x + 8f, hintY, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildProductionControlHint(directiveController, controlNodes), tinyStyle);
         }
 
         private void DrawSelectionPanel(Rect rect, PrototypeSelectionController selectionController)
         {
             IReadOnlyList<SelectableUnit> selectedUnits = selectionController != null ? selectionController.SelectedUnits : null;
             GUI.Box(rect, GUIContent.none, panelStyle);
-            GUI.Label(new Rect(rect.x + 8f, rect.y + 6f, 120f, 18f), "Selection", titleStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 6f, 120f, 18f), "선택", titleStyle);
 
             if (selectedUnits == null || selectedUnits.Count == 0)
             {
-                GUI.Label(new Rect(rect.x + 8f, rect.y + 32f, rect.width - 16f, 18f), "No unit selected.", labelStyle);
-                GUI.Label(new Rect(rect.x + 8f, rect.y + 54f, rect.width - 16f, 18f), "Select units to see command and ability info.", tinyStyle);
+                GUI.Label(new Rect(rect.x + 8f, rect.y + 32f, rect.width - 16f, 18f), "선택된 부대가 없습니다.", labelStyle);
+                GUI.Label(new Rect(rect.x + 8f, rect.y + 54f, rect.width - 16f, 18f), "부대를 선택하면 명령과 병력 정보가 여기 표시됩니다.", tinyStyle);
                 DrawSelectionEventBadges(new Rect(rect.x + 8f, rect.y + 78f, rect.width - 16f, 18f), selectionController);
                 GUI.Label(new Rect(rect.x + 8f, rect.y + 118f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildControlGroupLine(selectionController), tinyStyle);
                 GUI.Label(new Rect(rect.x + 8f, rect.y + 136f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildCommandControlLine(selectionController), tinyStyle);
                 return;
             }
 
-            GUI.Label(new Rect(rect.x + 8f, rect.y + 28f, rect.width - 16f, 18f), $"Selected {selectedUnits.Count}", labelStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 28f, rect.width - 16f, 18f), $"선택 부대 {selectedUnits.Count}", labelStyle);
             DrawSelectionEventBadges(new Rect(rect.x + 102f, rect.y + 28f, rect.width - 110f, 18f), selectionController);
             DrawSelectionBadges(new Rect(rect.x + 8f, rect.y + 50f, rect.width - 16f, 42f), selectedUnits);
             GUI.Label(new Rect(rect.x + 8f, rect.y + 100f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildSelectionOrdersSummary(selectedUnits), tinyStyle);
-            GUI.Label(new Rect(rect.x + 8f, rect.y + 120f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildSelectionAbilitySummary(selectedUnits), tinyStyle);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 120f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildSelectionPriorityLine(selectedUnits), tinyStyle);
             GUI.Label(new Rect(rect.x + 8f, rect.y + 136f, rect.width - 16f, 18f), PrototypeHudTextUtility.BuildCommandControlLine(selectionController), tinyStyle);
         }
 
@@ -296,14 +306,14 @@ namespace Game.Prototype
             if (selectionController.HasRecentControlGroupAssignment)
             {
                 eventBadges.Add((
-                    $"Set {selectionController.RecentControlGroupAssignmentLabel}",
+                    $"지정 {selectionController.RecentControlGroupAssignmentLabel}",
                     new Color(0.3f, 1f, 0.92f, 0.2f),
                     new Color(0.42f, 1f, 0.92f, 0.88f)));
             }
             else if (selectionController.HasRecentControlGroupRecall)
             {
                 eventBadges.Add((
-                    $"Focus {selectionController.RecentControlGroupRecallLabel}",
+                    $"이동 {selectionController.RecentControlGroupRecallLabel}",
                     new Color(1f, 0.95f, 0.52f, 0.2f),
                     new Color(1f, 0.95f, 0.62f, 0.88f)));
             }
@@ -359,23 +369,97 @@ namespace Game.Prototype
                 return;
             }
 
-            Rect newsRect = new Rect(Screen.width - 356f, 12f, 344f, 54f);
+            IReadOnlyList<string> recentNews = directiveController.RecentNews;
+            int lineCount = Mathf.Clamp(recentNews.Count, 1, 3);
+            const float headerHeight = 24f;
+            const float newsLineHeight = 20f;
+            float newsHeight = headerHeight + lineCount * newsLineHeight + 10f;
+            Rect newsRect = new Rect(Screen.width - 356f, 12f, 344f, newsHeight);
+            const float newsPaddingX = 12f;
+            const float lineInsetX = 6f;
             GUI.Box(newsRect, GUIContent.none, panelStyle);
-            GUI.Label(new Rect(newsRect.x + 10f, newsRect.y + 8f, 92f, 18f), "War News", titleStyle);
-            GUI.Label(new Rect(newsRect.x + 10f, newsRect.y + 28f, newsRect.width - 20f, 18f), directiveController.CurrentNews, tinyStyle);
+            if (directiveController.HasRecentEnemyAssaultStart)
+            {
+                DrawRectOutline(newsRect, new Color(1f, 0.36f, 0.24f, 0.95f), 2f);
+                DrawSolidRect(new Rect(newsRect.x + 4f, newsRect.y + 4f, newsRect.width - 8f, 20f), new Color(0.48f, 0.12f, 0.08f, 0.35f));
+            }
+            GUI.Label(new Rect(newsRect.x + newsPaddingX + lineInsetX, newsRect.y + 8f, 112f, 18f), "전황 속보", titleStyle);
+            for (int index = 0; index < lineCount; index++)
+            {
+                int newsPriority = directiveController.GetNewsPriority(recentNews[index]);
+                string prefix = index == 0
+                    ? (directiveController.HasRecentEnemyAssaultStart ? "경보" : "지금")
+                    : newsPriority >= 3
+                        ? "긴급"
+                        : newsPriority >= 2
+                            ? "주의"
+                            : $"직전 {index}";
+                bool isRoutineLine = newsPriority < 2;
+                Rect lineRect = new Rect(newsRect.x + newsPaddingX, newsRect.y + headerHeight + 4f + (index * newsLineHeight), newsRect.width - newsPaddingX * 2f, newsLineHeight);
+                float prefixWidth = isRoutineLine
+                    ? Mathf.Clamp(17f + prefix.Length * 5.9f, 29f, 40f)
+                    : Mathf.Clamp(20f + prefix.Length * 7f, 34f, 48f);
+                Rect prefixRect = new Rect(lineRect.x + lineInsetX, lineRect.y + (isRoutineLine ? 1.35f : 2f), prefixWidth, lineRect.height - (isRoutineLine ? 2.7f : 4f));
+                float bodyInset = isRoutineLine ? 6.5f : 9f;
+                float bodyRightPadding = isRoutineLine ? 18f : 21f;
+                Rect bodyRect = new Rect(prefixRect.xMax + bodyInset, lineRect.y + (isRoutineLine ? 0.75f : 1f), lineRect.width - prefixWidth - bodyRightPadding, lineRect.height - (isRoutineLine ? 1.5f : 2f));
+                if (newsPriority >= 3)
+                {
+                    DrawSolidRect(lineRect, new Color(0.58f, 0.1f, 0.08f, 0.42f));
+                    DrawRectOutline(lineRect, new Color(0.92f, 0.4f, 0.3f, 0.82f), 1f);
+                    DrawSolidRect(prefixRect, new Color(0.74f, 0.2f, 0.16f, 0.2f));
+                }
+                else if (newsPriority >= 2)
+                {
+                    DrawSolidRect(lineRect, new Color(0.46f, 0.3f, 0.06f, 0.28f));
+                    DrawRectOutline(lineRect, new Color(0.9f, 0.78f, 0.4f, 0.76f), 1f);
+                    DrawSolidRect(prefixRect, new Color(0.72f, 0.62f, 0.24f, 0.16f));
+                }
+                else
+                {
+                    Rect routineLineRect = isRoutineLine
+                        ? new Rect(lineRect.x, lineRect.y + 0.5f, lineRect.width, lineRect.height - 1f)
+                        : lineRect;
+                    Rect routinePrefixRect = isRoutineLine
+                        ? new Rect(prefixRect.x, prefixRect.y + 0.25f, prefixRect.width, prefixRect.height - 0.5f)
+                        : prefixRect;
+                    DrawSolidRect(routineLineRect, new Color(0.18f, 0.18f, 0.2f, 0.08f));
+                    DrawSolidRect(routinePrefixRect, new Color(0.3f, 0.32f, 0.36f, 0.09f));
+                }
+
+                GUI.Label(prefixRect, prefix, tinyStyle);
+                GUI.Label(
+                    bodyRect,
+                    PrototypeHudTextUtility.Shorten(recentNews[index], isRoutineLine ? 36 : 34),
+                    tinyStyle);
+            }
         }
 
         private void DrawMatchOverlay(MatchResult result, BaseStructure playerBase, BaseStructure enemyBase, int playerUnits, int enemyUnits)
         {
+            PrototypeMatchController matchController = GetMatchController();
             Rect overlay = new Rect(Screen.width * 0.5f - 210f, Screen.height * 0.5f - 76f, 420f, 152f);
             GUI.Box(overlay, GUIContent.none, overlayStyle);
-            string title = result == MatchResult.Victory ? "Victory" : "Defeat";
-            string body = result == MatchResult.Victory ? PrototypeHudTextUtility.BuildVictoryBody(enemyBase, enemyUnits) : PrototypeHudTextUtility.BuildDefeatBody(playerBase, playerUnits);
+            string title = result == MatchResult.Victory ? "승리" : "패배";
+            string body = result == MatchResult.Victory
+                ? PrototypeHudTextUtility.BuildVictoryBody(matchController, enemyBase, enemyUnits)
+                : PrototypeHudTextUtility.BuildDefeatBody(matchController, playerBase, playerUnits);
+            string finishRule = matchController != null
+                ? matchController.EndReason switch
+                {
+                    MatchEndReason.EnemyBaseDestroyed => "적 본진을 파괴했습니다.",
+                    MatchEndReason.EnemyArmyDestroyed => "적 병력을 전멸시켰습니다.",
+                    MatchEndReason.PlayerBaseDestroyed => "아군 본진이 파괴되었습니다.",
+                    MatchEndReason.PlayerArmyDestroyed => "아군 병력이 전멸했습니다.",
+                    MatchEndReason.MutualAnnihilation => "양측이 동시에 붕괴했습니다.",
+                    _ => "전투 종료 조건이 충족되었습니다."
+                }
+                : "전투 종료 조건이 충족되었습니다.";
 
             GUI.Label(new Rect(overlay.x + 24f, overlay.y + 24f, 320f, 24f), title, titleStyle);
             GUI.Label(new Rect(overlay.x + 24f, overlay.y + 56f, 360f, 20f), body, labelStyle);
-            GUI.Label(new Rect(overlay.x + 24f, overlay.y + 84f, 360f, 20f), "Win by enemy base destruction or total enemy wipe.", labelStyle);
-            GUI.Label(new Rect(overlay.x + 24f, overlay.y + 108f, 360f, 20f), "Press R to restart the battle.", labelStyle);
+            GUI.Label(new Rect(overlay.x + 24f, overlay.y + 84f, 360f, 20f), finishRule, labelStyle);
+            GUI.Label(new Rect(overlay.x + 24f, overlay.y + 108f, 360f, 20f), "R 키로 전투를 다시 시작합니다.", labelStyle);
         }
 
         private void EnsureStyles()
@@ -543,14 +627,25 @@ namespace Game.Prototype
             }
 
             Rect fillRect = Rect.MinMaxRect(minPoint.x, minPoint.y, maxPoint.x, maxPoint.y);
-            DrawSolidRect(fillRect, new Color(1f, 1f, 1f, 0.05f));
+            DrawSolidRect(fillRect, new Color(0.9f, 0.96f, 1f, 0.08f));
+            DrawRectOutline(fillRect, new Color(0.08f, 0.12f, 0.16f, 0.95f), 3.25f);
 
             for (int i = 0; i < minimapViewportCorners.Length; i++)
             {
                 Vector2 start = minimapViewportCorners[i];
                 Vector2 end = minimapViewportCorners[(i + 1) % minimapViewportCorners.Length];
-                DrawLine(start, end, new Color(1f, 1f, 1f, 0.9f), 1.75f);
+                DrawLine(start, end, new Color(0.92f, 0.98f, 1f, 0.98f), 1.8f);
             }
+
+            float cornerLength = Mathf.Clamp(Mathf.Min(fillRect.width, fillRect.height) * 0.22f, 6f, 18f);
+            Color cornerColor = new Color(1f, 0.94f, 0.52f, 0.98f);
+            DrawViewportCornerBrackets(fillRect, cornerLength, cornerColor, 2.1f);
+
+            Vector2 center = fillRect.center;
+            Vector2 forwardMidpoint = (minimapViewportCorners[1] + minimapViewportCorners[2]) * 0.5f;
+            DrawLine(center, forwardMidpoint, new Color(1f, 0.94f, 0.52f, 0.92f), 1.2f);
+            DrawSolidRect(new Rect(center.x - 2f, center.y - 2f, 4f, 4f), new Color(1f, 1f, 1f, 0.96f));
+            DrawSolidRect(new Rect(forwardMidpoint.x - 2.5f, forwardMidpoint.y - 2.5f, 5f, 5f), new Color(1f, 0.94f, 0.52f, 0.98f));
         }
 
         private void DrawPlayerRallyNetwork(Rect mapRect, BattlefieldMapProfile mapProfile, BaseStructure playerBase, List<ProductionStructure> playerProductions)
@@ -592,6 +687,90 @@ namespace Game.Prototype
                 DrawMapLine(mapRect, structure.transform.position, structure.RallyPoint, mapProfile, rallyLineColor, 1.3f);
                 DrawMapPoint(mapRect, structure.RallyPoint, mapProfile, rallyPointColor, 4.5f);
             }
+        }
+
+        private void DrawUrgentMinimapAlerts(Rect mapRect, BattlefieldMapProfile mapProfile, BaseStructure playerBase, BaseStructure enemyBase, List<ControlNode> controlNodes)
+        {
+            if (mapProfile == null)
+            {
+                return;
+            }
+
+            float pulse = 0.78f + Mathf.PingPong(Time.time * 2.6f, 0.22f);
+
+            if (playerBase != null && playerBase.IsAlive && playerBase.IsDefenseEmergency)
+            {
+                DrawMinimapAlertMarker(mapRect, mapProfile, playerBase.transform.position, new Color(1f, 0.28f, 0.18f, 0.92f * pulse), 22f, "본진");
+            }
+            else if (playerBase != null && playerBase.IsAlive && BattleDirectiveController.Instance != null && BattleDirectiveController.Instance.HasRecentEnemyAssaultStart)
+            {
+                DrawMinimapAlertMarker(mapRect, mapProfile, playerBase.transform.position, new Color(1f, 0.5f, 0.22f, 0.82f * pulse), 18f, "돌입");
+            }
+
+            ControlNode urgentNode = null;
+            if (controlNodes != null)
+            {
+                foreach (ControlNode node in controlNodes)
+                {
+                    if (node == null || !node.IsPlayerRecaptureEmergency)
+                    {
+                        continue;
+                    }
+
+                    if (urgentNode == null
+                        || node.StrategicWeight > urgentNode.StrategicWeight
+                        || node.CaptureProgressNormalized > urgentNode.CaptureProgressNormalized)
+                    {
+                        urgentNode = node;
+                    }
+                }
+            }
+
+            if (urgentNode != null)
+            {
+                DrawMinimapAlertMarker(mapRect, mapProfile, urgentNode.transform.position, new Color(1f, 0.82f, 0.3f, 0.88f * pulse), 18f, "탈환");
+                if (playerBase != null && playerBase.IsAlive)
+                {
+                    DrawMapLine(mapRect, playerBase.transform.position, urgentNode.transform.position, mapProfile, new Color(1f, 0.82f, 0.3f, 0.55f * pulse), 1.35f);
+                }
+            }
+
+            if (enemyBase != null && enemyBase.IsAlive && BattleDirectiveController.Instance != null && BattleDirectiveController.Instance.IsTotalAssaultActive(UnitTeam.Player))
+            {
+                DrawMinimapAlertMarker(mapRect, mapProfile, enemyBase.transform.position, new Color(0.34f, 0.92f, 1f, 0.72f * pulse), 16f, "총공");
+            }
+        }
+
+        private void DrawMinimapAlertMarker(Rect mapRect, BattlefieldMapProfile mapProfile, Vector3 worldPosition, Color color, float size, string label)
+        {
+            Vector2 normalized = mapProfile.WorldToNormalized(worldPosition);
+            Vector2 center = new(
+                mapRect.x + normalized.x * mapRect.width,
+                mapRect.y + normalized.y * mapRect.height);
+
+            Rect outerRect = Rect.MinMaxRect(
+                center.x - size * 0.5f,
+                center.y - size * 0.5f,
+                center.x + size * 0.5f,
+                center.y + size * 0.5f);
+            Rect innerRect = Rect.MinMaxRect(
+                center.x - size * 0.28f,
+                center.y - size * 0.28f,
+                center.x + size * 0.28f,
+                center.y + size * 0.28f);
+
+            DrawRectOutline(outerRect, color, 1.5f);
+            DrawRectOutline(innerRect, new Color(color.r, color.g, color.b, Mathf.Clamp01(color.a + 0.12f)), 1f);
+            DrawSolidRect(new Rect(center.x - 1.5f, center.y - 1.5f, 3f, 3f), color);
+
+            float labelWidth = Mathf.Max(22f, minimapCommandLabelStyle.CalcSize(new GUIContent(label)).x + 8f);
+            Rect labelRect = new Rect(
+                Mathf.Clamp(center.x - labelWidth * 0.5f, mapRect.xMin, mapRect.xMax - labelWidth),
+                Mathf.Max(mapRect.yMin, center.y - size * 0.5f - 14f),
+                labelWidth,
+                12f);
+            DrawSolidRect(labelRect, new Color(0.09f, 0.07f, 0.05f, 0.78f));
+            GUI.Label(labelRect, label, minimapCommandLabelStyle);
         }
 
         private void DrawSelectedUnitsOverlay(Rect mapRect, BattlefieldMapProfile mapProfile, IReadOnlyList<SelectableUnit> selectedUnits)
@@ -866,6 +1045,26 @@ namespace Game.Prototype
             DrawLine(bottomLeft, topLeft, color, thickness);
         }
 
+        private void DrawViewportCornerBrackets(Rect rect, float cornerLength, Color color, float thickness)
+        {
+            Vector2 topLeft = new(rect.xMin, rect.yMin);
+            Vector2 topRight = new(rect.xMax, rect.yMin);
+            Vector2 bottomRight = new(rect.xMax, rect.yMax);
+            Vector2 bottomLeft = new(rect.xMin, rect.yMax);
+
+            DrawLine(topLeft, topLeft + Vector2.right * cornerLength, color, thickness);
+            DrawLine(topLeft, topLeft + Vector2.down * cornerLength, color, thickness);
+
+            DrawLine(topRight, topRight + Vector2.left * cornerLength, color, thickness);
+            DrawLine(topRight, topRight + Vector2.down * cornerLength, color, thickness);
+
+            DrawLine(bottomRight, bottomRight + Vector2.left * cornerLength, color, thickness);
+            DrawLine(bottomRight, bottomRight + Vector2.up * cornerLength, color, thickness);
+
+            DrawLine(bottomLeft, bottomLeft + Vector2.right * cornerLength, color, thickness);
+            DrawLine(bottomLeft, bottomLeft + Vector2.up * cornerLength, color, thickness);
+        }
+
         private static bool IsMinimapNavigationEvent(Event currentEvent)
         {
             return currentEvent.type == EventType.MouseDown || currentEvent.type == EventType.MouseDrag;
@@ -946,7 +1145,7 @@ namespace Game.Prototype
 
         private static string GetPhaseLabel(BaseStructure baseStructure)
         {
-            return baseStructure != null ? $"P{baseStructure.CurrentPhase} {baseStructure.PhaseLabel}" : "Lost";
+            return baseStructure != null ? $"P{baseStructure.CurrentPhase} {baseStructure.PhaseStatusLabel}" : "Lost";
         }
 
         private static string ToPercent(BaseStructure baseStructure)
@@ -960,3 +1159,4 @@ namespace Game.Prototype
         }
     }
 }
+

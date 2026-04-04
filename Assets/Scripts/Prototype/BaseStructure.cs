@@ -1,4 +1,4 @@
-using Game.Units;
+﻿using Game.Units;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,7 +9,7 @@ namespace Game.Prototype
     /// </summary>
     public class BaseStructure : MonoBehaviour
     {
-        [SerializeField] private float enemyAutoSpawnInterval = 12.5f;
+        [SerializeField] private float enemyAutoSpawnInterval = 11.5f;
         [SerializeField] private int enemyMaxUnits = 1000;
         [SerializeField] private float spawnRadius = 10f;
         [SerializeField] private Vector3 playerDefaultRallyOffset = new(34f, 0f, 18f);
@@ -23,12 +23,12 @@ namespace Game.Prototype
             UnitArchetype.Spearman,
             UnitArchetype.Rifleman,
             UnitArchetype.ShieldInfantry,
-            UnitArchetype.Artillery
+            UnitArchetype.Spearman
         };
 
-        private readonly float[] phaseThresholds = { 0.75f, 0.5f, 0.25f };
+        private readonly float[] phaseThresholds = { 0.82f, 0.62f, 0.38f };
         private readonly float[] phaseScaleMultipliers = { 1f, 0.94f, 0.87f, 0.8f };
-        private readonly float[] phaseProductionMultipliers = { 1f, 1.08f, 1.16f, 1.28f };
+        private readonly float[] phaseProductionMultipliers = { 1f, 1.12f, 1.24f, 1.4f };
 
         private CombatTarget combatTarget;
         private UnitHealth health;
@@ -47,6 +47,8 @@ namespace Game.Prototype
         private Renderer phaseCoreRenderer;
         private readonly Transform[] phasePillars = new Transform[4];
         private readonly Renderer[] phasePillarRenderers = new Renderer[4];
+        private Transform phaseHalo;
+        private Renderer phaseHaloRenderer;
         private Transform assaultAnchor;
         private Transform assaultMarker;
         private Renderer assaultMarkerRenderer;
@@ -62,6 +64,11 @@ namespace Game.Prototype
         private Renderer threatDirectionTipRenderer;
         private readonly Transform[] threatSpikes = new Transform[4];
         private readonly Renderer[] threatSpikeRenderers = new Renderer[4];
+        private float lastPhaseAdvanceTime = -10f;
+        private int nearbyHostileCount;
+        private int nearbyFriendlyCount;
+        private float nearbyThreatPressure;
+        private Vector3 nearbyThreatDirection = Vector3.forward;
 
         public UnitTeam Team => combatTarget != null ? combatTarget.Team : UnitTeam.Player;
         public bool IsAlive => health != null && health.IsAlive;
@@ -75,6 +82,9 @@ namespace Game.Prototype
         public Vector3 RallyPoint => rallyPoint;
         public string RallyLabel => hasRallyPoint ? $"{rallyPoint.x:0.0}, {rallyPoint.z:0.0}" : "Unset";
         public int CurrentPhase => currentPhase;
+        public int NearbyHostileCount => nearbyHostileCount;
+        public int NearbyFriendlyCount => nearbyFriendlyCount;
+        public float NearbyThreatPressure => nearbyThreatPressure;
         public string PhaseLabel => currentPhase switch
         {
             1 => "Bulwark",
@@ -82,6 +92,15 @@ namespace Game.Prototype
             3 => "Last Rite",
             _ => "Collapse"
         };
+        public string PhaseStatusLabel => currentPhase switch
+        {
+            1 => "諛⑹뼱???좎?",
+            2 => "洹좎뿴 諛쒖깮",
+            3 => "遺뺢눼 吏곸쟾",
+            _ => "理쒖쥌 遺뺢눼",
+        };
+        public bool IsDefenseEmergency => nearbyHostileCount >= Mathf.Max(5, nearbyFriendlyCount + 4) || (CurrentPhase >= 3 && nearbyHostileCount > nearbyFriendlyCount);
+        public string DefenseUrgencyLabel => GetDefenseUrgencyLabel();
 
         private void Awake()
         {
@@ -194,11 +213,12 @@ namespace Game.Prototype
         private void AdvancePhase(int nextPhase)
         {
             currentPhase = Mathf.Clamp(nextPhase, 1, phaseScaleMultipliers.Length);
+            lastPhaseAdvanceTime = Time.time;
             ApplyVisuals();
             SpawnPhaseReinforcements();
 
-            string teamLabel = Team == UnitTeam.Player ? "Imperial Sanctum" : "Enemy Bastion";
-            BattleDirectiveController.BroadcastNewsStatic($"War News: {teamLabel} shifted to phase {currentPhase} - {PhaseLabel}.");
+            string teamLabel = Team == UnitTeam.Player ? "?꾧뎔 蹂몄쭊" : "??蹂몄쭊";
+            BattleDirectiveController.BroadcastNewsStatic($"{teamLabel} ?④퀎 蹂?? P{currentPhase} {PhaseStatusLabel}");
         }
 
         private void RunEnemyAutoProduction()
@@ -220,7 +240,7 @@ namespace Game.Prototype
             }
 
             SpawnUnit(definition);
-            autoSpawnTimer = Mathf.Max(5.5f, enemyAutoSpawnInterval - (currentPhase - 1) * 1.4f);
+            autoSpawnTimer = Mathf.Max(4.5f, enemyAutoSpawnInterval - (currentPhase - 1) * 1.9f);
         }
 
         private void SpawnPhaseReinforcements()
@@ -271,19 +291,19 @@ namespace Game.Prototype
                     {
                         UnitArchetype.ShieldInfantry, UnitArchetype.ShieldInfantry, UnitArchetype.ShieldInfantry,
                         UnitArchetype.Spearman, UnitArchetype.Spearman, UnitArchetype.Spearman,
-                        UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.SpecialWarrior
+                        UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.Rifleman
                     },
                     3 => new[]
                     {
                         UnitArchetype.ShieldInfantry, UnitArchetype.ShieldInfantry, UnitArchetype.Spearman, UnitArchetype.Spearman,
-                        UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.SpecialWarrior, UnitArchetype.SpecialWarrior,
-                        UnitArchetype.Artillery, UnitArchetype.RoyalGuard
+                        UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.SpecialWarrior,
+                        UnitArchetype.RoyalGuard
                     },
                     4 => new[]
                     {
-                        UnitArchetype.RoyalGuard, UnitArchetype.RoyalGuard, UnitArchetype.SpecialWarrior, UnitArchetype.SpecialWarrior,
+                        UnitArchetype.RoyalGuard, UnitArchetype.SpecialWarrior,
                         UnitArchetype.ShieldInfantry, UnitArchetype.ShieldInfantry, UnitArchetype.Rifleman, UnitArchetype.Rifleman,
-                        UnitArchetype.Artillery, UnitArchetype.MobileFortress, UnitArchetype.AirborneCitadel
+                        UnitArchetype.Spearman, UnitArchetype.Artillery, UnitArchetype.MobileFortress
                     },
                     _ => System.Array.Empty<UnitArchetype>()
                 };
@@ -294,19 +314,20 @@ namespace Game.Prototype
                 2 => new[]
                 {
                     UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.Rifleman,
-                    UnitArchetype.Spearman, UnitArchetype.Spearman, UnitArchetype.Fighter, UnitArchetype.Fighter
+                    UnitArchetype.Spearman, UnitArchetype.Spearman, UnitArchetype.ShieldInfantry,
+                    UnitArchetype.Rifleman
                 },
                 3 => new[]
                 {
                     UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.Rifleman,
-                    UnitArchetype.SpecialWarrior, UnitArchetype.SpecialWarrior,
-                    UnitArchetype.Artillery, UnitArchetype.Fighter, UnitArchetype.Fighter
+                    UnitArchetype.Spearman, UnitArchetype.SpecialWarrior,
+                    UnitArchetype.Artillery, UnitArchetype.Fighter, UnitArchetype.Rifleman
                 },
                 4 => new[]
                 {
-                    UnitArchetype.SpecialWarrior, UnitArchetype.SpecialWarrior, UnitArchetype.SpecialWarrior,
-                    UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.Artillery, UnitArchetype.Artillery,
-                    UnitArchetype.MobileFortress, UnitArchetype.Fighter, UnitArchetype.Fighter
+                    UnitArchetype.SpecialWarrior, UnitArchetype.SpecialWarrior,
+                    UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.Spearman, UnitArchetype.Artillery,
+                    UnitArchetype.MobileFortress, UnitArchetype.Fighter, UnitArchetype.Rifleman, UnitArchetype.Fighter
                 },
                 _ => System.Array.Empty<UnitArchetype>()
             };
@@ -414,6 +435,15 @@ namespace Game.Prototype
                 new Color(0.3f, 0.7f, 0.95f));
             phaseCoreRenderer = crown.GetComponent<Renderer>();
 
+            phaseHalo = CreateStatusPrimitive(
+                phaseAnchor,
+                PrimitiveType.Cylinder,
+                "Phase Halo",
+                new Vector3(0f, -0.04f, 0f),
+                new Vector3(0.62f, 0.02f, 0.62f),
+                new Color(0.36f, 0.84f, 1f, 0.5f));
+            phaseHaloRenderer = phaseHalo.GetComponent<Renderer>();
+
             for (int i = 0; i < phasePillars.Length; i++)
             {
                 float angle = i * Mathf.PI * 0.5f;
@@ -446,10 +476,25 @@ namespace Game.Prototype
             Color teamColor = Team == UnitTeam.Player ? new Color(0.34f, 0.84f, 1f) : new Color(1f, 0.46f, 0.22f);
             Color phaseColor = Color.Lerp(teamColor, new Color(1f, 0.9f, 0.54f), Mathf.InverseLerp(1f, 4f, currentPhase));
             float pulse = 0.88f + Mathf.PingPong(Time.time * (0.75f + currentPhase * 0.18f), 0.12f);
+            float phaseBurst = Mathf.Clamp01(1f - (Time.time - lastPhaseAdvanceTime) / 2.4f);
+            float burstScale = 1f + phaseBurst * 0.42f;
 
             if (phaseCoreRenderer != null)
             {
                 phaseCoreRenderer.material.color = phaseColor * pulse;
+            }
+
+            if (phaseHalo != null)
+            {
+                float haloScale = (0.56f + currentPhase * 0.12f) * burstScale;
+                phaseHalo.localScale = new Vector3(haloScale, 0.02f + phaseBurst * 0.02f, haloScale);
+                phaseHalo.localPosition = new Vector3(0f, -0.04f + phaseBurst * 0.04f, 0f);
+            }
+
+            if (phaseHaloRenderer != null)
+            {
+                Color haloColor = Color.Lerp(teamColor, phaseColor, 0.7f) * (0.42f + phaseBurst * 0.5f);
+                phaseHaloRenderer.material.color = haloColor;
             }
 
             for (int i = 0; i < phasePillars.Length; i++)
@@ -458,13 +503,14 @@ namespace Game.Prototype
                 if (phasePillars[i] != null)
                 {
                     phasePillars[i].gameObject.SetActive(active);
-                    phasePillars[i].localScale = new Vector3(0.12f, 0.18f + i * 0.04f, 0.12f);
+                    float pillarHeight = 0.18f + i * 0.04f + phaseBurst * 0.08f;
+                    phasePillars[i].localScale = new Vector3(0.12f + phaseBurst * 0.02f, pillarHeight, 0.12f + phaseBurst * 0.02f);
                 }
 
                 if (active && phasePillarRenderers[i] != null)
                 {
                     float pillarMix = 0.2f + i * 0.18f;
-                    phasePillarRenderers[i].material.color = Color.Lerp(teamColor, phaseColor, pillarMix) * pulse;
+                    phasePillarRenderers[i].material.color = Color.Lerp(teamColor, phaseColor, pillarMix) * (pulse + phaseBurst * 0.2f);
                 }
             }
         }
@@ -513,13 +559,22 @@ namespace Game.Prototype
             Color assaultColor = threatenedByPlayer
                 ? new Color(0.34f, 0.92f, 1f)
                 : new Color(1f, 0.46f, 0.24f);
-            float pulse = 0.9f + Mathf.PingPong(Time.time * 4.1f, 0.22f);
-            assaultMarker.localPosition = new Vector3(0f, 0.18f + Mathf.PingPong(Time.time * 1.6f, 0.12f), 0f);
-            assaultMarker.localScale = new Vector3(0.18f, 0.34f * pulse, 0.18f);
+            bool enemyAssaultStart = threatenedByEnemy && BattleDirectiveController.Instance != null && BattleDirectiveController.Instance.HasRecentEnemyAssaultStart;
+            float pulseSpeed = enemyAssaultStart ? 6.2f : 4.1f;
+            float pulseRange = enemyAssaultStart ? 0.34f : 0.22f;
+            float pulse = 0.9f + Mathf.PingPong(Time.time * pulseSpeed, pulseRange);
+            float verticalPingPong = enemyAssaultStart ? 0.2f : 0.12f;
+            float markerWidth = enemyAssaultStart ? 0.24f : 0.18f;
+            float markerHeight = enemyAssaultStart ? 0.46f : 0.34f;
+            assaultMarker.localPosition = new Vector3(0f, 0.18f + Mathf.PingPong(Time.time * (enemyAssaultStart ? 2.3f : 1.6f), verticalPingPong), 0f);
+            assaultMarker.localScale = new Vector3(markerWidth, markerHeight * pulse, markerWidth);
 
             if (assaultMarkerRenderer != null)
             {
-                assaultMarkerRenderer.material.color = assaultColor * pulse;
+                Color markerColor = enemyAssaultStart
+                    ? Color.Lerp(assaultColor, Color.white, 0.2f)
+                    : assaultColor;
+                assaultMarkerRenderer.material.color = markerColor * pulse;
             }
         }
 
@@ -598,7 +653,11 @@ namespace Game.Prototype
                 return;
             }
 
-            int hostileCount = CountNearbyHostiles(out float pressure, out Vector3 threatDirection);
+            int hostileCount = MeasureNearbyThreatState(out float pressure, out Vector3 threatDirection, out int friendlyCount);
+            nearbyHostileCount = hostileCount;
+            nearbyFriendlyCount = friendlyCount;
+            nearbyThreatPressure = pressure;
+            nearbyThreatDirection = threatDirection;
             bool showThreat = IsAlive && hostileCount > 0;
             threatAnchor.gameObject.SetActive(showThreat);
 
@@ -607,14 +666,16 @@ namespace Game.Prototype
                 return;
             }
 
+            bool emergency = IsDefenseEmergency;
             Color threatColor = Team == UnitTeam.Player
-                ? new Color(1f, 0.46f, 0.24f)
+                ? (emergency ? new Color(1f, 0.22f, 0.18f) : new Color(1f, 0.46f, 0.24f))
                 : new Color(0.34f, 0.92f, 1f);
             float pulse = 0.88f + Mathf.PingPong(Time.time * (2.2f + pressure * 2.8f), 0.14f + pressure * 0.16f);
-            float ringRadius = 0.24f + pressure * 0.24f;
-            float coreScale = 0.16f + pressure * 0.16f;
+            float emergencyBoost = emergency ? 0.18f : 0f;
+            float ringRadius = 0.24f + pressure * 0.24f + emergencyBoost;
+            float coreScale = 0.16f + pressure * 0.16f + emergencyBoost * 0.45f;
 
-            threatAnchor.localPosition = new Vector3(0f, 2.02f + Mathf.PingPong(Time.time * 1.5f, 0.1f), 0f);
+            threatAnchor.localPosition = new Vector3(0f, 2.02f + Mathf.PingPong(Time.time * (emergency ? 2.6f : 1.5f), emergency ? 0.18f : 0.1f), 0f);
 
             if (threatRing != null)
             {
@@ -636,7 +697,9 @@ namespace Game.Prototype
                 threatCoreRenderer.material.color = Color.Lerp(threatColor, Color.white, 0.22f) * pulse;
             }
 
-            int shownSpikes = Mathf.Clamp(hostileCount, 1, threatSpikes.Length);
+            int shownSpikes = emergency
+                ? threatSpikes.Length
+                : Mathf.Clamp(hostileCount, 1, threatSpikes.Length);
             for (int i = 0; i < threatSpikes.Length; i++)
             {
                 if (threatSpikes[i] == null)
@@ -654,7 +717,7 @@ namespace Game.Prototype
                 float angle = i / (float)threatSpikes.Length * Mathf.PI * 2f + Time.time * 0.35f;
                 Vector3 spikePosition = new Vector3(Mathf.Cos(angle), 0.18f + Mathf.PingPong(Time.time * 1.6f + i * 0.4f, 0.08f), Mathf.Sin(angle)) * (0.34f + pressure * 0.12f);
                 threatSpikes[i].localPosition = spikePosition;
-                threatSpikes[i].localScale = new Vector3(0.08f, 0.16f + pressure * 0.14f, 0.08f);
+                threatSpikes[i].localScale = new Vector3(0.08f + emergencyBoost * 0.18f, 0.16f + pressure * 0.14f + emergencyBoost * 0.3f, 0.08f + emergencyBoost * 0.18f);
 
                 if (threatSpikeRenderers[i] != null)
                 {
@@ -673,7 +736,7 @@ namespace Game.Prototype
                 return;
             }
 
-            float directionLength = 0.48f + pressure * 0.26f;
+            float directionLength = 0.48f + pressure * 0.26f + emergencyBoost * 0.9f;
             threatDirectionRoot.localRotation = Quaternion.LookRotation(threatDirection.normalized, Vector3.up);
 
             if (threatDirectionBeam != null)
@@ -699,16 +762,18 @@ namespace Game.Prototype
             }
         }
 
-        private int CountNearbyHostiles(out float pressure, out Vector3 threatDirection)
+        private int MeasureNearbyThreatState(out float pressure, out Vector3 threatDirection, out int friendlyCount)
         {
             pressure = 0f;
             threatDirection = Vector3.zero;
+            friendlyCount = 0;
             int hostileCount = 0;
             Vector3 centroid = Vector3.zero;
+            float friendlyRadius = threatWarningRadius * 0.9f;
 
             foreach (SelectableUnit unit in PrototypeRuntimeRegistry.GetSelectableUnits())
             {
-                if (unit == null || unit.Team == Team)
+                if (unit == null)
                 {
                     continue;
                 }
@@ -720,6 +785,16 @@ namespace Game.Prototype
                 }
 
                 float distance = Vector3.Distance(transform.position, unit.transform.position);
+                if (unit.Team == Team)
+                {
+                    if (distance <= friendlyRadius)
+                    {
+                        friendlyCount++;
+                    }
+
+                    continue;
+                }
+
                 if (distance > threatWarningRadius)
                 {
                     continue;
@@ -744,6 +819,32 @@ namespace Game.Prototype
 
             return hostileCount;
         }
+
+        private string GetDefenseUrgencyLabel()
+        {
+            if (!IsAlive)
+            {
+                return "Destroyed";
+            }
+
+            if (nearbyHostileCount <= 0)
+            {
+                return CurrentPhase >= 3 ? "Unstable" : "Stable";
+            }
+
+            if (IsDefenseEmergency)
+            {
+                return "Immediate";
+            }
+
+            if (CurrentPhase >= 3 || nearbyHostileCount > nearbyFriendlyCount)
+            {
+                return "Urgent";
+            }
+
+            return "Engaged";
+        }
+
 
         private static Transform CreateStatusPrimitive(Transform parent, PrimitiveType primitiveType, string objectName, Vector3 localPosition, Vector3 localScale, Color color)
         {
@@ -770,3 +871,4 @@ namespace Game.Prototype
         }
     }
 }
+

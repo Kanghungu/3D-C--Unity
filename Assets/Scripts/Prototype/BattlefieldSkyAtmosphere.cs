@@ -1024,6 +1024,9 @@ namespace Game.Prototype
         private readonly List<Transform> shrineMotes = new();
         private readonly List<Vector3> shrineMoteCenters = new();
         private readonly List<float> shrineMotePhases = new();
+        [SerializeField]
+        private bool usePrototypeMinimalSky = true;
+
         private BattlefieldMapProfile mapProfile;
         private BattlefieldTheme theme;
         private Transform root;
@@ -1359,6 +1362,13 @@ namespace Game.Prototype
             CreateCircuitSeals();
             CreateSealRipples();
             CreateSealAfterglows();
+            if (usePrototypeMinimalSky)
+            {
+                // Keep the prototype sky focused on readable frontline cues instead of ultra-fine residue layers.
+                CreateShrineMotes();
+                return;
+            }
+
             CreateAfterglowDrifts();
             CreateDormantVeils();
             CreateQuietResidues();

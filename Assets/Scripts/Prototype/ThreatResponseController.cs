@@ -10,14 +10,14 @@ namespace Game.Prototype
     /// </summary>
     public class ThreatResponseController : MonoBehaviour
     {
-        [SerializeField] private float thinkInterval = 1.1f;
+        [SerializeField] private float thinkInterval = 0.85f;
         [SerializeField] private float structureThreatRadius = 28f;
         [SerializeField] private float localDefenseRadius = 52f;
         [SerializeField] private float baseThreatRadius = 76f;
         [SerializeField] private float baseDefenseResponseRadius = 120f;
         [SerializeField] private float garrisonRadius = 22f;
-        [SerializeField] private int rearGarrisonCount = 10;
-        [SerializeField] private int baseGuardCount = 18;
+        [SerializeField] private int rearGarrisonCount = 8;
+        [SerializeField] private int baseGuardCount = 14;
         [SerializeField] private float controlNodeSupportRadius = 34f;
         [SerializeField] private int neutralNodeStrikeForce = 22;
         [SerializeField] private int hostileNodeStrikeForce = 16;
@@ -257,12 +257,6 @@ namespace Game.Prototype
                 }
             }
 
-            int weightCompare = right.StrategicWeight.CompareTo(left.StrategicWeight);
-            if (weightCompare != 0)
-            {
-                return weightCompare;
-            }
-
             if (enemyBase != null)
             {
                 int frontlineCompare = PrototypeBattlefieldUtility.CompareNodesByReference(left, right, enemyBase.transform.position);
@@ -270,6 +264,12 @@ namespace Game.Prototype
                 {
                     return frontlineCompare;
                 }
+            }
+
+            int weightCompare = right.StrategicWeight.CompareTo(left.StrategicWeight);
+            if (weightCompare != 0)
+            {
+                return weightCompare;
             }
 
             float anchorBias = team == UnitTeam.Player

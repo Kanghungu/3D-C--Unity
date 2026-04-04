@@ -1,4 +1,4 @@
-using Game.CameraSystem;
+﻿using Game.CameraSystem;
 using Game.Prototype;
 using Game.Units;
 using System.Collections.Generic;
@@ -73,6 +73,7 @@ namespace Game.Selection
         private float lastControlGroupAssignTime;
         private int lastRecalledControlGroup = -1;
         private float lastControlGroupRecallTime;
+        private string lastRecalledControlGroupRouteLabel = string.Empty;
         private bool selectionStartedOverHud;
 
         public static PrototypeSelectionController Instance { get; private set; }
@@ -86,6 +87,7 @@ namespace Game.Selection
         public bool HasRecentControlGroupRecall =>
             lastRecalledControlGroup > 0 && Time.time - lastControlGroupRecallTime <= ControlGroupRecallHighlightDuration;
         public string RecentControlGroupRecallLabel => HasRecentControlGroupRecall ? $"F{lastRecalledControlGroup}" : string.Empty;
+        public string RecentControlGroupRouteLabel => HasRecentControlGroupRecall ? lastRecalledControlGroupRouteLabel : string.Empty;
         public Color MoveMarkerColor
         {
             get
@@ -400,6 +402,7 @@ namespace Game.Selection
             bool isDoubleTap = lastRecalledControlGroup == groupIndex && Time.time - lastControlGroupRecallTime <= ControlGroupDoubleTapThreshold;
             lastRecalledControlGroup = groupIndex;
             lastControlGroupRecallTime = Time.time;
+            lastRecalledControlGroupRouteLabel = BuildControlGroupRouteLabel(aliveUnits);
 
             if (isDoubleTap)
             {
@@ -416,7 +419,53 @@ namespace Game.Selection
             }
 
             Vector3 center = PrototypeSelectionUtility.GetSelectionCenter(units);
-            cameraController.SnapToWorldPoint(center);
+            cameraController.CenterViewOnWorldPoint(center);
+        }
+
+        private static string BuildControlGroupRouteLabel(List<SelectableUnit> units)
+        {
+            if (units == null || units.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            Vector3 center = PrototypeSelectionUtility.GetSelectionCenter(units);
+            BaseStructure playerBase = PrototypeRuntimeQuery.FindBase(UnitTeam.Player);
+            BaseStructure enemyBase = PrototypeRuntimeQuery.FindBase(UnitTeam.Enemy);
+
+            if (playerBase != null && playerBase.IsAlive && Vector3.Distance(center, playerBase.transform.position) <= 240f)
+            {
+                return "본진 축";
+            }
+
+            ControlNode nearestNode = null;
+            float nearestDistance = float.MaxValue;
+            foreach (ControlNode node in PrototypeRuntimeRegistry.GetControlNodes())
+            {
+                if (node == null)
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(center, node.transform.position);
+                if (distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+                    nearestNode = node;
+                }
+            }
+
+            if (nearestNode != null && nearestDistance <= 180f)
+            {
+                return $"{nearestNode.NodeLabel} 축";
+            }
+
+            if (enemyBase != null && enemyBase.IsAlive && Vector3.Distance(center, enemyBase.transform.position) <= 260f)
+            {
+                return "적 본진 축";
+            }
+
+            return "전선 축";
         }
 
         private void HandleCommandHotkeys()
@@ -835,6 +884,7 @@ namespace Game.Selection
         }
     }
 }
+
 
 
 

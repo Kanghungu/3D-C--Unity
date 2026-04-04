@@ -12,6 +12,16 @@ namespace Game.Prototype
         Defeat
     }
 
+    public enum MatchEndReason
+    {
+        None,
+        EnemyBaseDestroyed,
+        EnemyArmyDestroyed,
+        PlayerBaseDestroyed,
+        PlayerArmyDestroyed,
+        MutualAnnihilation
+    }
+
     /// <summary>
     /// Resolves win and loss conditions for the prototype battle.
     /// </summary>
@@ -20,9 +30,11 @@ namespace Game.Prototype
         [SerializeField] private float evaluationInterval = 0.25f;
 
         private MatchResult result = MatchResult.Ongoing;
+        private MatchEndReason endReason = MatchEndReason.None;
         private float evaluationTimer;
 
         public MatchResult Result => result;
+        public MatchEndReason EndReason => endReason;
         public bool IsFinished => result != MatchResult.Ongoing;
 
         private void Update()
@@ -66,14 +78,22 @@ namespace Game.Prototype
             bool playerLost = playerBaseDestroyed || playerArmyDestroyed;
             bool enemyLost = enemyBaseDestroyed || enemyArmyDestroyed;
 
-            if (enemyLost)
+            if (playerLost && enemyLost)
+            {
+                result = MatchResult.Defeat;
+                endReason = MatchEndReason.MutualAnnihilation;
+                Time.timeScale = 0f;
+            }
+            else if (enemyLost)
             {
                 result = MatchResult.Victory;
+                endReason = enemyBaseDestroyed ? MatchEndReason.EnemyBaseDestroyed : MatchEndReason.EnemyArmyDestroyed;
                 Time.timeScale = 0f;
             }
             else if (playerLost)
             {
                 result = MatchResult.Defeat;
+                endReason = playerBaseDestroyed ? MatchEndReason.PlayerBaseDestroyed : MatchEndReason.PlayerArmyDestroyed;
                 Time.timeScale = 0f;
             }
         }

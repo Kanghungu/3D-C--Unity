@@ -1,4 +1,4 @@
-using Game.Units;
+﻿using Game.Units;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -14,6 +14,14 @@ namespace Game.Prototype
         [SerializeField] private float spawnRadius = 10f;
         [SerializeField] private Vector3 defaultRallyOffset = new(8f, 0f, 4f);
         [SerializeField] private float threatWarningRadius = 22f;
+        [SerializeField] private float autoRallyReleaseDelay = 2.1f;
+        [SerializeField] private float manualRallyPriorityDuration = 4.4f;
+        [SerializeField] private float autoRallyResumePressureThreshold = 0.38f;
+        [SerializeField] private float autoRallyResumeDelay = 1.2f;
+        [SerializeField] private float autoRallyResumeGraceDuration = 0.75f;
+        [SerializeField] private float autoRallyReleaseGraceDuration = 0.85f;
+        [SerializeField] private float baseEmergencyReleaseDelay = 1.6f;
+        [SerializeField] private float baseEmergencyResumeDelay = 1.0f;
 
         private readonly List<UnitDefinition> productionQueue = new();
         private readonly List<UnitArchetype> allowedArchetypes = new();
@@ -25,11 +33,20 @@ namespace Game.Prototype
         private float productionTimer;
         private bool isProducing;
         private bool hasRallyPoint;
+        private bool autoRallyOverrideActive;
         private float productionSpeedMultiplier = 1f;
         private float lastQueueCommandTime;
+        private float autoRallyReleaseTimer;
+        private float manualRallyPriorityTimer;
+        private float autoRallyResumeTimer;
+        private float autoRallyResumeGraceTimer;
+        private float autoRallyReleaseGraceTimer;
+        private float baseEmergencyReleaseTimer;
+        private float baseEmergencyResumeTimer;
         private UnitDefinition currentProductionDefinition;
         private int rallyDispatchSequence;
         private Vector3 rallyPoint;
+        private Vector3 manualRallyPoint;
         private GameObject rallyMarker;
         private string structureLabel = "Foundry";
         private Transform statusAnchor;
@@ -50,6 +67,8 @@ namespace Game.Prototype
         private Renderer threatDirectionBeamRenderer;
         private Transform threatDirectionTip;
         private Renderer threatDirectionTipRenderer;
+        private int nearbyHostileCount;
+        private float nearbyThreatPressure;
         private readonly Transform[] queuePips = new Transform[4];
         private readonly Renderer[] queuePipRenderers = new Renderer[4];
 
@@ -60,6 +79,7 @@ namespace Game.Prototype
         public float LastQueueCommandTime => lastQueueCommandTime;
         public bool HasRallyPoint => hasRallyPoint;
         public Vector3 RallyPoint => rallyPoint;
+        public bool IsAutoRallyOverrideActive => autoRallyOverrideActive;
         public float ProductionProgressNormalized => isProducing && currentProductionDefinition != null
             ? Mathf.Clamp01(1f - (productionTimer / Mathf.Max(0.01f, currentProductionDefinition.ProductionDuration)))
             : 0f;
@@ -69,6 +89,14 @@ namespace Game.Prototype
         public float SpeedMultiplier => productionSpeedMultiplier;
         public string StructureLabel => structureLabel;
         public string AllowedUnitsLabel => BuildAllowedUnitsLabel();
+        public int CurrentBasePhase => linkedBase != null ? linkedBase.CurrentPhase : 1;
+        public int NearbyHostileCount => nearbyHostileCount;
+        public float NearbyThreatPressure => nearbyThreatPressure;
+        public bool IsThreatened => nearbyHostileCount > 0;
+        public bool IsThreatEmergency => nearbyHostileCount >= 5 || nearbyThreatPressure >= 0.76f;
+        public string PriorityModeLabel => BuildPriorityModeLabel();
+        public string SuggestedUnitsLabel => BuildSuggestedUnitsLabel();
+        public string ProductionResponseLabel => BuildProductionResponseLabel();
 
         private void Awake()
         {
@@ -91,6 +119,7 @@ namespace Game.Prototype
 
         private void Update()
         {
+            UpdateAutoRallyPoint();
             UpdateRallyMarker();
             UpdateStatusVisuals();
             UpdateThreatVisuals();
@@ -182,13 +211,27 @@ namespace Game.Prototype
 
         public bool CanProduce(UnitArchetype archetype)
         {
-            return allowedArchetypes.Count == 0 || allowedArchetypes.Contains(archetype);
+            if (allowedArchetypes.Count > 0 && !allowedArchetypes.Contains(archetype))
+            {
+                return false;
+            }
+
+            return CurrentBasePhase >= GetRequiredBasePhase(archetype);
         }
 
         public void SetRallyPoint(Vector3 worldPoint)
         {
-            rallyPoint = new Vector3(worldPoint.x, 1f, worldPoint.z);
+            manualRallyPoint = new Vector3(worldPoint.x, 1f, worldPoint.z);
+            rallyPoint = manualRallyPoint;
             hasRallyPoint = true;
+            autoRallyOverrideActive = false;
+            autoRallyReleaseTimer = 0f;
+            manualRallyPriorityTimer = manualRallyPriorityDuration;
+            autoRallyResumeTimer = 0f;
+            autoRallyResumeGraceTimer = 0f;
+            autoRallyReleaseGraceTimer = 0f;
+            baseEmergencyReleaseTimer = 0f;
+            baseEmergencyResumeTimer = 0f;
             UpdateRallyMarker();
             UpdateStatusVisuals();
         }
@@ -336,10 +379,386 @@ namespace Game.Prototype
             foreach (UnitArchetype archetype in allowedArchetypes)
             {
                 UnitDefinition definition = database.GetDefinition(archetype);
-                labels.Add(definition != null ? definition.DisplayName : archetype.ToString());
+                string label = definition != null ? definition.DisplayName : archetype.ToString();
+                int requiredPhase = GetRequiredBasePhase(archetype);
+
+                if (requiredPhase > 1)
+                {
+                    string unlockLabel = CurrentBasePhase >= requiredPhase ? $"P{requiredPhase} ON" : $"P{requiredPhase}";
+                    label = $"{label}({unlockLabel})";
+                }
+
+                labels.Add(label);
             }
 
             return string.Join(", ", labels);
+        }
+
+        private string BuildPriorityModeLabel()
+        {
+            if (linkedBase != null && linkedBase.IsDefenseEmergency)
+            {
+                return "본진 비상";
+            }
+
+            if (IsThreatEmergency)
+            {
+                return "생산선 비상";
+            }
+
+            if (IsThreatened)
+            {
+                return "생산선 방어";
+            }
+
+            return CurrentBasePhase switch
+            {
+                >= 4 => "최종 압박",
+                3 => "후반 돌파",
+                2 => "중반 확장",
+                _ => "초반 전선"
+            };
+        }
+
+        private string BuildSuggestedUnitsLabel()
+        {
+            List<UnitArchetype> suggestions = new();
+            bool baseEmergency = linkedBase != null && linkedBase.IsDefenseEmergency;
+
+            if (baseEmergency)
+            {
+                suggestions.Add(UnitArchetype.ShieldInfantry);
+                suggestions.Add(UnitArchetype.Spearman);
+                suggestions.Add(UnitArchetype.Rifleman);
+            }
+            else if (IsThreatEmergency)
+            {
+                suggestions.Add(UnitArchetype.ShieldInfantry);
+                suggestions.Add(UnitArchetype.Rifleman);
+                suggestions.Add(UnitArchetype.SpecialWarrior);
+            }
+            else if (IsThreatened)
+            {
+                suggestions.Add(UnitArchetype.ShieldInfantry);
+                suggestions.Add(UnitArchetype.Rifleman);
+                suggestions.Add(UnitArchetype.Spearman);
+            }
+            else if (CurrentBasePhase >= 4)
+            {
+                suggestions.Add(UnitArchetype.Rifleman);
+                suggestions.Add(UnitArchetype.Artillery);
+                suggestions.Add(UnitArchetype.SpecialWarrior);
+            }
+            else if (CurrentBasePhase >= 3)
+            {
+                suggestions.Add(UnitArchetype.Rifleman);
+                suggestions.Add(UnitArchetype.ShieldInfantry);
+                suggestions.Add(UnitArchetype.SpecialWarrior);
+            }
+            else if (CurrentBasePhase >= 2)
+            {
+                suggestions.Add(UnitArchetype.Rifleman);
+                suggestions.Add(UnitArchetype.Spearman);
+                suggestions.Add(UnitArchetype.ShieldInfantry);
+            }
+            else
+            {
+                suggestions.Add(UnitArchetype.Spearman);
+                suggestions.Add(UnitArchetype.ShieldInfantry);
+                suggestions.Add(UnitArchetype.Rifleman);
+            }
+
+            List<string> labels = new();
+            foreach (UnitArchetype archetype in suggestions)
+            {
+                if (allowedArchetypes.Count > 0 && !allowedArchetypes.Contains(archetype))
+                {
+                    continue;
+                }
+
+                if (CurrentBasePhase < GetRequiredBasePhase(archetype))
+                {
+                    continue;
+                }
+
+                if (baseEmergency)
+                {
+                    labels.Add(archetype switch
+                    {
+                        UnitArchetype.ShieldInfantry => "방패",
+                        UnitArchetype.Spearman => "창",
+                        UnitArchetype.Rifleman => "총",
+                        _ => archetype.ToString()
+                    });
+                    continue;
+                }
+
+                UnitDefinition definition = database != null ? database.GetDefinition(archetype) : null;
+                labels.Add(definition != null ? definition.DisplayName : archetype.ToString());
+            }
+
+            if (labels.Count == 0)
+            {
+                foreach (UnitArchetype archetype in allowedArchetypes)
+                {
+                    if (CurrentBasePhase < GetRequiredBasePhase(archetype))
+                    {
+                        continue;
+                    }
+
+                    UnitDefinition definition = database != null ? database.GetDefinition(archetype) : null;
+                    labels.Add(definition != null ? definition.DisplayName : archetype.ToString());
+
+                    if (labels.Count >= 3)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (labels.Count == 0)
+            {
+                return "해금 대기";
+            }
+
+            return baseEmergency
+                ? string.Join("·", labels)
+                : string.Join(", ", labels);
+        }
+
+        private string BuildProductionResponseLabel()
+        {
+            if (linkedBase != null && linkedBase.IsDefenseEmergency && baseEmergencyResumeTimer >= baseEmergencyResumeDelay)
+            {
+                return "본진 경보 | 랠리 본진선";
+            }
+
+            if (linkedBase != null && linkedBase.IsDefenseEmergency)
+            {
+                return "본진 확인 | 랠리 준비";
+            }
+
+            if (baseEmergencyReleaseTimer > 0f)
+            {
+                return "안정 확인 | 랠리 유지";
+            }
+
+            if (IsThreatEmergency)
+            {
+                return $"생산선 비상 적 {nearbyHostileCount} | 자동 랠리 본진선";
+            }
+
+            if (IsThreatened)
+            {
+                return $"생산선 경계 적 {nearbyHostileCount} | 자동 랠리 중간선";
+            }
+
+            if (manualRallyPriorityTimer > 0f)
+            {
+                return "전선 합류 생산 | 수동 랠리 우선";
+            }
+
+            return autoRallyOverrideActive
+                ? autoRallyReleaseTimer > 0f
+                    ? "전선 합류 생산 | 자동 복귀 유지"
+                    : "전선 합류 생산 | 사용자 랠리 대기"
+                : "전선 합류 생산 | 현재 랠리 유지";
+        }
+
+        private void UpdateAutoRallyPoint()
+        {
+            if (!hasRallyPoint)
+            {
+                return;
+            }
+
+            if (manualRallyPriorityTimer > 0f)
+            {
+                manualRallyPriorityTimer -= Time.deltaTime;
+            }
+
+            if (linkedBase != null && linkedBase.IsDefenseEmergency)
+            {
+                baseEmergencyReleaseTimer = baseEmergencyReleaseDelay;
+                baseEmergencyResumeTimer += Time.deltaTime;
+            }
+            else if (baseEmergencyReleaseTimer > 0f)
+            {
+                baseEmergencyReleaseTimer -= Time.deltaTime;
+                baseEmergencyResumeTimer = 0f;
+            }
+            else
+            {
+                baseEmergencyResumeTimer = 0f;
+            }
+
+            bool shouldUseAutoRally = IsAlive && (IsThreatened || (linkedBase != null && linkedBase.IsDefenseEmergency));
+            if (manualRallyPriorityTimer > 0f)
+            {
+                return;
+            }
+
+            bool canResumeAutoRally = CanResumeAutoRally(shouldUseAutoRally);
+            if (canResumeAutoRally)
+            {
+                autoRallyResumeTimer += Time.deltaTime;
+                autoRallyResumeGraceTimer = autoRallyResumeGraceDuration;
+            }
+            else
+            {
+                autoRallyResumeGraceTimer -= Time.deltaTime;
+                if (autoRallyResumeGraceTimer <= 0f)
+                {
+                    autoRallyResumeTimer = 0f;
+                    autoRallyResumeGraceTimer = 0f;
+                }
+                else
+                {
+                    autoRallyResumeTimer = Mathf.Max(0f, autoRallyResumeTimer - Time.deltaTime * 0.35f);
+                }
+            }
+
+            if (!canResumeAutoRally || autoRallyResumeTimer < autoRallyResumeDelay)
+            {
+                if (autoRallyOverrideActive)
+                {
+                    autoRallyReleaseGraceTimer -= Time.deltaTime;
+                    if (autoRallyReleaseGraceTimer > 0f)
+                    {
+                        autoRallyReleaseTimer = Mathf.Max(autoRallyReleaseTimer, autoRallyReleaseDelay * 0.35f);
+                    }
+                    else
+                    {
+                        autoRallyReleaseTimer -= Time.deltaTime;
+                    }
+
+                    if (autoRallyReleaseTimer <= 0f)
+                    {
+                        rallyPoint = manualRallyPoint;
+                        autoRallyOverrideActive = false;
+                        autoRallyReleaseTimer = 0f;
+                        autoRallyReleaseGraceTimer = 0f;
+                        rallyDispatchSequence = 0;
+                    }
+                }
+
+                return;
+            }
+
+            if (shouldUseAutoRally)
+            {
+                autoRallyReleaseTimer = autoRallyReleaseDelay;
+                autoRallyReleaseGraceTimer = autoRallyReleaseGraceDuration;
+            }
+
+            if (!shouldUseAutoRally)
+            {
+                if (autoRallyOverrideActive)
+                {
+                    autoRallyReleaseGraceTimer -= Time.deltaTime;
+                    if (autoRallyReleaseGraceTimer > 0f)
+                    {
+                        autoRallyReleaseTimer = Mathf.Max(autoRallyReleaseTimer, autoRallyReleaseDelay * 0.35f);
+                    }
+                    else
+                    {
+                        autoRallyReleaseTimer -= Time.deltaTime;
+                    }
+
+                    if (autoRallyReleaseTimer <= 0f)
+                    {
+                        rallyPoint = manualRallyPoint;
+                        autoRallyOverrideActive = false;
+                        autoRallyReleaseTimer = 0f;
+                        autoRallyReleaseGraceTimer = 0f;
+                        rallyDispatchSequence = 0;
+                    }
+                }
+
+                return;
+            }
+
+            Vector3 autoRallyPoint = ResolveAutoRallyPoint();
+            if (!autoRallyOverrideActive || (rallyPoint - autoRallyPoint).sqrMagnitude > 0.25f)
+            {
+                rallyPoint = autoRallyPoint;
+                autoRallyOverrideActive = true;
+                rallyDispatchSequence = 0;
+            }
+        }
+
+        private Vector3 ResolveAutoRallyPoint()
+        {
+            Vector3 origin = transform.position;
+            Vector3 fallbackDirection = defaultRallyOffset.sqrMagnitude > 0.01f
+                ? defaultRallyOffset.normalized
+                : Vector3.forward;
+
+            if (linkedBase != null && linkedBase.IsAlive)
+            {
+                Vector3 toBase = linkedBase.transform.position - origin;
+                Vector3 direction = toBase.sqrMagnitude > 0.01f ? toBase.normalized : fallbackDirection;
+                float pressureBias = Mathf.Clamp01(nearbyThreatPressure);
+                float distanceScale = linkedBase.IsDefenseEmergency
+                    ? Mathf.Lerp(0.64f, 0.82f, pressureBias)
+                    : IsThreatEmergency
+                        ? Mathf.Lerp(0.44f, 0.62f, pressureBias)
+                        : Mathf.Lerp(0.24f, 0.4f, pressureBias);
+                float minimumDistance = linkedBase.IsDefenseEmergency
+                    ? 14f
+                    : IsThreatEmergency
+                        ? 10f
+                        : 7f;
+                float maximumDistance = linkedBase.IsDefenseEmergency
+                    ? 34f
+                    : IsThreatEmergency
+                        ? 26f
+                        : 18f;
+                float distance = Mathf.Clamp(toBase.magnitude * distanceScale, minimumDistance, maximumDistance);
+                return new Vector3(origin.x + direction.x * distance, 1f, origin.z + direction.z * distance);
+            }
+
+            float fallbackDistance = IsThreatEmergency ? 10f : 14f;
+            return new Vector3(origin.x + fallbackDirection.x * fallbackDistance, 1f, origin.z + fallbackDirection.z * fallbackDistance);
+        }
+
+        private bool CanResumeAutoRally(bool shouldUseAutoRally)
+        {
+            if (!shouldUseAutoRally)
+            {
+                return false;
+            }
+
+            if (linkedBase != null && linkedBase.IsDefenseEmergency && baseEmergencyResumeTimer >= baseEmergencyResumeDelay)
+            {
+                return true;
+            }
+
+            if (baseEmergencyReleaseTimer > 0f)
+            {
+                return true;
+            }
+
+            if (IsThreatEmergency)
+            {
+                return true;
+            }
+
+            return nearbyHostileCount >= 3 || nearbyThreatPressure >= autoRallyResumePressureThreshold;
+        }
+
+        private static int GetRequiredBasePhase(UnitArchetype archetype)
+        {
+            return archetype switch
+            {
+                UnitArchetype.SpecialWarrior => 2,
+                UnitArchetype.Fighter => 2,
+                UnitArchetype.Artillery => 2,
+                UnitArchetype.MobileFortress => 3,
+                UnitArchetype.RoyalGuard => 3,
+                UnitArchetype.AirborneCitadel => 4,
+                _ => 1
+            };
         }
 
         private void ApplyVisuals()
@@ -611,6 +1030,8 @@ namespace Game.Prototype
             }
 
             int hostileCount = CountNearbyHostiles(out float pressure, out Vector3 threatDirection);
+            nearbyHostileCount = hostileCount;
+            nearbyThreatPressure = pressure;
             bool showThreat = IsAlive && hostileCount > 0;
             threatAnchor.gameObject.SetActive(showThreat);
 
@@ -756,3 +1177,4 @@ namespace Game.Prototype
         }
     }
 }
+

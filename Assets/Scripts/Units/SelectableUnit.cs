@@ -552,7 +552,7 @@ namespace Game.Units
             Vector3 secondaryPosition = new Vector3(0f, -0.12f, -0.24f);
             Vector3 primaryScale = new Vector3(0.12f, 0.04f, 0.12f);
             Vector3 secondaryScale = new Vector3(0.08f, 0.04f, 0.08f);
-            Color badgeColor = Color.Lerp(orderColor, Color.white, 0.24f);
+            Color badgeColor = GetRoleBadgeColor(archetype, orderColor);
 
             switch (archetype)
             {
@@ -623,6 +623,23 @@ namespace Game.Units
             {
                 roleBadgeSecondaryRenderer.material.color = Color.Lerp(badgeColor, Color.white, 0.12f) * pulse;
             }
+        }
+
+        private Color GetRoleBadgeColor(UnitArchetype archetype, Color fallbackColor)
+        {
+            return archetype switch
+            {
+                UnitArchetype.Spearman => new Color(0.36f, 1f, 0.62f),
+                UnitArchetype.ShieldInfantry => new Color(0.3f, 0.78f, 1f),
+                UnitArchetype.Rifleman => new Color(1f, 0.78f, 0.34f),
+                UnitArchetype.SpecialWarrior => new Color(1f, 0.66f, 0.42f),
+                UnitArchetype.RoyalGuard => new Color(1f, 0.9f, 0.56f),
+                UnitArchetype.Artillery => new Color(1f, 0.54f, 0.32f),
+                UnitArchetype.Fighter => new Color(0.62f, 0.9f, 1f),
+                UnitArchetype.MobileFortress => new Color(0.88f, 0.72f, 1f),
+                UnitArchetype.AirborneCitadel => new Color(0.84f, 0.96f, 1f),
+                _ => Color.Lerp(fallbackColor, Color.white, 0.24f)
+            };
         }
 
         private void UpdateAbilityHalo(Color orderColor)

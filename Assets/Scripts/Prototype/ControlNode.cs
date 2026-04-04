@@ -12,7 +12,10 @@ namespace Game.Prototype
         private static float nextProductionRefreshTime;
 
         [SerializeField] private float controlRadius = 18f;
-        [SerializeField] private float captureDuration = 5.5f;
+        [SerializeField] private float captureDuration = 4.6f;
+        [SerializeField] private float captureCheckInterval = 0.2f;
+        [SerializeField] private float baseCaptureStep = 0.28f;
+        [SerializeField] private float neutralCaptureSpeedMultiplier = 1.3f;
         [SerializeField] private float productionBonusMultiplier = 1.12f;
         [SerializeField] private float healingRadius = 18f;
         [SerializeField] private float healingPerSecond = 4.5f;
@@ -78,16 +81,22 @@ namespace Game.Prototype
         private Renderer playerObjectiveRenderer;
         private Transform enemyObjectiveMarker;
         private Renderer enemyObjectiveRenderer;
+        private UnitTeam? previousOwnerTeam;
+        private int lastPlayerCount;
+        private int lastEnemyCount;
 
         public string OwnerLabel => ownerTeam.HasValue ? ownerTeam.Value.ToString() : "Neutral";
         public float BonusMultiplier => productionBonusMultiplier;
         public float HealingPerSecond => healingPerSecond;
         public string NodeLabel => string.IsNullOrWhiteSpace(nodeLabel) ? name : nodeLabel;
         public UnitTeam? OwnerTeam => ownerTeam;
+        public UnitTeam? CapturingTeam => capturingTeam;
         public float ControlRadius => controlRadius;
         public ControlNodeTier Tier => nodeTier;
         public bool IsGrand => nodeTier == ControlNodeTier.Grand;
         public bool IsMajor => nodeTier == ControlNodeTier.Major;
+        public bool IsBeingCaptured => capturingTeam.HasValue && ownerTeam != capturingTeam;
+        public float CaptureProgressNormalized => Mathf.Clamp01(captureProgress / Mathf.Max(0.01f, GetCaptureThreshold()));
         public int StrategicWeight => nodeTier switch
         {
             ControlNodeTier.Grand => 4,
@@ -112,6 +121,62 @@ namespace Game.Prototype
             ControlNodeTier.Major => "Major",
             _ => "Minor"
         };
+        public string TierShortLabel => nodeTier switch
+        {
+            ControlNodeTier.Grand => "대",
+            ControlNodeTier.Major => "중",
+            _ => "소"
+        };
+        public string CaptureSummaryLabel
+        {
+            get
+            {
+                if (IsBeingCaptured)
+                {
+                    string capturingLabel = capturingTeam == UnitTeam.Player ? "아군 점령" : "적 점령";
+                    return $"{capturingLabel} {Mathf.RoundToInt(CaptureProgressNormalized * 100f)}%";
+                }
+
+                if (ownerTeam == UnitTeam.Player)
+                {
+                    return "아군 확보";
+                }
+
+                if (ownerTeam == UnitTeam.Enemy)
+                {
+                    return "적 확보";
+                }
+
+                return "중립";
+            }
+        }
+        public int PlayerPresenceCount => lastPlayerCount;
+        public int EnemyPresenceCount => lastEnemyCount;
+        public bool IsPlayerRecaptureEmergency => ownerTeam == UnitTeam.Player
+            && capturingTeam == UnitTeam.Enemy
+            && CaptureProgressNormalized >= 0.55f;
+        public string RecaptureAlertLabel
+        {
+            get
+            {
+                if (IsPlayerRecaptureEmergency)
+                {
+                    return $"탈환 경고 적 {EnemyPresenceCount} / 아군 {PlayerPresenceCount}";
+                }
+
+                if (ownerTeam == UnitTeam.Player)
+                {
+                    return "아군 유지";
+                }
+
+                if (capturingTeam == UnitTeam.Player)
+                {
+                    return $"아군 탈환 {Mathf.RoundToInt(CaptureProgressNormalized * 100f)}%";
+                }
+
+                return CaptureSummaryLabel;
+            }
+        }
 
         private void Awake()
         {
@@ -151,7 +216,7 @@ namespace Game.Prototype
 
             if (captureCheckTimer <= 0f)
             {
-                captureCheckTimer = 0.2f;
+                captureCheckTimer = captureCheckInterval;
                 UpdateCaptureState();
             }
 
@@ -207,6 +272,9 @@ namespace Game.Prototype
                 }
             }
 
+            lastPlayerCount = playerCount;
+            lastEnemyCount = enemyCount;
+
             UnitTeam? nextCapturingTeam = null;
 
             if (playerCount > 0 && enemyCount == 0)
@@ -220,7 +288,11 @@ namespace Game.Prototype
 
             if (!nextCapturingTeam.HasValue)
             {
-                captureProgress = Mathf.Max(0f, captureProgress - 0.1f);
+                captureProgress = Mathf.Max(0f, captureProgress - baseCaptureStep * 0.65f);
+                if (captureProgress <= 0.01f)
+                {
+                    capturingTeam = null;
+                }
                 return;
             }
 
@@ -236,15 +308,41 @@ namespace Game.Prototype
                 return;
             }
 
-            captureProgress += 0.2f;
+            int pressureCount = Mathf.Max(playerCount, enemyCount);
+            float pressureBonus = Mathf.Min(0.16f, Mathf.Max(0, pressureCount - 1) * 0.04f);
+            float captureStep = baseCaptureStep + pressureBonus;
+            if (!ownerTeam.HasValue)
+            {
+                captureStep *= neutralCaptureSpeedMultiplier;
+            }
+
+            captureProgress += captureStep;
 
             if (captureProgress >= GetCaptureThreshold())
             {
+                previousOwnerTeam = ownerTeam;
                 ownerTeam = capturingTeam;
                 captureProgress = GetCaptureThreshold();
                 ApplyVisuals();
                 ApplyProductionBonus();
                 nextProductionRefreshTime = Time.time + 0.4f;
+                BroadcastOwnershipChange();
+            }
+        }
+
+        private void BroadcastOwnershipChange()
+        {
+            if (ownerTeam == UnitTeam.Player)
+            {
+                string recoveredLabel = previousOwnerTeam == UnitTeam.Enemy ? "재탈환" : "점령";
+                BattleDirectiveController.BroadcastNewsStatic($"{NodeLabel} {recoveredLabel}. 아군 전선이 복구됩니다.");
+                return;
+            }
+
+            if (ownerTeam == UnitTeam.Enemy)
+            {
+                string lostLabel = previousOwnerTeam == UnitTeam.Player ? "함락" : "적 점령";
+                BattleDirectiveController.BroadcastNewsStatic($"{NodeLabel} {lostLabel}. 전방 탈환 대응이 필요합니다.");
             }
         }
 
@@ -252,8 +350,8 @@ namespace Game.Prototype
         {
             return captureDuration * (nodeTier switch
             {
-                ControlNodeTier.Grand => 1.45f,
-                ControlNodeTier.Major => 1.18f,
+                ControlNodeTier.Grand => 1.25f,
+                ControlNodeTier.Major => 1.08f,
                 _ => 1f
             });
         }

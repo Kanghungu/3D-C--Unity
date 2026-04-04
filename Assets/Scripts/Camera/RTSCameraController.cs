@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Game.Selection;
 using Game.Prototype;
+using Game.Units;
 
 namespace Game.CameraSystem
 {
@@ -15,6 +16,8 @@ namespace Game.CameraSystem
         [SerializeField] private float moveSpeed = 260f;
         [SerializeField] private float fastMoveMultiplier = 3.8f;
         [SerializeField] private float edgePanSize = 16f;
+        [SerializeField] private float zoomedInMoveMultiplier = 0.85f;
+        [SerializeField] private float zoomedOutMoveMultiplier = 2.35f;
 
         [Header("Rotation")]
         [SerializeField] private float rotationSpeed = 120f;
@@ -56,6 +59,7 @@ namespace Game.CameraSystem
                 return;
             }
 
+            HandleQuickFocusHotkeys();
             HandleMovement();
             HandleRotation();
             HandleZoom();
@@ -130,7 +134,7 @@ namespace Game.CameraSystem
             forward.Normalize();
             right.Normalize();
 
-            float currentMoveSpeed = moveSpeed;
+            float currentMoveSpeed = moveSpeed * EvaluateZoomMoveMultiplier();
 
             if (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed)
             {
@@ -177,6 +181,17 @@ namespace Game.CameraSystem
             transform.position = position;
         }
 
+        private float EvaluateZoomMoveMultiplier()
+        {
+            if (maxHeight <= minHeight)
+            {
+                return 1f;
+            }
+
+            float zoomT = Mathf.InverseLerp(minHeight, maxHeight, transform.position.y);
+            return Mathf.Lerp(zoomedInMoveMultiplier, zoomedOutMoveMultiplier, zoomT);
+        }
+
         private void ClampPosition()
         {
             Vector3 position = transform.position;
@@ -193,6 +208,158 @@ namespace Game.CameraSystem
             position.z = worldPoint.z;
             transform.position = position;
             ClampPosition();
+        }
+
+        public void CenterViewOnWorldPoint(Vector3 worldPoint, float groundY = 0f)
+        {
+            Camera sourceCamera = GetAttachedCamera();
+            if (sourceCamera == null)
+            {
+                SnapToWorldPoint(worldPoint);
+                return;
+            }
+
+            Plane groundPlane = new(Vector3.up, new Vector3(0f, groundY, 0f));
+            Ray centerRay = sourceCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            bool hasAnyHit = false;
+            Vector3 currentFocusPoint = SampleGroundPoint(centerRay, groundPlane, transform.position.y, groundY, ref hasAnyHit);
+            if (!hasAnyHit)
+            {
+                SnapToWorldPoint(worldPoint);
+                return;
+            }
+
+            Vector3 delta = worldPoint - currentFocusPoint;
+            delta.y = 0f;
+            transform.position += delta;
+            ClampPosition();
+        }
+
+        private void HandleQuickFocusHotkeys()
+        {
+            if (Keyboard.current.homeKey.wasPressedThisFrame)
+            {
+                BaseStructure playerBase = PrototypeRuntimeQuery.FindBase(UnitTeam.Player);
+                if (playerBase != null && playerBase.IsAlive)
+                {
+                    CenterViewOnWorldPoint(playerBase.transform.position);
+                }
+
+                return;
+            }
+
+            if (!Keyboard.current.spaceKey.wasPressedThisFrame)
+            {
+                return;
+            }
+
+            Vector3 focusPoint = ResolvePriorityFocusPoint();
+            CenterViewOnWorldPoint(focusPoint);
+        }
+
+        private Vector3 ResolvePriorityFocusPoint()
+        {
+            BaseStructure playerBase = PrototypeRuntimeQuery.FindBase(UnitTeam.Player);
+            BaseStructure enemyBase = PrototypeRuntimeQuery.FindBase(UnitTeam.Enemy);
+            BattleDirectiveController directiveController = BattleDirectiveController.Instance;
+            ProductionStructure threatenedProduction = ResolveThreatenedProduction();
+
+            if (playerBase != null && playerBase.IsAlive && playerBase.IsDefenseEmergency)
+            {
+                return playerBase.transform.position;
+            }
+
+            ControlNode urgentNode = null;
+            foreach (ControlNode node in PrototypeRuntimeRegistry.GetControlNodes())
+            {
+                if (node == null || !node.IsPlayerRecaptureEmergency)
+                {
+                    continue;
+                }
+
+                if (urgentNode == null
+                    || node.StrategicWeight > urgentNode.StrategicWeight
+                    || node.CaptureProgressNormalized > urgentNode.CaptureProgressNormalized)
+                {
+                    urgentNode = node;
+                }
+            }
+
+            if (urgentNode != null)
+            {
+                if (threatenedProduction != null && threatenedProduction.IsAlive)
+                {
+                    Vector3 linkedFocus = Vector3.Lerp(threatenedProduction.transform.position, urgentNode.transform.position, 0.58f);
+                    linkedFocus.y = 0f;
+                    return linkedFocus;
+                }
+
+                return urgentNode.transform.position;
+            }
+
+            if (threatenedProduction != null && threatenedProduction.IsAlive)
+            {
+                return threatenedProduction.transform.position;
+            }
+
+            if (directiveController != null && directiveController.IsTotalAssaultActive(UnitTeam.Enemy) && playerBase != null && playerBase.IsAlive)
+            {
+                return playerBase.transform.position;
+            }
+
+            if (directiveController != null && directiveController.IsTotalAssaultActive(UnitTeam.Player) && enemyBase != null && enemyBase.IsAlive)
+            {
+                return enemyBase.transform.position;
+            }
+
+            ControlNode priorityNode = null;
+            foreach (ControlNode node in PrototypeRuntimeRegistry.GetControlNodes())
+            {
+                if (node == null || node.OwnerTeam == UnitTeam.Player)
+                {
+                    continue;
+                }
+
+                if (priorityNode == null || node.StrategicWeight > priorityNode.StrategicWeight)
+                {
+                    priorityNode = node;
+                }
+            }
+
+            if (priorityNode != null)
+            {
+                return priorityNode.transform.position;
+            }
+
+            if (playerBase != null && enemyBase != null)
+            {
+                return Vector3.Lerp(playerBase.transform.position, enemyBase.transform.position, 0.38f);
+            }
+
+            return transform.position;
+        }
+
+        private static ProductionStructure ResolveThreatenedProduction()
+        {
+            ProductionStructure threatenedProduction = null;
+
+            foreach (ProductionStructure structure in PrototypeRuntimeQuery.FindPlayerProductionStructures())
+            {
+                if (structure == null || !structure.IsAlive || !structure.IsThreatened)
+                {
+                    continue;
+                }
+
+                if (threatenedProduction == null
+                    || structure.IsThreatEmergency && !threatenedProduction.IsThreatEmergency
+                    || structure.NearbyHostileCount > threatenedProduction.NearbyHostileCount
+                    || structure.NearbyThreatPressure > threatenedProduction.NearbyThreatPressure)
+                {
+                    threatenedProduction = structure;
+                }
+            }
+
+            return threatenedProduction;
         }
 
         public bool TryGetViewportGroundCorners(Vector3[] cornersBuffer, float groundY = 0f)

@@ -31,7 +31,7 @@ namespace Game.Prototype
 
             foreach ((UnitArchetype Archetype, int Amount) command in triggeredCommands)
             {
-                QueueUnits(command.Archetype, database, command.Amount);
+                QueueUnits(command.Archetype, database, playerProductions, command.Amount);
             }
 
             if (keyboard.backspaceKey.wasPressedThisFrame)
@@ -40,29 +40,80 @@ namespace Game.Prototype
             }
         }
 
-        private static void QueueUnits(UnitArchetype archetype, PrototypeGameDatabase database, int amount)
+        private static void QueueUnits(UnitArchetype archetype, PrototypeGameDatabase database, List<ProductionStructure> playerProductions, int amount)
         {
             UnitDefinition definition = database.GetDefinition(archetype);
-            ProductionStructure structure = PrototypeRuntimeQuery.FindProductionStructure(UnitTeam.Player, archetype);
 
-            if (definition == null || structure == null || !structure.IsAlive)
+            if (definition == null || playerProductions == null || playerProductions.Count == 0)
             {
                 return;
             }
 
             for (int index = 0; index < amount; index++)
             {
-                if (!structure.TryQueueProduction(definition))
+                ProductionStructure structure = FindBestProductionStructure(playerProductions, archetype);
+
+                if (structure == null || !structure.IsAlive)
                 {
                     break;
                 }
+
+                if (!structure.TryQueueProduction(definition))
+                {
+                    playerProductions.Remove(structure);
+                    index--;
+                }
             }
+        }
+
+        private static ProductionStructure FindBestProductionStructure(List<ProductionStructure> playerProductions, UnitArchetype archetype)
+        {
+            ProductionStructure bestCandidate = null;
+            float bestScore = float.MinValue;
+
+            foreach (ProductionStructure structure in playerProductions)
+            {
+                if (structure == null || !structure.IsAlive || !structure.CanProduce(archetype))
+                {
+                    continue;
+                }
+
+                float score = EvaluateStructureScore(structure);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestCandidate = structure;
+                }
+            }
+
+            return bestCandidate;
+        }
+
+        private static float EvaluateStructureScore(ProductionStructure structure)
+        {
+            float score = 0f;
+
+            if (structure.IsThreatEmergency)
+            {
+                score += 1000f;
+            }
+            else if (structure.IsThreatened)
+            {
+                score += 500f;
+            }
+
+            score += structure.NearbyThreatPressure * 100f;
+            score += Mathf.Clamp(structure.NearbyHostileCount, 0, 12) * 12f;
+            score -= structure.QueueCount * 8f;
+            score += structure.SpeedMultiplier * 4f;
+
+            return score;
         }
 
         private static void CancelLatestQueuedProduction(List<ProductionStructure> playerProductions)
         {
             ProductionStructure bestCandidate = null;
-            float newestQueueTime = float.MinValue;
+            float bestScore = float.MinValue;
 
             foreach (ProductionStructure structure in playerProductions)
             {
@@ -71,14 +122,34 @@ namespace Game.Prototype
                     continue;
                 }
 
-                if (structure.LastQueueCommandTime >= newestQueueTime)
+                float score = EvaluateCancelScore(structure);
+                if (score >= bestScore)
                 {
-                    newestQueueTime = structure.LastQueueCommandTime;
+                    bestScore = score;
                     bestCandidate = structure;
                 }
             }
 
             bestCandidate?.TryCancelLastQueuedProduction();
+        }
+
+        private static float EvaluateCancelScore(ProductionStructure structure)
+        {
+            float score = structure.LastQueueCommandTime * 100f;
+
+            if (structure.IsThreatEmergency)
+            {
+                score += 1000f;
+            }
+            else if (structure.IsThreatened)
+            {
+                score += 500f;
+            }
+
+            score += structure.NearbyThreatPressure * 100f;
+            score += Mathf.Clamp(structure.NearbyHostileCount, 0, 12) * 8f;
+            score -= structure.QueueCount * 4f;
+            return score;
         }
     }
 }

@@ -263,6 +263,17 @@ namespace Game.Prototype
             }
 
             cameraController.ApplyMapProfile(mapProfile);
+            cameraController.CenterViewOnWorldPoint(GetInitialCameraFocusPoint());
+        }
+
+        private Vector3 GetInitialCameraFocusPoint()
+        {
+            Vector3 mapCenter = new(groundPosition.x, 0f, groundPosition.z);
+            Vector3 approachAnchor = Vector3.Lerp(friendlyStart, mapCenter, 0.42f);
+            Vector3 logisticsAnchor = Vector3.Lerp(playerBasePosition, playerFoundryPosition, 0.35f);
+            Vector3 focusPoint = Vector3.Lerp(logisticsAnchor, approachAnchor, 0.68f);
+            focusPoint.y = 0f;
+            return focusPoint;
         }
 
         private void SetupRoots()
@@ -500,7 +511,7 @@ namespace Game.Prototype
                 {
                     <= 4 => UnitArchetype.ShieldInfantry,
                     <= 8 => UnitArchetype.Spearman,
-                    9 or 10 => UnitArchetype.SpecialWarrior,
+                    10 => UnitArchetype.SpecialWarrior,
                     _ => UnitArchetype.Rifleman
                 });
 
@@ -509,17 +520,16 @@ namespace Game.Prototype
                 {
                     <= 3 => UnitArchetype.Rifleman,
                     <= 7 => UnitArchetype.Spearman,
-                    8 or 9 => UnitArchetype.SpecialWarrior,
+                    9 => UnitArchetype.SpecialWarrior,
                     _ => UnitArchetype.Rifleman
                 });
 
-            PrototypeArmyDeploymentUtility.CreateLine(database, friendlyStart + new Vector3(160f, 0f, 260f), UnitTeam.Player, playerUnitRoot, 28, 12f, UnitArchetype.Artillery);
-            PrototypeArmyDeploymentUtility.CreateLine(database, enemyStart + new Vector3(120f, 0f, -220f), UnitTeam.Enemy, enemyUnitRoot, 16, 12f, UnitArchetype.Artillery);
-            PrototypeArmyDeploymentUtility.CreateWing(database, friendlyStart + new Vector3(180f, 7.5f, 420f), UnitTeam.Player, playerUnitRoot, 24, 14f, UnitArchetype.Fighter);
-            PrototypeArmyDeploymentUtility.CreateWing(database, enemyStart + new Vector3(140f, 7.5f, -320f), UnitTeam.Enemy, enemyUnitRoot, 18, 14f, UnitArchetype.Fighter);
-            PrototypeArmyDeploymentUtility.CreateLine(database, playerBasePosition + new Vector3(80f, 0f, 220f), UnitTeam.Player, playerUnitRoot, 12, 12f, UnitArchetype.RoyalGuard);
+            PrototypeArmyDeploymentUtility.CreateLine(database, friendlyStart + new Vector3(160f, 0f, 260f), UnitTeam.Player, playerUnitRoot, 12, 12f, UnitArchetype.Artillery);
+            PrototypeArmyDeploymentUtility.CreateLine(database, enemyStart + new Vector3(120f, 0f, -220f), UnitTeam.Enemy, enemyUnitRoot, 8, 12f, UnitArchetype.Artillery);
+            PrototypeArmyDeploymentUtility.CreateWing(database, friendlyStart + new Vector3(180f, 7.5f, 420f), UnitTeam.Player, playerUnitRoot, 10, 14f, UnitArchetype.Fighter);
+            PrototypeArmyDeploymentUtility.CreateWing(database, enemyStart + new Vector3(140f, 7.5f, -320f), UnitTeam.Enemy, enemyUnitRoot, 8, 14f, UnitArchetype.Fighter);
+            PrototypeArmyDeploymentUtility.CreateLine(database, playerBasePosition + new Vector3(80f, 0f, 220f), UnitTeam.Player, playerUnitRoot, 6, 12f, UnitArchetype.RoyalGuard);
             PrototypeArmyDeploymentUtility.CreateSingleUnit(database, playerBasePosition + new Vector3(220f, 0f, 280f), UnitTeam.Player, playerUnitRoot, UnitArchetype.MobileFortress);
-            PrototypeArmyDeploymentUtility.CreateSingleUnit(database, playerBasePosition + new Vector3(260f, 0f, 360f), UnitTeam.Player, playerUnitRoot, UnitArchetype.AirborneCitadel);
 
             CreatePlayerVanguard();
             CreateEnemyGunline();
@@ -991,7 +1001,7 @@ namespace Game.Prototype
 
         private void CreatePlayerVanguard()
         {
-            Vector3 spearAnchor = friendlyStart + new Vector3(90f, 0f, 420f);
+            Vector3 spearAnchor = friendlyStart + new Vector3(90f, 0f, 332f);
             for (int index = 0; index < 18; index++)
             {
                 float offsetX = (index - 8.5f) * 10f;
@@ -999,7 +1009,7 @@ namespace Game.Prototype
                 PrototypeArmyDeploymentUtility.CreateSingleUnit(database, spearAnchor + new Vector3(offsetX, 0f, offsetZ), UnitTeam.Player, playerUnitRoot, UnitArchetype.Spearman);
             }
 
-            Vector3 shieldAnchor = friendlyStart + new Vector3(220f, 0f, 360f);
+            Vector3 shieldAnchor = friendlyStart + new Vector3(220f, 0f, 288f);
             for (int index = 0; index < 14; index++)
             {
                 PrototypeArmyDeploymentUtility.CreateSingleUnit(database, shieldAnchor + new Vector3((index - 6.5f) * 9f, 0f, (index % 2 == 0 ? 0f : 10f)), UnitTeam.Player, playerUnitRoot, UnitArchetype.ShieldInfantry);
@@ -1008,13 +1018,13 @@ namespace Game.Prototype
 
         private void CreateEnemyGunline()
         {
-            Vector3 rifleAnchor = enemyStart + new Vector3(180f, 0f, -420f);
+            Vector3 rifleAnchor = enemyStart + new Vector3(180f, 0f, -336f);
             for (int index = 0; index < 20; index++)
             {
                 PrototypeArmyDeploymentUtility.CreateSingleUnit(database, rifleAnchor + new Vector3((index - 9.5f) * 9.6f, 0f, (index % 2 == 0 ? 0f : -12f)), UnitTeam.Enemy, enemyUnitRoot, UnitArchetype.Rifleman);
             }
 
-            Vector3 spearAnchor = enemyStart + new Vector3(-40f, 0f, -300f);
+            Vector3 spearAnchor = enemyStart + new Vector3(-40f, 0f, -246f);
             for (int index = 0; index < 12; index++)
             {
                 PrototypeArmyDeploymentUtility.CreateSingleUnit(database, spearAnchor + new Vector3((index - 5.5f) * 10.4f, 0f, Mathf.Abs(index - 5.5f) * -4.2f), UnitTeam.Enemy, enemyUnitRoot, UnitArchetype.Spearman);
@@ -1023,10 +1033,9 @@ namespace Game.Prototype
 
         private void CreateRearReserves()
         {
-            PrototypeArmyDeploymentUtility.CreateLine(database, enemyBasePosition + new Vector3(-240f, 0f, -220f), UnitTeam.Enemy, enemyUnitRoot, 10, 12f, UnitArchetype.RoyalGuard);
+            PrototypeArmyDeploymentUtility.CreateLine(database, enemyBasePosition + new Vector3(-240f, 0f, -220f), UnitTeam.Enemy, enemyUnitRoot, 4, 12f, UnitArchetype.RoyalGuard);
             PrototypeArmyDeploymentUtility.CreateSingleUnit(database, enemyBasePosition + new Vector3(-320f, 0f, -320f), UnitTeam.Enemy, enemyUnitRoot, UnitArchetype.MobileFortress);
-            PrototypeArmyDeploymentUtility.CreateSingleUnit(database, enemyBasePosition + new Vector3(-260f, 0f, -420f), UnitTeam.Enemy, enemyUnitRoot, UnitArchetype.AirborneCitadel);
-            PrototypeArmyDeploymentUtility.CreateLine(database, playerBasePosition + new Vector3(40f, 0f, 360f), UnitTeam.Player, playerUnitRoot, 8, 12f, UnitArchetype.SpecialWarrior);
+            PrototypeArmyDeploymentUtility.CreateLine(database, playerBasePosition + new Vector3(40f, 0f, 360f), UnitTeam.Player, playerUnitRoot, 4, 12f, UnitArchetype.SpecialWarrior);
         }
     }
 }

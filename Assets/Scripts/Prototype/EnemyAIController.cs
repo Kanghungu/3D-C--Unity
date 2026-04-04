@@ -10,10 +10,10 @@ namespace Game.Prototype
     /// </summary>
     public class EnemyAIController : MonoBehaviour
     {
-        [SerializeField] private float thinkInterval = 4.2f;
+        [SerializeField] private float thinkInterval = 3f;
         [SerializeField] private float garrisonRadius = 22f;
-        [SerializeField] private int rearGarrisonCount = 10;
-        [SerializeField] private float localThreatRange = 120f;
+        [SerializeField] private int rearGarrisonCount = 8;
+        [SerializeField] private float localThreatRange = 150f;
 
         private float thinkTimer;
 
@@ -128,13 +128,19 @@ namespace Game.Prototype
                 return -1;
             }
 
+            int frontlineCompare = PrototypeBattlefieldUtility.CompareNodesByReference(left, right, referencePosition);
+            if (frontlineCompare != 0)
+            {
+                return frontlineCompare;
+            }
+
             int weightCompare = right.StrategicWeight.CompareTo(left.StrategicWeight);
             if (weightCompare != 0)
             {
                 return weightCompare;
             }
 
-            return PrototypeBattlefieldUtility.CompareNodesByReference(left, right, referencePosition);
+            return 0;
         }
 
         private static CombatTarget FindNearestTarget(Vector3 fromPosition, UnitTeam desiredTeam, IReadOnlyList<CombatTarget> targets, bool canAttackBase)
