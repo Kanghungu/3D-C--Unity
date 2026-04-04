@@ -24,7 +24,7 @@ namespace Game.CameraSystem
 
         [Header("Zoom")]
         [SerializeField] private float zoomSpeed = 720f;
-        [SerializeField] private float minHeight = 18f;
+        [SerializeField] private float minHeight = 3f;
         [SerializeField] private float maxHeight = 820f;
         [SerializeField] private float zoomSmoothSpeed = 12f;
         [SerializeField] private bool zoomTowardCursor = true;
@@ -53,7 +53,7 @@ namespace Game.CameraSystem
             zBounds = new Vector2(profile.MinZ - extension, profile.MaxZ + extension);
             moveSpeed = Mathf.Max(moveSpeed, longestSide * 0.1f);
             zoomSpeed = Mathf.Max(zoomSpeed, longestSide * 0.36f);
-            minHeight = Mathf.Max(18f, longestSide * 0.012f);
+            minHeight = Mathf.Max(3f, longestSide * 0.002f);
             maxHeight = Mathf.Max(maxHeight, longestSide * 0.48f);
             _targetZoomHeight = Mathf.Clamp(_targetZoomHeight, minHeight, maxHeight);
         }
