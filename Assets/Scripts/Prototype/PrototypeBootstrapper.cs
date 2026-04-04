@@ -211,7 +211,20 @@ namespace Game.Prototype
 
             ground.transform.SetPositionAndRotation(groundPosition, Quaternion.identity);
             ground.transform.localScale = groundScale;
-            ground.GetComponent<Renderer>().material.color = sandColor;
+
+            GroundTextureStyle style = battlefieldTheme switch
+            {
+                BattlefieldTheme.CrimsonBasin  => GroundTextureStyle.CrackedEarth,
+                BattlefieldTheme.PaleSaltFlats => GroundTextureStyle.AshWasteland,
+                _                              => GroundTextureStyle.DesertStone,
+            };
+
+            Renderer groundRenderer = ground.GetComponent<Renderer>();
+            groundRenderer.material.color = sandColor;
+            Texture2D groundTex = PrototypeGroundTextureFactory.Generate(sandColor, style);
+            groundRenderer.material.mainTexture = groundTex;
+            // 타일링: 땅 크기 대비 적절한 반복 횟수 (숫자 크면 패턴이 촘촘해짐)
+            groundRenderer.material.mainTextureScale = new Vector2(groundScale.x * 0.18f, groundScale.z * 0.18f);
 
             RenderSettings.fog = true;
             RenderSettings.fogColor = Color.Lerp(sandColor, altarColor, 0.2f);
@@ -327,6 +340,7 @@ namespace Game.Prototype
             CreateBattleSmokeAndBeacons(terrainRoot);
             CreateSearchlights(terrainRoot);
             CreateGrandAltarRitualSignals(terrainRoot);
+            PrototypeTerrainPrimitiveFactory.CreateVegetation(terrainRoot, sandColor);
         }
 
         private void SetupAmbientAnimator()

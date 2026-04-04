@@ -26,6 +26,11 @@ namespace Game.CameraSystem
         [SerializeField] private float zoomSpeed = 720f;
         [SerializeField] private float minHeight = 60f;
         [SerializeField] private float maxHeight = 820f;
+        [SerializeField] private float zoomSmoothSpeed = 12f;
+        [SerializeField] private bool zoomTowardCursor = true;
+        [SerializeField] private float zoomCursorFollowStrength = 0.35f;
+
+        private float _targetZoomHeight;
 
         [Header("Bounds")]
         [SerializeField] private Vector2 xBounds = new(-1600f, 1600f);
@@ -50,6 +55,12 @@ namespace Game.CameraSystem
             zoomSpeed = Mathf.Max(zoomSpeed, longestSide * 0.36f);
             minHeight = Mathf.Max(70f, longestSide * 0.025f);
             maxHeight = Mathf.Max(maxHeight, longestSide * 0.48f);
+            _targetZoomHeight = Mathf.Clamp(_targetZoomHeight, minHeight, maxHeight);
+        }
+
+        private void Awake()
+        {
+            _targetZoomHeight = transform.position.y;
         }
 
         private void Update()
@@ -63,6 +74,7 @@ namespace Game.CameraSystem
             HandleMovement();
             HandleRotation();
             HandleZoom();
+            ApplyZoomSmooth();
             ClampPosition();
         }
 
@@ -176,9 +188,42 @@ namespace Game.CameraSystem
                 return;
             }
 
-            Vector3 position = transform.position;
-            position.y -= scrollDelta * zoomSpeed * Time.deltaTime;
-            transform.position = position;
+            float heightBefore = _targetZoomHeight;
+            _targetZoomHeight -= scrollDelta * zoomSpeed * Time.deltaTime;
+            _targetZoomHeight = Mathf.Clamp(_targetZoomHeight, minHeight, maxHeight);
+
+            if (!zoomTowardCursor)
+            {
+                return;
+            }
+
+            // 커서가 가리키는 지면 좌표 쪽으로 XZ를 당겨준다
+            Camera cam = GetAttachedCamera();
+            if (cam == null)
+            {
+                return;
+            }
+
+            Vector2 mouseScreenPos = Mouse.current.position.ReadValue();
+            Ray ray = cam.ScreenPointToRay(new Vector3(mouseScreenPos.x, mouseScreenPos.y, 0f));
+            Plane ground = new(Vector3.up, Vector3.zero);
+            if (!ground.Raycast(ray, out float enter))
+            {
+                return;
+            }
+
+            Vector3 cursorGroundPoint = ray.GetPoint(enter);
+            float zoomRatio = (heightBefore - _targetZoomHeight) / Mathf.Max(heightBefore, 1f);
+            Vector3 shift = (cursorGroundPoint - transform.position) * zoomRatio * zoomCursorFollowStrength;
+            shift.y = 0f;
+            transform.position += shift;
+        }
+
+        private void ApplyZoomSmooth()
+        {
+            Vector3 pos = transform.position;
+            pos.y = Mathf.Lerp(pos.y, _targetZoomHeight, zoomSmoothSpeed * Time.deltaTime);
+            transform.position = pos;
         }
 
         private float EvaluateZoomMoveMultiplier()
