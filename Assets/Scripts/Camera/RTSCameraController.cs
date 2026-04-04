@@ -26,11 +26,12 @@ namespace Game.CameraSystem
         [SerializeField] private float zoomSpeed = 720f;
         [SerializeField] private float minHeight = 3f;
         [SerializeField] private float maxHeight = 820f;
-        [SerializeField] private float zoomSmoothSpeed = 6f;
+        [SerializeField] private float zoomSmoothTime = 0.18f;
         [SerializeField] private bool zoomTowardCursor = true;
         [SerializeField] private float zoomCursorFollowStrength = 0.12f;
 
         private float _targetZoomHeight;
+        private float _zoomSmoothVelocity;
 
         // 우클릭 드래그 패닝
         private bool _rightDragActive;
@@ -308,7 +309,7 @@ namespace Game.CameraSystem
         private void ApplyZoomSmooth()
         {
             Vector3 pos = transform.position;
-            pos.y = Mathf.Lerp(pos.y, _targetZoomHeight, zoomSmoothSpeed * Time.deltaTime);
+            pos.y = Mathf.SmoothDamp(pos.y, _targetZoomHeight, ref _zoomSmoothVelocity, zoomSmoothTime);
             transform.position = pos;
         }
 
