@@ -67,7 +67,7 @@ namespace Game.Units
             if (cam == null) return;
 
             // 카메라 높이가 일정 이상이면 체력바 숨김
-            if (cam.transform.position.y > 120f) return;
+            if (cam.transform.position.y > 45f) return;
 
             Vector3 screenPos = cam.WorldToScreenPoint(transform.position + healthBarOffset);
             if (screenPos.z < 0f) return;
