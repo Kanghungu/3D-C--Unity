@@ -21,6 +21,10 @@ namespace Game.Prototype
         [Header("Ground")]
         [SerializeField] private Vector3 groundScale = new(460f, 1f, 440f);
         [SerializeField] private Vector3 groundPosition = Vector3.zero;
+        [Tooltip("외부 텍스처를 여기에 연결하면 절차적 생성 대신 이 텍스처를 사용합니다.")]
+        [SerializeField] private Texture2D groundTextureOverride;
+        [Tooltip("텍스처 타일 반복 횟수 (값이 클수록 작게 반복)")]
+        [SerializeField] private Vector2 groundTextureTiling = new(12f, 12f);
 
         [Header("Camera")]
         [SerializeField] private Vector3 cameraPosition = new(0f, 720f, -1540f);
@@ -220,11 +224,22 @@ namespace Game.Prototype
             };
 
             Renderer groundRenderer = ground.GetComponent<Renderer>();
-            groundRenderer.material.color = sandColor;
-            Texture2D groundTex = PrototypeGroundTextureFactory.Generate(sandColor, style);
-            groundRenderer.material.mainTexture = groundTex;
-            // 타일링: 땅 크기 대비 적절한 반복 횟수 (숫자 크면 패턴이 촘촘해짐)
-            groundRenderer.material.mainTextureScale = new Vector2(groundScale.x * 0.18f, groundScale.z * 0.18f);
+
+            if (groundTextureOverride != null)
+            {
+                // 외부 텍스처 사용: 색상 보정 없이 그대로
+                groundRenderer.material.color = Color.white;
+                groundRenderer.material.mainTexture = groundTextureOverride;
+                groundRenderer.material.mainTextureScale = groundTextureTiling;
+            }
+            else
+            {
+                // 절차적 생성 텍스처 (기존 방식)
+                groundRenderer.material.color = sandColor;
+                Texture2D groundTex = PrototypeGroundTextureFactory.Generate(sandColor, style);
+                groundRenderer.material.mainTexture = groundTex;
+                groundRenderer.material.mainTextureScale = new Vector2(groundScale.x * 0.18f, groundScale.z * 0.18f);
+            }
 
             RenderSettings.fog = true;
             RenderSettings.fogColor = Color.Lerp(sandColor, altarColor, 0.2f);

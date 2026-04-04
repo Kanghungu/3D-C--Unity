@@ -32,6 +32,14 @@ namespace Game.CameraSystem
 
         private float _targetZoomHeight;
 
+        // 우클릭 드래그 패닝
+        private bool _rightDragActive;
+        private bool _rightDragPanning;
+        private Vector2 _rightDragStartScreenPos;
+        private Vector3 _rightDragGrabPoint;
+
+        public bool IsRightDragPanning => _rightDragPanning;
+
         [Header("Bounds")]
         [SerializeField] private Vector2 xBounds = new(-1600f, 1600f);
         [SerializeField] private Vector2 zBounds = new(-1600f, 1600f);
@@ -71,6 +79,7 @@ namespace Game.CameraSystem
             }
 
             HandleQuickFocusHotkeys();
+            HandleRightDragPan();
             HandleMovement();
             HandleRotation();
             HandleZoom();
@@ -78,8 +87,82 @@ namespace Game.CameraSystem
             ClampPosition();
         }
 
+        private void HandleRightDragPan()
+        {
+            Camera cam = GetAttachedCamera();
+            if (cam == null)
+            {
+                return;
+            }
+
+            if (Mouse.current.rightButton.wasPressedThisFrame)
+            {
+                // 유닛이 선택된 상태면 우클릭은 유닛 명령용 — 드래그 패닝 비활성
+                bool hasSelection = PrototypeSelectionController.Instance != null
+                    && PrototypeSelectionController.Instance.SelectedUnits.Count > 0;
+                if (hasSelection)
+                {
+                    _rightDragActive = false;
+                    _rightDragPanning = false;
+                    return;
+                }
+
+                Vector2 pressPos = Mouse.current.position.ReadValue();
+                Ray ray = cam.ScreenPointToRay(new Vector3(pressPos.x, pressPos.y, 0f));
+                Plane ground = new(Vector3.up, Vector3.zero);
+                if (ground.Raycast(ray, out float enter))
+                {
+                    _rightDragGrabPoint = ray.GetPoint(enter);
+                    _rightDragStartScreenPos = pressPos;
+                    _rightDragActive = true;
+                    _rightDragPanning = false;
+                }
+            }
+
+            if (Mouse.current.rightButton.wasReleasedThisFrame)
+            {
+                _rightDragActive = false;
+                _rightDragPanning = false;
+            }
+
+            if (!_rightDragActive || !Mouse.current.rightButton.isPressed)
+            {
+                return;
+            }
+
+            Vector2 currentScreenPos = Mouse.current.position.ReadValue();
+
+            // 6px 이상 이동 시 드래그 패닝 시작
+            if (!_rightDragPanning && Vector2.Distance(currentScreenPos, _rightDragStartScreenPos) > 6f)
+            {
+                _rightDragPanning = true;
+            }
+
+            if (!_rightDragPanning)
+            {
+                return;
+            }
+
+            // 그라운드 락 패닝: 드래그 시작점이 항상 커서 아래에 오도록 카메라 이동
+            Ray currentRay = cam.ScreenPointToRay(new Vector3(currentScreenPos.x, currentScreenPos.y, 0f));
+            Plane groundPlane = new(Vector3.up, Vector3.zero);
+            if (groundPlane.Raycast(currentRay, out float dist))
+            {
+                Vector3 currentGroundPoint = currentRay.GetPoint(dist);
+                Vector3 pan = _rightDragGrabPoint - currentGroundPoint;
+                pan.y = 0f;
+                transform.position += pan;
+            }
+        }
+
         private void HandleMovement()
         {
+            // 우클릭 드래그 패닝 중에는 키보드/엣지 이동 생략
+            if (_rightDragPanning)
+            {
+                return;
+            }
+
             Vector3 inputDirection = Vector3.zero;
             bool isAttackMoveChord = Keyboard.current.aKey.isPressed && Mouse.current.rightButton.isPressed;
             bool reserveAForOrders = Keyboard.current.aKey.isPressed
