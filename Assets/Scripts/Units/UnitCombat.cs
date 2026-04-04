@@ -111,7 +111,7 @@ namespace Game.Units
 
             if (currentTarget != null && currentTarget.IsAlive)
             {
-                pursuitDestination = currentTarget.transform.position;
+                pursuitDestination = GetEngagementPosition(currentTarget);
                 hasPursuitDestination = true;
             }
 
@@ -154,7 +154,7 @@ namespace Game.Units
 
             if (distance > attackRange)
             {
-                mover.SetDestination(targetPosition);
+                mover.SetDestination(pursuitDestination);
                 return;
             }
 
@@ -329,6 +329,46 @@ namespace Game.Units
             }
 
             Destroy(root, 0.24f);
+        }
+
+        private Vector3 GetEngagementPosition(CombatTarget target)
+        {
+            // 같은 팀에서 같은 타겟을 공격하는 유닛들 수집
+            int mySlot = 0;
+            int totalAttackers = 0;
+
+            foreach (UnitCombat other in PrototypeRuntimeRegistry.GetUnitCombats())
+            {
+                if (other == null || other.owner == null || other.owner.Team != owner.Team)
+                {
+                    continue;
+                }
+
+                if (other.currentTarget != target)
+                {
+                    continue;
+                }
+
+                if (other == this)
+                {
+                    mySlot = totalAttackers;
+                }
+
+                totalAttackers++;
+            }
+
+            if (totalAttackers <= 1)
+            {
+                return target.transform.position;
+            }
+
+            // 공격 반지름: attackRange의 75% 지점에 원형 배치
+            float radius = attackRange * 0.75f;
+            float angle = mySlot * (Mathf.PI * 2f / totalAttackers);
+            Vector3 offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
+            Vector3 pos = target.transform.position + offset;
+            pos.y = transform.position.y;
+            return pos;
         }
 
         private CombatTarget FindClosestEnemyTarget()

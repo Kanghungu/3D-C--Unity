@@ -532,7 +532,10 @@ namespace Game.Selection
                 return;
             }
 
-            List<Vector3> formationPoints = PrototypeSelectionUtility.BuildFormationPoints(fallbackPoint, selectedUnits.Count, 3.2f);
+            Vector3 fallbackDir = (fallbackPoint - GetSelectionCenter());
+            fallbackDir.y = 0f;
+            if (fallbackDir.sqrMagnitude > 0.01f) fallbackDir = fallbackDir.normalized;
+            List<Vector3> formationPoints = PrototypeSelectionUtility.BuildFormationPoints(fallbackPoint, selectedUnits.Count, 3.2f, fallbackDir);
             for (int index = 0; index < selectedUnits.Count; index++)
             {
                 if (selectedUnits[index] != null)
@@ -722,7 +725,14 @@ namespace Game.Selection
             }
 
             Vector3 targetPoint = hit.point;
-            List<Vector3> formationPoints = PrototypeSelectionUtility.BuildFormationPoints(targetPoint, selectedUnits.Count, 2.8f);
+            Vector3 moveDirection = (targetPoint - GetSelectionCenter());
+            moveDirection.y = 0f;
+            if (moveDirection.sqrMagnitude > 0.01f)
+            {
+                moveDirection = moveDirection.normalized;
+            }
+
+            List<Vector3> formationPoints = PrototypeSelectionUtility.BuildFormationPoints(targetPoint, selectedUnits.Count, 2.8f, moveDirection);
 
             if (IsAttackMoveModifierPressed())
             {
@@ -777,7 +787,10 @@ namespace Game.Selection
             }
 
             Vector3 targetPoint = priorityNode.transform.position;
-            List<Vector3> formationPoints = PrototypeSelectionUtility.BuildFormationPoints(targetPoint, selectedUnits.Count, 4.4f);
+            Vector3 assaultDir = (targetPoint - GetSelectionCenter());
+            assaultDir.y = 0f;
+            if (assaultDir.sqrMagnitude > 0.01f) assaultDir = assaultDir.normalized;
+            List<Vector3> formationPoints = PrototypeSelectionUtility.BuildFormationPoints(targetPoint, selectedUnits.Count, 4.4f, assaultDir);
             ShowMoveMarker(targetPoint, new Color(0.95f, 0.72f, 0.2f, 0.95f), "Assault");
 
             for (int index = 0; index < selectedUnits.Count; index++)

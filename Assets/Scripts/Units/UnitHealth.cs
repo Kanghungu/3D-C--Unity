@@ -24,8 +24,6 @@ namespace Game.Units
         private Renderer healthBarDamageFillRenderer;
         private Transform healthBarFill;
         private Renderer healthBarFillRenderer;
-        private Transform healthAlertMarker;
-        private Renderer healthAlertRenderer;
         private UnitAbilityState abilityState;
         private CombatTarget combatTarget;
         private SelectableUnit selectableUnit;
@@ -144,7 +142,7 @@ namespace Game.Units
             frame.name = "Frame";
             frame.transform.SetParent(healthBarRoot);
             frame.transform.localPosition = Vector3.zero;
-            frame.transform.localScale = new Vector3(1.18f, 0.16f, 0.14f);
+            frame.transform.localScale = new Vector3(1.08f, 0.10f, 0.10f);
             frame.GetComponent<Collider>().enabled = false;
             healthBarFrame = frame.transform;
             healthBarFrameRenderer = frame.GetComponent<Renderer>();
@@ -153,7 +151,7 @@ namespace Game.Units
             background.name = "Background";
             background.transform.SetParent(healthBarRoot);
             background.transform.localPosition = Vector3.zero;
-            background.transform.localScale = new Vector3(1.1f, 0.12f, 0.12f);
+            background.transform.localScale = new Vector3(1.0f, 0.07f, 0.08f);
             background.GetComponent<Collider>().enabled = false;
             healthBarBackground = background.transform;
             healthBarBackgroundRenderer = background.GetComponent<Renderer>();
@@ -172,15 +170,6 @@ namespace Game.Units
             healthBarFillRenderer = fill.GetComponent<Renderer>();
             healthBarFill = fill.transform;
 
-            GameObject alert = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            alert.name = "Alert Marker";
-            alert.transform.SetParent(healthBarRoot);
-            alert.transform.localPosition = new Vector3(0f, 0.2f, 0f);
-            alert.transform.localScale = new Vector3(0.08f, 0.1f, 0.08f);
-            alert.GetComponent<Collider>().enabled = false;
-            healthAlertMarker = alert.transform;
-            healthAlertRenderer = alert.GetComponent<Renderer>();
-
             UpdateHealthBarVisuals();
         }
 
@@ -192,13 +181,13 @@ namespace Game.Units
             }
 
             float normalized = Normalized;
-            healthBarFill.localScale = new Vector3(Mathf.Max(0.01f, normalized), 0.08f, 0.08f);
+            healthBarFill.localScale = new Vector3(Mathf.Max(0.01f, normalized), 0.06f, 0.06f);
             healthBarFill.localPosition = new Vector3(-0.5f + healthBarFill.localScale.x * 0.5f, 0f, 0f);
 
             if (healthBarDamageFill != null)
             {
                 float damageWidth = Mathf.Max(0.01f, displayedDamageNormalized);
-                healthBarDamageFill.localScale = new Vector3(damageWidth, 0.08f, 0.08f);
+                healthBarDamageFill.localScale = new Vector3(damageWidth, 0.06f, 0.06f);
                 healthBarDamageFill.localPosition = new Vector3(-0.5f + damageWidth * 0.5f, 0f, 0f);
             }
 
@@ -224,7 +213,7 @@ namespace Game.Units
                 normalized,
                 Time.deltaTime * (0.45f + (1f - normalized) * 1.8f));
             float damageWidth = Mathf.Max(0.01f, displayedDamageNormalized);
-            healthBarDamageFill.localScale = new Vector3(damageWidth, 0.08f, 0.08f);
+            healthBarDamageFill.localScale = new Vector3(damageWidth, 0.06f, 0.06f);
             healthBarDamageFill.localPosition = new Vector3(-0.5f + damageWidth * 0.5f, 0f, 0f);
         }
 
@@ -236,66 +225,36 @@ namespace Game.Units
             }
 
             float normalized = Normalized;
-            Color teamColor = combatTarget != null && combatTarget.Team == UnitTeam.Enemy
-                ? new Color(1f, 0.42f, 0.22f)
-                : new Color(0.28f, 0.9f, 1f);
-            Color healthColor = Color.Lerp(new Color(1f, 0.24f, 0.18f), new Color(0.18f, 0.95f, 0.28f), normalized);
+            bool isEnemy = combatTarget != null && combatTarget.Team == UnitTeam.Enemy;
             bool selected = selectableUnit != null && selectableUnit.IsSelected;
-            bool lowHealth = normalized <= 0.35f;
-            bool recentlyDamaged = Time.time - lastDamageTime <= 1.1f;
-            float pulse = 0.84f + Mathf.PingPong(Time.time * (lowHealth ? 4.2f : 2f), 0.16f);
 
+            // 프레임: 선택 시 흰색, 평상시 팀 색 어둡게
             if (healthBarFrameRenderer != null)
             {
                 healthBarFrameRenderer.material.color = selected
-                    ? Color.Lerp(teamColor, Color.white, 0.35f)
-                    : new Color(teamColor.r * 0.7f, teamColor.g * 0.7f, teamColor.b * 0.7f, 0.92f);
+                    ? new Color(1f, 1f, 1f, 0.9f)
+                    : new Color(0.15f, 0.15f, 0.18f, 0.9f);
             }
 
+            // 배경: 어두운 단색
             if (healthBarBackgroundRenderer != null)
             {
-                healthBarBackgroundRenderer.material.color = new Color(0.08f, 0.08f, 0.1f, 0.95f);
+                healthBarBackgroundRenderer.material.color = new Color(0.08f, 0.08f, 0.1f, 1f);
             }
 
+            // 체력 채움: 팀 색 (적=주황, 아군=녹색), 저체력 시 빨간색
             if (healthBarFillRenderer != null)
             {
-                healthBarFillRenderer.material.color = lowHealth ? healthColor * pulse : healthColor;
+                Color fillColor = normalized <= 0.35f
+                    ? new Color(0.9f, 0.2f, 0.15f)
+                    : isEnemy ? new Color(1f, 0.55f, 0.2f) : new Color(0.22f, 0.85f, 0.3f);
+                healthBarFillRenderer.material.color = fillColor;
             }
 
+            // 피해 잔상: 단색 어두운 주황
             if (healthBarDamageFillRenderer != null)
             {
-                Color damageColor = recentlyDamaged
-                    ? new Color(1f, 0.56f, 0.2f) * pulse
-                    : new Color(0.42f, 0.18f, 0.14f);
-                healthBarDamageFillRenderer.material.color = damageColor;
-            }
-
-            if (healthBarFrame != null)
-            {
-                float frameScale = selected ? 1.04f : 1f;
-                healthBarFrame.localScale = new Vector3(1.18f * frameScale, 0.16f, 0.14f);
-            }
-
-            if (healthAlertMarker != null)
-            {
-                bool showAlert = lowHealth || recentlyDamaged || selected;
-                healthAlertMarker.gameObject.SetActive(showAlert);
-                if (showAlert)
-                {
-                    float markerHeight = lowHealth ? 0.22f : 0.14f;
-                    healthAlertMarker.localPosition = new Vector3(0f, 0.2f + markerHeight * 0.25f, 0f);
-                    healthAlertMarker.localScale = new Vector3(0.08f, markerHeight, 0.08f);
-                }
-            }
-
-            if (healthAlertRenderer != null && healthAlertMarker != null && healthAlertMarker.gameObject.activeSelf)
-            {
-                Color alertColor = lowHealth
-                    ? new Color(1f, 0.36f, 0.2f) * pulse
-                    : selected
-                        ? Color.Lerp(teamColor, Color.white, 0.3f)
-                        : new Color(1f, 0.82f, 0.3f) * pulse;
-                healthAlertRenderer.material.color = alertColor;
+                healthBarDamageFillRenderer.material.color = new Color(0.55f, 0.25f, 0.1f);
             }
         }
 

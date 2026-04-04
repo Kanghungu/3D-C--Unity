@@ -62,7 +62,7 @@ namespace Game.Selection
             return count > 0 ? center / count : Vector3.zero;
         }
 
-        public static List<Vector3> BuildFormationPoints(Vector3 center, int count, float spacing)
+        public static List<Vector3> BuildFormationPoints(Vector3 center, int count, float spacing, Vector3 direction = default)
         {
             List<Vector3> points = new(count);
             if (count <= 0)
@@ -76,18 +76,45 @@ namespace Game.Selection
                 return points;
             }
 
-            const float goldenAngle = 2.39996323f;
-            float baseRadius = Mathf.Max(spacing * 0.6f, 1.8f);
-            float swirl = (Mathf.Abs(center.x) + Mathf.Abs(center.z)) * 0.0137f;
+            // 이동 방향이 있으면 방향 기준 가로줄 대열
+            direction.y = 0f;
+            if (direction.sqrMagnitude > 0.001f)
+            {
+                direction = direction.normalized;
+                Vector3 right = Vector3.Cross(Vector3.up, direction).normalized;
 
+                int cols = Mathf.CeilToInt(Mathf.Sqrt(count * 1.6f)); // 가로를 더 넓게
+                cols = Mathf.Max(cols, 2);
+                int rows = Mathf.CeilToInt((float)count / cols);
+
+                int unitIndex = 0;
+                for (int row = 0; row < rows && unitIndex < count; row++)
+                {
+                    int unitsInRow = Mathf.Min(cols, count - unitIndex);
+                    float rowOffset = row * spacing;
+                    for (int col = 0; col < unitsInRow; col++)
+                    {
+                        float xOff = (col - (unitsInRow - 1) * 0.5f) * spacing;
+                        Vector3 point = center - direction * rowOffset + right * xOff;
+                        point.y = center.y;
+                        points.Add(point);
+                        unitIndex++;
+                    }
+                }
+
+                return points;
+            }
+
+            // 방향 없으면 단순 가로줄 (원형 fallback)
+            int fallbackCols = Mathf.CeilToInt(Mathf.Sqrt(count * 1.6f));
+            fallbackCols = Mathf.Max(fallbackCols, 2);
             for (int index = 0; index < count; index++)
             {
-                float radius = baseRadius * Mathf.Sqrt(index + 0.35f);
-                float angle = index * goldenAngle + swirl;
-                float petal = Mathf.Sin((index + 1) * 1.618f + swirl) * spacing * 0.22f;
-                float xOffset = Mathf.Cos(angle) * (radius + petal);
-                float zOffset = Mathf.Sin(angle) * (radius - petal * 0.5f);
-                Vector3 point = center + new Vector3(xOffset, 0f, zOffset);
+                int row = index / fallbackCols;
+                int col = index % fallbackCols;
+                int unitsInRow = Mathf.Min(fallbackCols, count - row * fallbackCols);
+                float xOff = (col - (unitsInRow - 1) * 0.5f) * spacing;
+                Vector3 point = center + new Vector3(xOff, 0f, row * spacing);
                 point.y = center.y;
                 points.Add(point);
             }

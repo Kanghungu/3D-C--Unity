@@ -1318,6 +1318,10 @@ namespace Game.Prototype
             root.localRotation = Quaternion.identity;
             root.localScale = Vector3.one;
 
+            // Sky atmosphere disabled: blocking combat view. Re-enable after prototype validation.
+            return;
+
+#pragma warning disable CS0162
             CreateDriftLayers();
             CreateHorizonSilhouettes();
             CreateSkyTrails();
@@ -1416,10 +1420,14 @@ namespace Game.Prototype
             CreateAshMotes();
             CreateSootFleckLayer();
             CreateShrineMotes();
+#pragma warning restore CS0162
         }
 
         private void Update()
         {
+            // Sky atmosphere disabled. Nothing to animate.
+            if (root == null || root.childCount == 0) return;
+
             AnimateDriftLayers();
             AnimateHorizonSilhouettes();
             AnimateSkyTrails();
