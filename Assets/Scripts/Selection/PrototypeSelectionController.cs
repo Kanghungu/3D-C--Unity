@@ -590,7 +590,7 @@ namespace Game.Selection
                 return;
             }
 
-            if (hit.collider.TryGetComponent(out SelectableUnit unit) && unit.Team == UnitTeam.Player)
+            if (hit.collider.TryGetComponent(out SelectableUnit unit))
             {
                 bool isDoubleClick = lastClickedUnit == unit && Time.time - lastClickTime <= DoubleClickThreshold;
                 lastClickedUnit = unit;
@@ -615,7 +615,7 @@ namespace Game.Selection
 
             foreach (SelectableUnit unit in PrototypeRuntimeRegistry.GetSelectableUnits())
             {
-                if (unit != null && unit.Team == UnitTeam.Player && unit.Archetype == archetype)
+                if (unit != null && unit.Archetype == archetype)
                 {
                     matchingUnits.Add(unit);
                 }
@@ -630,7 +630,7 @@ namespace Game.Selection
 
             foreach (SelectableUnit unit in PrototypeRuntimeRegistry.GetSelectableUnits())
             {
-                if (unit == null || unit.Team != UnitTeam.Player)
+                if (unit == null)
                 {
                     continue;
                 }
@@ -704,6 +704,14 @@ namespace Game.Selection
                 return;
             }
 
+            // 선택된 유닛 중 플레이어 유닛만 명령 대상
+            bool hasPlayerUnit = false;
+            foreach (SelectableUnit su in selectedUnits)
+            {
+                if (su != null && su.Team == UnitTeam.Player) { hasPlayerUnit = true; break; }
+            }
+            if (!hasPlayerUnit) return;
+
             if (hit.collider.TryGetComponent(out CombatTarget target) && target.Team == UnitTeam.Enemy)
             {
                 if (!CanAttackTarget(target))
@@ -714,7 +722,7 @@ namespace Game.Selection
 
                 foreach (SelectableUnit selectedUnit in selectedUnits)
                 {
-                    if (selectedUnit != null)
+                    if (selectedUnit != null && selectedUnit.Team == UnitTeam.Player)
                     {
                         selectedUnit.Attack(target);
                     }
@@ -740,7 +748,7 @@ namespace Game.Selection
 
                 for (int index = 0; index < selectedUnits.Count; index++)
                 {
-                    if (selectedUnits[index] != null)
+                    if (selectedUnits[index] != null && selectedUnits[index].Team == UnitTeam.Player)
                     {
                         selectedUnits[index].AttackMoveTo(formationPoints[index]);
                     }
@@ -753,7 +761,7 @@ namespace Game.Selection
 
             for (int index = 0; index < selectedUnits.Count; index++)
             {
-                if (selectedUnits[index] != null)
+                if (selectedUnits[index] != null && selectedUnits[index].Team == UnitTeam.Player)
                 {
                     selectedUnits[index].MoveTo(formationPoints[index]);
                 }
