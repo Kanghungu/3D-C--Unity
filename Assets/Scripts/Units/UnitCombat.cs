@@ -35,6 +35,7 @@ namespace Game.Units
         private AdvancedUnitRoleController roleController;
         private float cooldownTimer;
         private float retargetTimer;
+        private float engagementBeamTimer;
         private bool hasAttackMoveDestination;
         private Vector3 attackMoveDestination;
         private bool hasPursuitDestination;
@@ -90,6 +91,11 @@ namespace Game.Units
             if (cooldownTimer > 0f)
             {
                 cooldownTimer -= Time.deltaTime;
+            }
+
+            if (engagementBeamTimer > 0f)
+            {
+                engagementBeamTimer -= Time.deltaTime;
             }
 
             if (recentAttackPulse > 0f)
@@ -234,6 +240,7 @@ namespace Game.Units
             currentTarget = target;
             pursuitDestination = target.transform.position;
             hasPursuitDestination = true;
+            engagementBeamTimer = 1.8f;
         }
 
         public void SetAttackMoveDestination(Vector3 destination)
@@ -728,7 +735,9 @@ namespace Game.Units
                 return;
             }
 
-            bool show = false; // 타겟 연결선 비활성화
+            bool show = engagementBeamTimer > 0f
+                && health != null && health.IsAlive
+                && currentTarget != null && currentTarget.IsAlive;
             engagementAnchor.gameObject.SetActive(show);
 
             if (!show)
