@@ -28,7 +28,7 @@ namespace Game.CameraSystem
         [SerializeField] private float maxHeight = 820f;
         [SerializeField] private float zoomSmoothSpeed = 12f;
         [SerializeField] private bool zoomTowardCursor = true;
-        [SerializeField] private float zoomCursorFollowStrength = 0.9f;
+        [SerializeField] private float zoomCursorFollowStrength = 0.12f;
 
         private float _targetZoomHeight;
 
@@ -298,10 +298,11 @@ namespace Game.CameraSystem
             }
 
             Vector3 cursorGroundPoint = ray.GetPoint(enter);
-            float zoomRatio = (heightBefore - _targetZoomHeight) / Mathf.Max(heightBefore, 1f);
-            Vector3 shift = (cursorGroundPoint - transform.position) * zoomRatio * zoomCursorFollowStrength;
-            shift.y = 0f;
-            transform.position += shift;
+            // 줌인 시 커서 방향으로 이동, 줌아웃 시 커서 반대 방향으로 후퇴
+            Vector3 towardCursor = cursorGroundPoint - transform.position;
+            towardCursor.y = 0f;
+            float direction = heightBefore > _targetZoomHeight ? 1f : -1f;
+            transform.position += towardCursor * zoomCursorFollowStrength * direction;
         }
 
         private void ApplyZoomSmooth()
