@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Game.Units
@@ -7,6 +8,9 @@ namespace Game.Units
     /// </summary>
     public class UnitHealth : MonoBehaviour
     {
+        /// <summary>유닛 사망 시 발생 — (사망한 팀, 병종)</summary>
+        public static event Action<UnitTeam, UnitArchetype> OnUnitDied;
+
         [SerializeField] private float maxHealth = 35f;
         [SerializeField] private bool createHealthBar = true;
         [SerializeField] private Vector3 healthBarOffset = new(0f, 1.8f, 0f);
@@ -272,6 +276,9 @@ namespace Game.Units
 
         private void Die()
         {
+            UnitTeam team = combatTarget != null ? combatTarget.Team : UnitTeam.Player;
+            UnitArchetype archetype = selectableUnit != null ? selectableUnit.Archetype : UnitArchetype.Spearman;
+            OnUnitDied?.Invoke(team, archetype);
             SpawnDeathRemains();
             Destroy(gameObject);
         }
