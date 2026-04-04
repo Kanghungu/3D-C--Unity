@@ -8,6 +8,8 @@ namespace Game.Prototype
     /// </summary>
     public static class PrototypeEntityVisualFactory
     {
+        private const string SpearmanModelResourcePath = "PrototypeUnits/test";
+
         public static void ApplyBaseVisuals(GameObject target, UnitTeam team)
         {
             Color primaryColor = team == UnitTeam.Player ? new Color(0.56f, 0.64f, 0.78f) : new Color(0.66f, 0.29f, 0.2f);
@@ -48,6 +50,11 @@ namespace Game.Prototype
             switch (definition.Archetype)
             {
                 case UnitArchetype.Spearman:
+                    if (TryBuildImportedSpearman(root, team, armor, cloth, glow))
+                    {
+                        break;
+                    }
+
                     BuildHumanoid(root, armor, cloth, skin, 1.05f, false);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Pike Shaft", new Vector3(0.22f, 1.06f, 0.28f), new Vector3(0.06f, 1.12f, 0.06f), weapon);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Pike Head", new Vector3(0.22f, 1.62f, 0.28f), new Vector3(0.12f, 0.18f, 0.12f), glow);
@@ -102,6 +109,50 @@ namespace Game.Prototype
             }
 
             BuildUnitFactionSignature(root, definition.Archetype, team, cloth, glow);
+        }
+
+        private static bool TryBuildImportedSpearman(Transform root, UnitTeam team, Color armor, Color cloth, Color accent)
+        {
+            GameObject source = Resources.Load<GameObject>(SpearmanModelResourcePath);
+            if (source == null)
+            {
+                return false;
+            }
+
+            GameObject visual = Object.Instantiate(source, root);
+            visual.name = "SpearmanVisual";
+            visual.transform.localPosition = new Vector3(0f, -0.88f, 0f);
+            visual.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            visual.transform.localScale = Vector3.one * 0.78f;
+
+            foreach (Collider collider in visual.GetComponentsInChildren<Collider>(true))
+            {
+                collider.enabled = false;
+            }
+
+            Renderer[] renderers = visual.GetComponentsInChildren<Renderer>(true);
+            for (int index = 0; index < renderers.Length; index++)
+            {
+                Renderer renderer = renderers[index];
+                Material materialInstance = renderer.material;
+
+                if (index == 0)
+                {
+                    materialInstance.color = armor;
+                }
+                else if (index % 3 == 0)
+                {
+                    materialInstance.color = accent;
+                }
+                else
+                {
+                    materialInstance.color = cloth;
+                }
+            }
+
+            Transform visualTransform = visual.transform;
+            visualTransform.SetSiblingIndex(0);
+            return true;
         }
 
         public static void BuildControlNodeSilhouette(Transform root)
