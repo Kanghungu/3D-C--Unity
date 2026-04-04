@@ -12,7 +12,7 @@ namespace Game.Prototype
     {
         [SerializeField] private float thinkInterval = 3f;
         [SerializeField] private float garrisonRadius = 22f;
-        [SerializeField] private int rearGarrisonCount = 8;
+        [SerializeField] private int rearGarrisonCount = 3;
         [SerializeField] private float localThreatRange = 150f;
 
         private float thinkTimer;
@@ -81,8 +81,43 @@ namespace Game.Prototype
                 if (playerBase != null && baseUnlocked)
                 {
                     enemyUnit.AttackMoveTo(playerBase.transform.position + new Vector3(Random.Range(-22f, 22f), 0f, Random.Range(-22f, 22f)));
+                    continue;
+                }
+
+                // 폴백: 가장 가까운 플레이어 점령 노드로 전진
+                ControlNode fallbackNode = FindNearestPlayerNode(enemyUnit.transform.position);
+                if (fallbackNode != null)
+                {
+                    Vector3 offset = new Vector3(Random.Range(-12f, 12f), 0f, Random.Range(-12f, 12f));
+                    enemyUnit.AttackMoveTo(fallbackNode.transform.position + offset);
+                }
+                else if (playerBase != null)
+                {
+                    enemyUnit.AttackMoveTo(playerBase.transform.position + new Vector3(Random.Range(-22f, 22f), 0f, Random.Range(-22f, 22f)));
                 }
             }
+        }
+
+        private static ControlNode FindNearestPlayerNode(Vector3 fromPosition)
+        {
+            ControlNode nearest = null;
+            float bestDist = float.MaxValue;
+            foreach (ControlNode node in PrototypeRuntimeQuery.FindControlNodes())
+            {
+                if (node == null || node.OwnerTeam != UnitTeam.Player)
+                {
+                    continue;
+                }
+
+                float d = Vector3.Distance(fromPosition, node.transform.position);
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    nearest = node;
+                }
+            }
+
+            return nearest;
         }
 
         private bool ShouldHoldGarrison(SelectableUnit unit, List<ControlNode> enemyNodes, IReadOnlyList<SelectableUnit> allUnits)
