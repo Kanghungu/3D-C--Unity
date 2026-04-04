@@ -3,6 +3,7 @@ using Game.Selection;
 using Game.Units;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Game.Prototype
 {
@@ -36,13 +37,21 @@ namespace Game.Prototype
         private readonly List<PrototypeSelectionController.ControlGroupMarkerInfo> controlGroupMarkers = new();
         private readonly List<PrototypeSelectionController.SelectedControlGroupInfo> selectedControlGroupInfos = new();
         private readonly List<Vector3> combatClusterBuffer = new();
+        private readonly List<SelectableUnit> selectionFallbackBuffer = new();
 
         private void Update()
         {
-            if (UnityEngine.InputSystem.Keyboard.current != null &&
-                UnityEngine.InputSystem.Keyboard.current.tabKey.wasPressedThisFrame)
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb == null) return;
+
+            if (kb.tabKey.wasPressedThisFrame)
             {
                 showStatsPanel = !showStatsPanel;
+            }
+
+            if (kb.rKey.wasPressedThisFrame)
+            {
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
             }
         }
 
@@ -67,6 +76,7 @@ namespace Game.Prototype
 
             DrawTopInfoBar(playerUnits, enemyUnits, playerBase, enemyBase);
             DrawBottomBar(playerBase, enemyBase, playerProductions, controlNodes, playerUnits, enemyUnits, matchController, selectionController, directiveController);
+            DrawTopRightResources(playerUnits, playerProductions, controlNodes);
             DrawTopRightNews(directiveController);
 
             if (showStatsPanel)
@@ -179,21 +189,23 @@ namespace Game.Prototype
             PrototypeSelectionController selectionController,
             BattleDirectiveController directiveController)
         {
-            float barHeight = 210f;
-            float innerH    = barHeight - 24f;
-            Rect barRect = new Rect(12f, Screen.height - barHeight - 12f, Screen.width - 24f, barHeight);
+            float barHeight    = 180f;
+            float innerH       = barHeight - 24f;
+            const float minimapW   = 180f;
+            const float overviewW  = 260f;
+            const float selectionW = 260f;
+            float barWidth = 24f + minimapW + 10f + overviewW + 10f + selectionW;
+            float barLeft  = (Screen.width - barWidth) * 0.5f;
+            Rect barRect = new Rect(barLeft, Screen.height - barHeight - 12f, barWidth, barHeight);
             GUI.Box(barRect, GUIContent.none, panelStyle);
             DrawRectOutline(barRect, ColBorder, 2f);
 
-            Rect minimapRect    = new Rect(barRect.x + 12f,            barRect.y + 12f, 210f,  innerH);
-            Rect overviewRect   = new Rect(minimapRect.xMax + 10f,     barRect.y + 12f, 310f,  innerH);
-            Rect productionRect = new Rect(overviewRect.xMax + 10f,    barRect.y + 12f, 400f,  innerH);
-            Rect selectionRect  = new Rect(productionRect.xMax + 10f,  barRect.y + 12f,
-                Mathf.Max(220f, barRect.xMax - productionRect.xMax - 22f), innerH);
+            Rect minimapRect   = new Rect(barRect.x + 12f,        barRect.y + 12f, minimapW,   innerH);
+            Rect overviewRect  = new Rect(minimapRect.xMax + 10f, barRect.y + 12f, overviewW,  innerH);
+            Rect selectionRect = new Rect(overviewRect.xMax + 10f, barRect.y + 12f, selectionW, innerH);
 
             DrawMinimap(minimapRect, playerBase, enemyBase, playerProductions, controlNodes, selectionController != null ? selectionController.SelectedUnits : null);
             DrawOverviewPanel(overviewRect, playerBase, enemyBase, playerProductions, controlNodes, playerUnits, enemyUnits, matchController, directiveController);
-            DrawProductionPanel(productionRect, playerProductions, directiveController, controlNodes);
             DrawSelectionPanel(selectionRect, selectionController);
         }
 
@@ -395,6 +407,20 @@ namespace Game.Prototype
         private void DrawSelectionPanel(Rect rect, PrototypeSelectionController selectionController)
         {
             IReadOnlyList<SelectableUnit> selectedUnits = selectionController != null ? selectionController.SelectedUnits : null;
+
+            // 컨트롤러 리스트가 비어있으면 IsSelected 플래그로 직접 스캔 (적 유닛 선택 누락 방어)
+            if (selectedUnits == null || selectedUnits.Count == 0)
+            {
+                selectionFallbackBuffer.Clear();
+                foreach (SelectableUnit u in PrototypeRuntimeRegistry.GetSelectableUnits())
+                {
+                    if (u != null && u.IsSelected)
+                        selectionFallbackBuffer.Add(u);
+                }
+                if (selectionFallbackBuffer.Count > 0)
+                    selectedUnits = selectionFallbackBuffer;
+            }
+
             DrawPanelFrame(rect, "선택");
 
             if (selectedUnits == null || selectedUnits.Count == 0)
@@ -409,8 +435,8 @@ namespace Game.Prototype
 
             GUI.Label(new Rect(rect.x + 10f, rect.y + 36f, rect.width - 20f, 20f), $"선택 부대  {selectedUnits.Count}", labelStyle);
             DrawSelectionEventBadges(new Rect(rect.x + 110f, rect.y + 36f, rect.width - 120f, 20f), selectionController);
-            DrawSelectionIcons(new Rect(rect.x + 8f, rect.y + 58f, rect.width - 16f, 90f), selectedUnits);
-            GUI.Label(new Rect(rect.x + 10f, rect.y + 152f, rect.width - 20f, 16f), PrototypeHudTextUtility.BuildSelectionOrdersSummary(selectedUnits), tinyStyle);
+            DrawSelectionIcons(new Rect(rect.x + 8f, rect.y + 58f, rect.width - 16f, 72f), selectedUnits);
+            GUI.Label(new Rect(rect.x + 10f, rect.y + 134f, rect.width - 20f, 16f), PrototypeHudTextUtility.BuildSelectionOrdersSummary(selectedUnits), tinyStyle);
             GUI.Label(new Rect(rect.x + 10f, rect.y + rect.height - 18f, rect.width - 20f, 16f), PrototypeHudTextUtility.BuildCommandControlLine(selectionController), tinyStyle);
         }
 
@@ -418,7 +444,7 @@ namespace Game.Prototype
         {
             if (selectedUnits == null || selectedUnits.Count == 0) return;
 
-            const float iconSize = 40f;
+            const float iconSize = 32f;
             const float gap = 4f;
             const float step = iconSize + gap;
 
@@ -427,7 +453,7 @@ namespace Game.Prototype
 
             GUIStyle iconLabelStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 13,
+                fontSize = 11,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = new Color(1f, 1f, 1f, 0.95f) }
@@ -652,6 +678,43 @@ namespace Game.Prototype
             GUI.Label(new Rect(barX + barW - 230f, 9f, 220f, barH), $"본진 {Mathf.RoundToInt(eH)}%  적  {enemyUnits}", eRight);
         }
 
+        private void DrawTopRightResources(int playerUnits, List<ProductionStructure> playerProductions, List<ControlNode> controlNodes)
+        {
+            // 대기 병력 합산
+            int totalQueue = 0;
+            if (playerProductions != null)
+                foreach (ProductionStructure ps in playerProductions)
+                    if (ps != null) totalQueue += ps.QueueCount;
+
+            // 거점 현황
+            int pNodes = 0, totalNodes = 0;
+            if (controlNodes != null)
+                foreach (ControlNode n in controlNodes)
+                {
+                    if (n == null) continue;
+                    totalNodes++;
+                    if (n.OwnerTeam == UnitTeam.Player) pNodes++;
+                }
+
+            const float w = 192f;
+            const float h = 22f;
+            Rect panel = new Rect(Screen.width - w - 8f, 8f, w, h);
+            DrawSolidRect(panel, ColPanelBg);
+            DrawRectOutline(panel, ColBorder, 1f);
+
+            GUIStyle rs = new GUIStyle(tinyStyle)
+            {
+                fontSize = 11,
+                alignment = TextAnchor.MiddleLeft,
+                normal = { textColor = new Color(0.82f, 0.9f, 1f, 0.9f) }
+            };
+
+            float col = w / 3f;
+            GUI.Label(new Rect(panel.x + 6f,         panel.y, col - 4f, h), $"병력  {playerUnits}", rs);
+            GUI.Label(new Rect(panel.x + col + 4f,   panel.y, col - 4f, h), $"대기  {totalQueue}", rs);
+            GUI.Label(new Rect(panel.x + col * 2f + 4f, panel.y, col - 4f, h), $"거점  {pNodes}/{totalNodes}", rs);
+        }
+
         private void DrawTopRightNews(BattleDirectiveController directiveController)
         {
             if (directiveController == null || !directiveController.HasNews)
@@ -664,7 +727,7 @@ namespace Game.Prototype
             const float headerHeight = 24f;
             const float newsLineHeight = 20f;
             float newsHeight = headerHeight + lineCount * newsLineHeight + 10f;
-            Rect newsRect = new Rect(Screen.width - 356f, 12f, 344f, newsHeight);
+            Rect newsRect = new Rect(Screen.width - 356f, 40f, 344f, newsHeight);
             const float newsPaddingX = 12f;
             const float lineInsetX = 6f;
             GUI.Box(newsRect, GUIContent.none, panelStyle);
