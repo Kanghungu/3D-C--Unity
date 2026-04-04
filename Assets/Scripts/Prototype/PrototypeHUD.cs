@@ -451,9 +451,17 @@ namespace Game.Prototype
                 Rect iconRect = new Rect(rect.x + col * step, rect.y + row * step, iconSize, iconSize);
 
                 // 배경: 병종별 색상
+                bool isEnemy = unit.Team == UnitTeam.Enemy;
                 Color bg = GetArchetypeIconColor(unit.Archetype);
+                // 적 유닛은 붉은 오버레이로 구분
+                if (isEnemy) bg = Color.Lerp(bg, new Color(0.72f, 0.08f, 0.08f, 0.92f), 0.55f);
                 DrawSolidRect(iconRect, bg);
-                DrawRectOutline(iconRect, new Color(1f, 1f, 1f, 0.25f), 1f);
+
+                // 팀 구분 테두리 (아군=청록, 적=주황)
+                Color teamBorder = isEnemy
+                    ? new Color(1f, 0.35f, 0.1f, 0.7f)
+                    : new Color(0.2f, 0.7f, 1f, 0.5f);
+                DrawRectOutline(iconRect, teamBorder, 1f);
 
                 // 체력바 (하단 4px)
                 UnitHealth health = unit.GetComponent<UnitHealth>();
@@ -463,14 +471,15 @@ namespace Game.Prototype
                     DrawSolidRect(hpBg, new Color(0.1f, 0.1f, 0.1f, 0.8f));
                     Color hpColor = health.Normalized <= 0.35f
                         ? new Color(0.9f, 0.2f, 0.15f)
-                        : new Color(0.22f, 0.85f, 0.3f);
+                        : isEnemy ? new Color(1f, 0.55f, 0.2f) : new Color(0.22f, 0.85f, 0.3f);
                     DrawSolidRect(new Rect(hpBg.x, hpBg.y, hpBg.width * health.Normalized, hpBg.height), hpColor);
                 }
 
-                // 선택 하이라이트
+                // 선택 하이라이트 (굵은 테두리)
                 if (unit.IsSelected)
                 {
-                    DrawRectOutline(iconRect, new Color(0.2f, 0.9f, 1f, 0.9f), 2f);
+                    Color selBorder = isEnemy ? new Color(1f, 0.5f, 0.1f, 1f) : new Color(0.2f, 0.9f, 1f, 0.9f);
+                    DrawRectOutline(iconRect, selBorder, 2f);
                 }
 
                 // 병종 심볼
