@@ -189,7 +189,9 @@ namespace Game.CameraSystem
             }
 
             float heightBefore = _targetZoomHeight;
-            _targetZoomHeight -= scrollDelta * zoomSpeed * Time.deltaTime;
+            // 현재 높이의 14% 또는 최소 8유닛씩 이동 — Time.deltaTime 미사용(스크롤은 이산 이벤트)
+            float step = Mathf.Max(8f, _targetZoomHeight * 0.14f) * Mathf.Sign(scrollDelta);
+            _targetZoomHeight -= step;
             _targetZoomHeight = Mathf.Clamp(_targetZoomHeight, minHeight, maxHeight);
 
             if (!zoomTowardCursor)
