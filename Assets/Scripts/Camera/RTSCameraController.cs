@@ -316,10 +316,12 @@ namespace Game.CameraSystem
                 return;
             }
 
-            Vector3 towardCursor = ray.GetPoint(enter) - transform.position;
-            towardCursor.y = 0f;
-            float zoomRatio = -deltaY / Mathf.Max(prevY, 1f);
-            transform.position += towardCursor * zoomRatio * zoomCursorFollowStrength;
+            // 커서 아래 지점이 화면에 고정되도록 카메라 XZ 보정
+            // newCamXZ = cursorXZ + (oldCamXZ - cursorXZ) * (newY / oldY)
+            Vector3 cursorGround = ray.GetPoint(enter);
+            Vector3 camToCursor = transform.position - cursorGround;
+            camToCursor.y = 0f;
+            transform.position += camToCursor * (deltaY / Mathf.Max(prevY, 0.001f));
         }
 
         private float EvaluateZoomMoveMultiplier()
