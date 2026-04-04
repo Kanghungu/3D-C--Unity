@@ -728,11 +728,7 @@ namespace Game.Units
                 return;
             }
 
-            bool show = health != null
-                && health.IsAlive
-                && currentTarget != null
-                && currentTarget.IsAlive
-                && currentTarget.Team != owner.Team;
+            bool show = false; // 타겟 연결선 비활성화
             engagementAnchor.gameObject.SetActive(show);
 
             if (!show)
