@@ -28,7 +28,7 @@ namespace Game.CameraSystem
         [SerializeField] private float maxHeight = 820f;
         [SerializeField] private float zoomSmoothSpeed = 12f;
         [SerializeField] private bool zoomTowardCursor = true;
-        [SerializeField] private float zoomCursorFollowStrength = 0.35f;
+        [SerializeField] private float zoomCursorFollowStrength = 0.9f;
 
         private float _targetZoomHeight;
 
