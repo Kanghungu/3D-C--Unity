@@ -39,6 +39,16 @@ namespace Game.Prototype
                 navAgent.updateRotation        = false;
                 navAgent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance;
                 navAgent.avoidancePriority     = Random.Range(30, 70);
+
+                // 자식 시각 모델이 지면에 닿도록 트랜스폼을 NavMesh 표면 아래로 내린다.
+                // baseOffset 만큼 transform.y 가 낮아지므로, 자식 최하단 로컬 Y × scaleY 만큼 오프셋.
+                float sy = unit.transform.localScale.y;
+                navAgent.baseOffset = definition.Archetype switch
+                {
+                    UnitArchetype.MobileFortress => 0f,           // 트랙 하단이 로컬 Y≈0
+                    UnitArchetype.Artillery      => -(sy * 0.12f), // 포가 하단 로컬 Y≈0.12
+                    _                            => -(sy * 0.42f)  // 보병 다리 중심 로컬 Y=0.42
+                };
             }
 
             unit.AddComponent<UnitAbilityState>();

@@ -121,7 +121,7 @@ namespace Game.Prototype
 
             GameObject visual = Object.Instantiate(source, root);
             visual.name = "SpearmanVisual";
-            visual.transform.localPosition = new Vector3(0f, -0.88f, 0f);
+            visual.transform.localPosition = new Vector3(0f, -0.46f, 0f);
             visual.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
             visual.transform.localScale = Vector3.one * 0.78f;
 
