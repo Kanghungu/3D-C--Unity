@@ -1,5 +1,6 @@
 using Game.Units;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace Game.Prototype
 {
@@ -14,6 +15,31 @@ namespace Game.Prototype
             unit.transform.position = position;
             unit.transform.localScale = PrototypeUnitBalanceUtility.GetAdjustedScale(team, definition);
             unit.transform.SetParent(parent);
+
+            // 루트 primitive 의 외형은 BuildUnitSilhouette 자식 오브젝트가 담당한다.
+            // Renderer 만 끄고 Collider 는 마우스 피킹(레이캐스트)용으로 유지한다.
+            Renderer rootRenderer = unit.GetComponent<Renderer>();
+            if (rootRenderer != null) rootRenderer.enabled = false;
+
+            // 지상 유닛만 NavMeshAgent 부착 — 비행 유닛은 직접 이동 처리
+            if (!definition.IsFlying)
+            {
+                // 스폰 위치를 NavMesh 위로 보정 (NavMesh 밖에서 스폰되면 Agent 작동 안 함)
+                if (NavMesh.SamplePosition(position, out NavMeshHit navHit, 8f, NavMesh.AllAreas))
+                {
+                    unit.transform.position = navHit.position;
+                }
+
+                NavMeshAgent navAgent = unit.AddComponent<NavMeshAgent>();
+                navAgent.height                = 2f;
+                navAgent.radius                = 0.5f;
+                navAgent.angularSpeed          = 540f;
+                navAgent.acceleration          = 20f;
+                navAgent.autoBraking           = false;
+                navAgent.updateRotation        = false;
+                navAgent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance;
+                navAgent.avoidancePriority     = Random.Range(30, 70);
+            }
 
             unit.AddComponent<UnitAbilityState>();
             SimpleUnitMover mover = unit.AddComponent<SimpleUnitMover>();

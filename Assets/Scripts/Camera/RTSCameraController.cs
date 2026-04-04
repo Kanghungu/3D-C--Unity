@@ -161,27 +161,23 @@ namespace Game.CameraSystem
             }
 
             Vector3 inputDirection = Vector3.zero;
-            bool isAttackMoveChord = Keyboard.current.aKey.isPressed && Mouse.current.rightButton.isPressed;
-            bool reserveAForOrders = Keyboard.current.aKey.isPressed
-                && PrototypeSelectionController.Instance != null
-                && PrototypeSelectionController.Instance.SelectedUnits.Count > 0;
 
-            if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed)
+            if (Keyboard.current.upArrowKey.isPressed)
             {
                 inputDirection += Vector3.forward;
             }
 
-            if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed)
+            if (Keyboard.current.downArrowKey.isPressed)
             {
                 inputDirection += Vector3.back;
             }
 
-            if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed)
+            if (Keyboard.current.rightArrowKey.isPressed)
             {
                 inputDirection += Vector3.right;
             }
 
-            if (!isAttackMoveChord && !reserveAForOrders && (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed))
+            if (Keyboard.current.leftArrowKey.isPressed)
             {
                 inputDirection += Vector3.left;
             }

@@ -94,7 +94,7 @@ namespace Game.Prototype
 
             string groupSummary = selectionController != null ? selectionController.GetControlGroupSummary() : "None";
             string commandHint = commandLabel == "대기"
-                ? "A 공격   B 후퇴   H 고정   Space 시점 이동"
+                ? "A 공격  B 후퇴  H 고정  R 재시작"
                 : commandLabel;
             string groupEventLabel = string.Empty;
 

@@ -9,19 +9,18 @@ namespace Game.Prototype
     public static class PrototypeHudLayoutUtility
     {
         private const float BottomBarMargin = 12f;
-        private const float BottomBarHeight = 210f;
+        private const float BottomBarHeight = 180f;
+        private const float BottomBarWidth  = 24f + 180f + 10f + 260f + 10f + 260f; // must match DrawBottomBar
         private const float NewsWidth = 344f;
         private const float NewsHeight = 54f;
-        private const float NewsTopMargin = 12f;
+        private const float NewsTopMargin = 40f;
         private const float NewsRightMargin = 12f;
 
         public static Rect GetBottomBarInputRect()
         {
-            return new Rect(
-                0f,
-                0f,
-                Screen.width,
-                BottomBarHeight + BottomBarMargin * 2f);
+            float totalH = BottomBarHeight + BottomBarMargin * 2f;
+            float left   = (Screen.width - BottomBarWidth) * 0.5f;
+            return new Rect(left, 0f, BottomBarWidth, totalH);
         }
 
         public static Rect GetWarNewsInputRect()
