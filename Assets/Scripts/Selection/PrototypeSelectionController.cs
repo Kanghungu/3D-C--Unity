@@ -590,7 +590,8 @@ namespace Game.Selection
                 return;
             }
 
-            if (hit.collider.TryGetComponent(out SelectableUnit unit))
+            SelectableUnit unit = hit.collider.GetComponentInParent<SelectableUnit>();
+            if (unit != null)
             {
                 bool isDoubleClick = lastClickedUnit == unit && Time.time - lastClickTime <= DoubleClickThreshold;
                 lastClickedUnit = unit;
