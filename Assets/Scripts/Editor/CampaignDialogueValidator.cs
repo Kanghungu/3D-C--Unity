@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Game.EditorTools
 {
     /// <summary>
-    /// CampaignDialogue_KR 에 미션·필드 대사 ID가 빠졌는지 검사(프로토 유지보수용).
+    /// CampaignDialogue_KR ??미션·?�드 ?�??ID가 빠졌?��? 검???�로???��?보수??.
     /// </summary>
     public static class CampaignDialogueValidator
     {
@@ -19,7 +19,7 @@ namespace Game.EditorTools
             DialogueTable table = AssetDatabase.LoadAssetAtPath<DialogueTable>(DialoguePath);
             if (table == null)
             {
-                EditorUtility.DisplayDialog("Dialogue", "CampaignDialogue_KR.asset 을 찾을 수 없습니다.", "확인");
+                EditorUtility.DisplayDialog("Dialogue", "CampaignDialogue_KR.asset ??찾을 ???�습?�다.", "?�인");
                 return;
             }
 
@@ -56,7 +56,7 @@ namespace Game.EditorTools
 
                     if (!ids.Contains(id))
                     {
-                        missing.Add($"{m.MissionId} → {label}: [{id}]");
+                        missing.Add($"{m.MissionId} ??{label}: [{id}]");
                     }
                 }
 
@@ -75,21 +75,21 @@ namespace Game.EditorTools
             {
                 if (!ids.Contains(fid))
                 {
-                    missing.Add($"필드 대사(스토리 존) → [{fid}]");
+                    missing.Add($"?�드 ?�???�토�?�? ??[{fid}]");
                 }
             }
 
             if (missing.Count == 0)
             {
-                EditorUtility.DisplayDialog("Dialogue 검사", "누락된 ID 없음.", "확인");
+                EditorUtility.DisplayDialog("Dialogue Check", "No missing dialogue IDs found.", "OK");
                 return;
             }
 
-            Debug.LogWarning("[CampaignDialogueValidator] 누락:\n" + string.Join("\n", missing));
+            Debug.LogWarning("[CampaignDialogueValidator] ?�락:\n" + string.Join("\n", missing));
             EditorUtility.DisplayDialog(
-                "Dialogue 검사",
-                "누락 " + missing.Count + "건 — 콘솔 경고를 확인하세요.",
-                "확인");
+                "Dialogue Check",
+                "Found " + missing.Count + " missing dialogue IDs. Check the console warning.",
+                "OK");
         }
     }
 }

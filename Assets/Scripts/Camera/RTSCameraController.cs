@@ -27,12 +27,11 @@ namespace Game.CameraSystem
         [SerializeField] private float minHeight = 3f;
         [SerializeField] private float maxHeight = 820f;
         [SerializeField] private bool zoomTowardCursor = true;
-        [SerializeField] private float zoomCursorFollowStrength = 0.12f;
 
-        // 속도 기반 줌 — 스크롤 = 충격량, 매 프레임 지수 감쇠
+        // ?�도 기반 �????�크�?= 충격?? �??�레??지??감쇠
         private float _zoomVelocity;
 
-        // 우클릭 드래그 패닝
+        // ?�클�??�래�??�닝
         private bool _rightDragActive;
         private bool _rightDragPanning;
         private Vector2 _rightDragStartScreenPos;
@@ -99,7 +98,7 @@ namespace Game.CameraSystem
 
             if (Mouse.current.rightButton.wasPressedThisFrame)
             {
-                // 유닛이 선택된 상태면 우클릭은 유닛 명령용 — 드래그 패닝 비활성
+                // ?�닛???�택???�태�??�클�?? ?�닛 명령?????�래�??�닝 비활??
                 bool hasSelection = PrototypeSelectionController.Instance != null
                     && PrototypeSelectionController.Instance.SelectedUnits.Count > 0;
                 if (hasSelection)
@@ -134,7 +133,7 @@ namespace Game.CameraSystem
 
             Vector2 currentScreenPos = Mouse.current.position.ReadValue();
 
-            // 6px 이상 이동 시 드래그 패닝 시작
+            // 6px ?�상 ?�동 ???�래�??�닝 ?�작
             if (!_rightDragPanning && Vector2.Distance(currentScreenPos, _rightDragStartScreenPos) > 6f)
             {
                 _rightDragPanning = true;
@@ -145,7 +144,7 @@ namespace Game.CameraSystem
                 return;
             }
 
-            // 그라운드 락 패닝: 드래그 시작점이 항상 커서 아래에 오도록 카메라 이동
+            // 그라?�드 ???�닝: ?�래�??�작?�이 ??�� 커서 ?�래???�도�?카메???�동
             Ray currentRay = cam.ScreenPointToRay(new Vector3(currentScreenPos.x, currentScreenPos.y, 0f));
             Plane groundPlane = new(Vector3.up, Vector3.zero);
             if (groundPlane.Raycast(currentRay, out float dist))
@@ -159,7 +158,7 @@ namespace Game.CameraSystem
 
         private void HandleMovement()
         {
-            // 우클릭 드래그 패닝 중에는 키보드/엣지 이동 생략
+            // ?�클�??�래�??�닝 중에???�보???��? ?�동 ?�략
             if (_rightDragPanning)
             {
                 return;
@@ -268,7 +267,7 @@ namespace Game.CameraSystem
                 return;
             }
 
-            // 현재 높이 비례 충격량 — 높을수록 빠르게, 낮을수록 섬세하게
+            // ?�재 ?�이 비�? 충격?????�을?�록 빠르�? ??��?�록 ?�세?�게
             float impulse = Mathf.Max(20f, transform.position.y * 1.8f);
             _zoomVelocity -= Mathf.Sign(scrollDelta) * impulse;
         }
@@ -285,7 +284,7 @@ namespace Game.CameraSystem
             pos.y += _zoomVelocity * Time.deltaTime;
             pos.y = Mathf.Clamp(pos.y, minHeight, maxHeight);
 
-            // 경계에 닿으면 속도 제거
+            // 경계???�으�??�도 ?�거
             if (pos.y <= minHeight || pos.y >= maxHeight)
             {
                 _zoomVelocity = 0f;
@@ -294,10 +293,10 @@ namespace Game.CameraSystem
             float deltaY = pos.y - prevY;
             transform.position = pos;
 
-            // 지수 감쇠 — 약 0.25초 안에 속도가 거의 0으로
+            // 지??감쇠 ????0.25�??�에 ?�도가 거의 0?�로
             _zoomVelocity *= Mathf.Pow(0.003f, Time.deltaTime);
 
-            // 커서 방향 이동
+            // 커서 방향 ?�동
             if (!zoomTowardCursor || Mathf.Approximately(deltaY, 0f))
             {
                 return;
@@ -317,7 +316,7 @@ namespace Game.CameraSystem
                 return;
             }
 
-            // 커서 아래 지점이 화면에 고정되도록 카메라 XZ 보정
+            // 커서 ?�래 지?�이 ?�면??고정?�도�?카메??XZ 보정
             // newCamXZ = cursorXZ + (oldCamXZ - cursorXZ) * (newY / oldY)
             Vector3 cursorGround = ray.GetPoint(enter);
             Vector3 camToCursor = transform.position - cursorGround;
@@ -379,7 +378,7 @@ namespace Game.CameraSystem
             ClampPosition();
         }
 
-        /// <summary>미니맵 드래그 등 — 월드 XZ 평면 이동량만큼 카메라 이동</summary>
+        /// <summary>미니�??�래�??????�드 XZ ?�면 ?�동?�만??카메???�동</summary>
         public void PanWorldDeltaXZ(Vector3 deltaWorldXZ)
         {
             deltaWorldXZ.y = 0f;

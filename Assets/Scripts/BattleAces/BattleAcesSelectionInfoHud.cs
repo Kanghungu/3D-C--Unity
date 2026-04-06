@@ -6,7 +6,6 @@ using UnityEngine;
 
 namespace Game.BattleAces
 {
-    /// <summary>선택 유닛 1기 또는 미선택 시 아군 코어 체력·훈련 비용 요약(IMGUI).</summary>
     public sealed class BattleAcesSelectionInfoHud : MonoBehaviour
     {
         private BattleAcesCore playerCore;
@@ -43,8 +42,8 @@ namespace Game.BattleAces
                 UnitDefinition nextDef = database.GetDefinition(nextArch);
                 string unitName = nextDef != null ? nextDef.DisplayName : nextArch.ToString();
                 string prodLine = secLeft > 0.05f
-                    ? $"다음 유닛: {unitName}  ({secLeft:0.0}초)"
-                    : $"다음 유닛: {unitName}  (대기)";
+                    ? $"Next unit: {unitName} ({secLeft:0.0}s)"
+                    : $"Next unit: {unitName} (queued)";
 
                 GUI.skin.label.fontSize = 13;
                 GUI.color = ImGuiGameUi.AccentGold;
@@ -53,7 +52,6 @@ namespace Game.BattleAces
             }
 
             Rect r = new Rect(x, bottomY, w, h);
-
             ImGuiGameUi.DrawPanelFrame(r, ImGuiGameUi.PanelBgDeep, ImGuiGameUi.BorderCool, 1.5f);
 
             PrototypeSelectionController sel = PrototypeSelectionController.Instance;
@@ -70,12 +68,12 @@ namespace Game.BattleAces
         {
             UnitHealth h = playerCore.Health;
             string hpLine = h != null
-                ? $"아군 코어  {h.CurrentHealth:0} / {h.MaxHealth:0}"
-                : "아군 코어 —";
+                ? $"Player Core  {h.CurrentHealth:0} / {h.MaxHealth:0}"
+                : "Player Core  --";
 
             GUI.skin.label.fontSize = 14;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(new Rect(r.x + 10f, r.y + 6f, r.width - 20f, 20f), "유닛을 선택하면 상세 스탯이 표시됩니다.");
+            GUI.Label(new Rect(r.x + 10f, r.y + 6f, r.width - 20f, 20f), "Select one unit to see its details.");
             GUI.color = ImGuiGameUi.TextTitle;
             GUI.Label(new Rect(r.x + 10f, r.y + 26f, r.width - 20f, 22f), hpLine);
             GUI.color = Color.white;
@@ -98,12 +96,12 @@ namespace Game.BattleAces
             GUI.Label(new Rect(r.x + 10f, r.y + 6f, r.width - 20f, 22f), title);
 
             GUI.color = ImGuiGameUi.TextTitle;
-            string hp = uh != null ? $"체력  {uh.CurrentHealth:0} / {uh.MaxHealth:0}" : "체력 —";
-            string costLine = economy != null
-                ? $"{hp}   ·   재훈련 비용(참고)  {cost}   ·   자원  {economy.PlayerCredits:0}"
-                : $"{hp}   ·   재훈련 비용(참고)  {cost}";
+            string hp = uh != null ? $"HP {uh.CurrentHealth:0} / {uh.MaxHealth:0}" : "HP --";
+            string infoLine = economy != null
+                ? $"{hp} | Cost {cost} | Credits {economy.PlayerCredits:0}"
+                : $"{hp} | Cost {cost}";
 
-            GUI.Label(new Rect(r.x + 10f, r.y + 26f, r.width - 20f, 22f), costLine);
+            GUI.Label(new Rect(r.x + 10f, r.y + 26f, r.width - 20f, 22f), infoLine);
             GUI.color = Color.white;
         }
     }

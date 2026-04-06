@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.CameraSystem;
+using Game.Prototype;
 using Game.Selection;
 using Game.UI;
 using Game.Units;
@@ -7,9 +8,6 @@ using UnityEngine;
 
 namespace Game.BattleAces
 {
-    /// <summary>
-    /// 우측 하단 미니맵 — 코어·유닛·카메라 위치(XZ). 승패와 무관하게 표시.
-    /// </summary>
     public class BattleAcesMinimap : MonoBehaviour
     {
         private const float MapPixelSize = 208f;
@@ -27,13 +25,11 @@ namespace Game.BattleAces
         private int minimapPointerButton = -1;
         private bool minimapDidDrag;
 
-        // Shift+좌드래그 — 월드 XZ 박스로 아군만 선택(패닝과 분리)
         private bool shiftMinimapBoxSelectActive;
         private Vector2 minimapBoxStart;
         private Vector2 minimapBoxEnd;
 
         private readonly List<MinimapExtraDot> extraDots = new List<MinimapExtraDot>(8);
-
         private static Texture2D boxSelectTexture;
 
         private struct MinimapExtraDot
@@ -57,7 +53,6 @@ namespace Game.BattleAces
             matchController = match;
         }
 
-        /// <summary>성유물·점령 구역 등 미션 목표 표시(월드 XZ)</summary>
         public void ClearExtraMarkers()
         {
             extraDots.Clear();
@@ -89,7 +84,7 @@ namespace Game.BattleAces
 
             GUI.skin.label.fontSize = 13;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(new Rect(mapRect.x, mapRect.y - 22f, mapRect.width, 20f), "TACTICAL MAP · 클릭 점프 · 드래그 패닝 · Shift+박스 아군 선택");
+            GUI.Label(new Rect(mapRect.x, mapRect.y - 22f, mapRect.width, 20f), "TACTICAL MAP | Click jump | Drag pan");
             GUI.color = Color.white;
 
             if (w <= 0.01f || h <= 0.01f)
@@ -160,7 +155,6 @@ namespace Game.BattleAces
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 
-        /// <summary>미니맵 GUI 사각형 → 월드 XZ 범위(맵 바인딩과 동일한 nx/nz 규칙).</summary>
         private bool TryMapGuiRectToWorldXZ(Rect guiRect, float worldW, float worldH, out float wxMin, out float wxMax, out float wzMin, out float wzMax)
         {
             wxMin = wxMax = wzMin = wzMax = 0f;
@@ -182,7 +176,6 @@ namespace Game.BattleAces
             return wxMax > wxMin && wzMax > wzMin;
         }
 
-        /// <summary>브리핑 중에는 미니맵 조작 차단 — 좌/우 클릭 점프, 드래그 패닝, Shift+좌 박스 선택</summary>
         private void HandleMinimapPanAndClick(float worldW, float worldH)
         {
             if (matchController != null && matchController.IsFinished)
@@ -201,7 +194,6 @@ namespace Game.BattleAces
             Event e = Event.current;
             const float minBoxDragPixels = 6f;
 
-            // Shift 를 먼저 뗀 경우 박스 선택만 취소
             if (shiftMinimapBoxSelectActive && e.type == EventType.MouseUp && e.button == 0 && !e.shift)
             {
                 shiftMinimapBoxSelectActive = false;
@@ -209,7 +201,6 @@ namespace Game.BattleAces
                 return;
             }
 
-            // 드래그 중에는 Shift 키 상태와 무관하게 박스 끝점 갱신(IMGUI 드래그 특성 대응)
             if (shiftMinimapBoxSelectActive && e.type == EventType.MouseDrag)
             {
                 minimapBoxEnd = e.mousePosition;
@@ -217,7 +208,6 @@ namespace Game.BattleAces
                 return;
             }
 
-            // Shift + 좌클릭 드래그 → 월드 사각형에 아군만 선택
             if (e.shift && e.button == 0)
             {
                 if (e.type == EventType.MouseDown && mapRect.Contains(e.mousePosition))
@@ -314,7 +304,6 @@ namespace Game.BattleAces
             Vector3 flat = new Vector3(p.x, 0f, p.z);
             DrawWorldDot(flat, new Color(1f, 0.92f, 0.2f, 1f), 7f, worldW, worldH);
 
-            // 화면 네 모서리를 지면(y=0)과 교차시켜 시야 사각형 근사
             Plane plane = new Plane(Vector3.up, Vector3.zero);
             Vector3[] scr =
             {

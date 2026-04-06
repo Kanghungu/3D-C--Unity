@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using Game.Campaign;
+using Game.Campaign.Core;
 using Game.Campaign.Data;
 using Game.Settings;
 using Game.Units;
@@ -11,8 +12,8 @@ using UnityEngine;
 namespace Game.EditorTools
 {
     /// <summary>
-    /// 대사표·미션 4종·카탈로그 생성 후 CampaignMenu 씬에 연결.
-    /// 내용은 <c>Assets/Campaign/Content</c> 의 실제 에셋(대사·미션 YAML)과 맞춘다.
+    /// ?�?�표·미션 4종·카?�로�??�성 ??CampaignMenu ?�에 ?�결.
+    /// ?�용?� <c>Assets/Campaign/Content</c> ???�제 ?�셋(?�??��???YAML)�?맞춘??
     /// </summary>
     public static class CampaignContentBuilder
     {
@@ -21,35 +22,35 @@ namespace Game.EditorTools
         private const string CatalogPath = ContentFolder + "/CampaignMissionCatalog.asset";
         private const string ScenePath = "Assets/Scenes/CampaignMenu.unity";
 
-        /// <summary>CampaignDialogue_KR.asset 과 동일 문구 — 신규 생성 시에만 사용.</summary>
+        /// <summary>CampaignDialogue_KR.asset �??�일 문구 ???�규 ?�성 ?�에�??�용.</summary>
         private static class DialogueKr
         {
             public const string M01Brief =
-                "작전명: 성스러운 스커미시\n\n이단 교단의 전진 코어를 파괴하십시오. 미니맵 붉은 표식이 목표입니다.\n아군 코어가 먼저 붕괴하면 작전은 실패로 종료됩니다.";
+                "?�전�? ?�스?�운 ?�커미시\n\n?�단 교단???�진 코어�??�괴?�십?�오. 미니�?붉�? ?�식??목표?�니??\n?�군 코어가 먼�? 붕괴?�면 ?�전?� ?�패�?종료?�니??";
             public const string M01Win =
-                "이단 교단 코어가 침묵했습니다. 이 구역의 신앙은 다시 교단의 손으로 돌아왔습니다.";
+                "?�단 교단 코어가 침묵?�습?�다. ??구역???�앙?� ?�시 교단???�으�??�아?�습?�다.";
             public const string M01Lose =
-                "아군 코어가 붕괴했습니다. 이 실패는 다음 성전의 기도로 이어집니다.";
+                "?�군 코어가 붕괴?�습?�다. ???�패???�음 ?�전??기도�??�어집니??";
 
             public const string M02Brief =
-                "작전명: 성역 방어\n\n제한 시간 동안 아군 코어를 지키십시오. 시간이 다하면 구원이 도착합니다.\n남은 시간은 상단 HUD에 표시됩니다.\n아군 코어가 먼저 붕괴하면 작전은 실패로 종료됩니다.";
-            public const string M02Win = "성역이 지켜졌습니다. 신자들의 노래가 다시 울립니다.";
-            public const string M02Lose = "성역이 무너졌습니다. 그러나 신앙은 꺼지지 않습니다.";
+                "?�전�? ?�역 방어\n\n?�한 ?�간 ?�안 ?�군 코어�?지?�십?�오. ?�간???�하�?구원???�착?�니??\n?��? ?�간?� ?�단 HUD???�시?�니??\n?�군 코어가 먼�? 붕괴?�면 ?�전?� ?�패�?종료?�니??";
+            public const string M02Win = "?�역??지켜졌?�니?? ?�자?�의 ?�래가 ?�시 ?�립?�다.";
+            public const string M02Lose = "?�역??무너졌습?�다. 그러???�앙?� 꺼�?지 ?�습?�다.";
 
             public const string M03Brief =
-                "작전명: 성유물 호위\n\n황금 구체(성유물)를 녹색 목표 구역까지 호위하십시오. 미니맵에서 금색·녹색 표식을 확인할 수 있습니다.\n성유물이 먼저 파괴되면 작전은 실패로 종료됩니다.";
-            public const string M03Win = "성유물이 안전 구역에 도달했습니다. 다음 행군을 준비하십시오.";
-            public const string M03Lose = "성유물이 파괴되었습니다. 이 손실은 교단 연감에 기록됩니다.";
+                "?�전�? ?�유�??�위\n\n?�금 구체(?�유�?�??�색 목표 구역까�? ?�위?�십?�오. 미니맵에??금색·?�색 ?�식???�인?????�습?�다.\n?�유물이 먼�? ?�괴?�면 ?�전?� ?�패�?종료?�니??";
+            public const string M03Win = "?�유물이 ?�전 구역???�달?�습?�다. ?�음 ?�군??준비하??��??";
+            public const string M03Lose = "?�유물이 ?�괴?�었?�니?? ???�실?� 교단 ?�감??기록?�니??";
 
             public const string M04Brief =
-                "작전명: 이단 본거지 섬멸\n\n적 코어와는 별개로, 분홍 표식의 이단 본거지(강화 구조물)를 제거하십시오. 미니맵에서 위치를 확인할 수 있습니다.\n아군 코어가 먼저 붕괴하면 작전은 실패로 종료됩니다.";
-            public const string M04Win = "이단 본거지가 무너졌습니다. 이 구역의 이단 설교는 끊겼습니다.";
-            public const string M04Lose = "아군 코어가 붕괴했습니다. 성스러운 반격을 준비하십시오.";
+                "?�전�? ?�단 본거지 ?�멸\n\n??코어?�??별개�? 분홍 ?�식???�단 본거지(강화 구조�?�??�거?�십?�오. 미니맵에???�치�??�인?????�습?�다.\n?�군 코어가 먼�? 붕괴?�면 ?�전?� ?�패�?종료?�니??";
+            public const string M04Win = "?�단 본거지가 무너졌습?�다. ??구역???�단 ?�교???�겼?�니??";
+            public const string M04Lose = "?�군 코어가 붕괴?�습?�다. ?�스?�운 반격??준비하??��??";
 
             public const string M05Brief =
-                "작전명: 거점 점령(스텁)\n\n보라색 점령 구역을 일정 시간 유지하면 승리합니다.\n아군 코어가 먼저 붕괴하면 실패입니다.";
-            public const string M05Win = "거점이 교단의 손에 넘어왔습니다. 스텁 미션 클리어.";
-            public const string M05Lose = "아군 코어가 붕괴했습니다. 재정비 후 다시 도전하십시오.";
+                "?�전�? 거점 ?�령(?�텁)\n\n보라???�령 구역???�정 ?�간 ?��??�면 ?�리?�니??\n?�군 코어가 먼�? 붕괴?�면 ?�패?�니??";
+            public const string M05Win = "거점??교단???�에 ?�어?�습?�다. ?�텁 미션 ?�리??";
+            public const string M05Lose = "?�군 코어가 붕괴?�습?�다. ?�정�????�시 ?�전?�십?�오.";
         }
 
         [MenuItem("Game/Campaign/Generate Campaign Demo Content (KR)")]
@@ -71,11 +72,11 @@ namespace Game.EditorTools
             WireScene(dialogue);
             EditorUtility.DisplayDialog(
                 "Campaign Content",
-                "생성·연결 완료.\n" + DialoguePath + "\n미션 5종 + 카탈로그 → CampaignMenu",
-                "확인");
+                "?�성·?�결 ?�료.\n" + DialoguePath + "\n미션 5�?+ 카탈로그 ??CampaignMenu",
+                "?�인");
         }
 
-        /// <summary>기존 대사표에 m04 등 누락 ID만 추가(옛 프로젝트 업그레이드용).</summary>
+        /// <summary>기존 ?�?�표??m04 ???�락 ID�?추�?(???�로?�트 ?�그?�이?�용).</summary>
         [MenuItem("Game/Campaign/Append Missing KR Dialogue Entries")]
         private static void AppendMissingKrDialogue()
         {
@@ -84,8 +85,8 @@ namespace Game.EditorTools
             {
                 EditorUtility.DisplayDialog(
                     "Campaign",
-                    "대사표가 없습니다.\nGame/Campaign/Generate Campaign Demo Content (KR) 를 먼저 실행하세요.",
-                    "확인");
+                    "?�?�표가 ?�습?�다.\nGame/Campaign/Generate Campaign Demo Content (KR) �?먼�? ?�행?�세??",
+                    "?�인");
                 return;
             }
 
@@ -125,21 +126,21 @@ namespace Game.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(d);
             AssetDatabase.SaveAssets();
-            EditorUtility.DisplayDialog("Campaign", "누락된 KR 대사 항목을 추가했습니다 (없을 때만).", "확인");
+            EditorUtility.DisplayDialog("Campaign", "?�락??KR ?�????��??추�??�습?�다 (?�을 ?�만).", "?�인");
         }
 
-        [MenuItem("Game/Campaign/Set Play Mode Start Scene → CampaignMenu")]
+        [MenuItem("Game/Campaign/Set Play Mode Start Scene ??CampaignMenu")]
         private static void SetPlayModeStart()
         {
             SceneAsset scene = AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath);
             if (scene == null)
             {
-                EditorUtility.DisplayDialog("오류", "씬을 찾을 수 없습니다: " + ScenePath, "확인");
+                EditorUtility.DisplayDialog("?�류", "?�을 찾을 ???�습?�다: " + ScenePath, "?�인");
                 return;
             }
 
             EditorSceneManager.playModeStartScene = scene;
-            EditorUtility.DisplayDialog("Play Mode", "Play 버튼 시 CampaignMenu 부터 시작합니다.", "확인");
+            EditorUtility.DisplayDialog("Play Mode", "Play 버튼 ??CampaignMenu 부???�작?�니??", "?�인");
         }
 
         private static void EnsureFolder(string path)
@@ -213,7 +214,7 @@ namespace Game.EditorTools
             ApplyMission(
                 m,
                 "mission_01_skirmish",
-                "1. 성스러운 스커미시 — 이단 코어 섬멸",
+                "1. ?�스?�운 ?�커미시 ???�단 코어 ?�멸",
                 0,
                 MissionObjectiveKind.DestroyEnemyCore,
                 "m01_brief",
@@ -253,7 +254,7 @@ namespace Game.EditorTools
             ApplyMission(
                 m,
                 "mission_02_sanctuary",
-                "2. 성역 방어 — 제한 시간 생존",
+                "2. ?�역 방어 ???�한 ?�간 ?�존",
                 1,
                 MissionObjectiveKind.SanctuaryDefense,
                 "m02_brief",
@@ -293,7 +294,7 @@ namespace Game.EditorTools
             ApplyMission(
                 m,
                 "mission_03_escort",
-                "3. 성유물 호위 — 녹색 목표 구역",
+                "3. ?�유�??�위 ???�색 목표 구역",
                 2,
                 MissionObjectiveKind.EscortRelic,
                 "m03_brief",
@@ -333,7 +334,7 @@ namespace Game.EditorTools
             ApplyMission(
                 m,
                 "mission_04_heresy",
-                "4. 이단 본거지 — 강화 구조물",
+                "4. Destroy the fortified heresy stronghold",
                 3,
                 MissionObjectiveKind.DestroyHeresyStronghold,
                 "m04_brief",
@@ -378,7 +379,7 @@ namespace Game.EditorTools
             ApplyMission(
                 m,
                 "mission_05_stub",
-                "5. 거점 점령 — 동부 장애 구역",
+                "5. 거점 ?�령 ???��? ?�애 구역",
                 4,
                 MissionObjectiveKind.SeizeRelicOrNode,
                 "m05_brief",
@@ -485,8 +486,8 @@ namespace Game.EditorTools
         private static void WireScene(DialogueTable dialogue)
         {
             EditorSceneManager.OpenScene(ScenePath);
-            PersistentGameCore core = Object.FindFirstObjectByType<PersistentGameCore>();
-            CampaignMenuController menu = Object.FindFirstObjectByType<CampaignMenuController>();
+            PersistentGameCore core = Object.FindAnyObjectByType<PersistentGameCore>();
+            CampaignMenuController menu = Object.FindAnyObjectByType<CampaignMenuController>();
             CampaignMissionCatalog catalog = AssetDatabase.LoadAssetAtPath<CampaignMissionCatalog>(CatalogPath);
 
             if (core != null)

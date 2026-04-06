@@ -4,24 +4,24 @@ using UnityEngine;
 namespace Game.BattleAces
 {
     /// <summary>
-    /// 자동 자원: 매 초 크레딧이 증가한다. 생산 비용은 TrySpend에서 차감.
+    /// ?�동 ?�원: �?�??�레?�이 증�??�다. ?�산 비용?� TrySpend?�서 차감.
     /// </summary>
     public class BattleAcesEconomy : MonoBehaviour
     {
-        [Header("난이도(플레이어 유리) — 인스펙터에서 조정 가능")]
+        [Header("Starting economy values")]
         [SerializeField] private float playerCredits = 220f;
         [SerializeField] private float enemyCredits = 55f;
         [SerializeField] private float playerIncomePerSecond = 7.5f;
         [SerializeField] private float enemyIncomePerSecond = 1.65f;
 
-        /// <summary>플레이어 코어 업그레이드로 추가되는 초당 자원</summary>
+        /// <summary>?�레?�어 코어 ?�그?�이?�로 추�??�는 초당 ?�원</summary>
         private float playerBonusIncomePerSecond;
 
         public float PlayerCredits => playerCredits;
         public float EnemyCredits => enemyCredits;
         public float PlayerTotalIncomePerSecond => playerIncomePerSecond + playerBonusIncomePerSecond;
 
-        /// <summary>팩션/미션에서 기본 수입에 곱함(코어 U 업그레이드 보너스는 별도)</summary>
+        /// <summary>?�션/미션?�서 기본 ?�입??곱함(코어 U ?�그?�이??보너?�는 별도)</summary>
         public void ApplyIncomeMultipliers(float playerMult, float enemyMult)
         {
             playerMult = Mathf.Max(0.05f, playerMult);
@@ -36,7 +36,7 @@ namespace Game.BattleAces
             enemyCredits += enemyIncomePerSecond * Time.deltaTime;
         }
 
-        /// <summary>코어 업그레이드 — 자동 자원 증가</summary>
+        /// <summary>코어 ?�그?�이?????�동 ?�원 증�?</summary>
         public void AddPlayerIncomePerSecond(float delta)
         {
             if (delta > 0f)
@@ -45,7 +45,7 @@ namespace Game.BattleAces
             }
         }
 
-        /// <summary>유닛 정의 기반 훈련 비용 (프로덕션 시간이 길수록 비쌈)</summary>
+        /// <summary>?�닛 ?�의 기반 ?�련 비용 (?�로?�션 ?�간??길수�?비쌈)</summary>
         public static int GetTrainCost(UnitDefinition definition)
         {
             if (definition == null)
