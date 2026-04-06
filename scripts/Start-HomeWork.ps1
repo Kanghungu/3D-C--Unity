@@ -6,7 +6,7 @@ $OutputEncoding = [Console]::OutputEncoding
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-Write-Host "== 3D-Unity Home AI Harness ==" -ForegroundColor Cyan
+Write-Host "== 3D-Unity project context ==" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Project Root: $root"
 Write-Host ""
@@ -18,12 +18,9 @@ Write-Host ""
 Write-Host "[Core Docs]" -ForegroundColor Yellow
 $coreDocs = @(
     "AGENTS.md",
-    "START_HERE.md",
-    "SESSION_CONTEXT.md",
-    "TODO.md",
+    "README.md",
     "DEVLOG.md",
-    "HOME_AI_PROMPTS.md",
-    "HOME_AI_HARNESS.md"
+    "task_brief.json"
 )
 
 foreach ($doc in $coreDocs) {
@@ -33,7 +30,6 @@ foreach ($doc in $coreDocs) {
 }
 
 Write-Host ""
-Write-Host "[Recommended Next Step]" -ForegroundColor Yellow
+Write-Host "[Recommended]" -ForegroundColor Yellow
 Write-Host "1. Run ./scripts/Show-CurrentContext.ps1"
-Write-Host "2. Paste a prompt from HOME_AI_PROMPTS.md"
-Write-Host "3. Ask AI to keep working through implementation, verification, and docs"
+Write-Host "2. Read AGENTS.md then work in small verifiable steps"

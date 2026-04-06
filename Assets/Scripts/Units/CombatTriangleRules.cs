@@ -51,7 +51,8 @@ namespace Game.Units
         private static float GetProjectileDefenseMultiplier(UnitArchetype attacker, UnitArchetype defender)
         {
             if (defender == UnitArchetype.ShieldInfantry && attacker == UnitArchetype.Rifleman) return 0.45f;
-            if (defender == UnitArchetype.Spearman && attacker == UnitArchetype.Rifleman) return Random.value < 0.5f ? 0f : 1f;
+            // 창병 대 소총: 랜덤 완전 회피 대신 고정 감쇠(재현 가능·평균 피해량 유지)
+            if (defender == UnitArchetype.Spearman && attacker == UnitArchetype.Rifleman) return 0.5f;
             if (defender == UnitArchetype.ShieldInfantry && attacker == UnitArchetype.Artillery) return 0.8f;
             if (defender == UnitArchetype.Fighter && attacker == UnitArchetype.Rifleman) return 1.2f;
             return 1f;

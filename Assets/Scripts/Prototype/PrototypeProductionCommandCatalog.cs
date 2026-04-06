@@ -26,16 +26,14 @@ namespace Game.Prototype
             public bool SupportsBatch { get; }
         }
 
+        // MVP: Foundry(1~3) + Siege Chapel(4~5)만 사용. 나머지 병종은 씬/AI 전용.
         private static readonly ProductionCommand[] Commands =
         {
             new(Key.Digit1, "1", UnitArchetype.Spearman, true),
             new(Key.Digit2, "2", UnitArchetype.ShieldInfantry, true),
             new(Key.Digit3, "3", UnitArchetype.Rifleman, true),
             new(Key.Digit4, "4", UnitArchetype.Fighter, true),
-            new(Key.Digit5, "5", UnitArchetype.SpecialWarrior, true),
-            new(Key.Digit6, "6", UnitArchetype.Artillery, true),
-            new(Key.Digit7, "7", UnitArchetype.MobileFortress, false),
-            new(Key.Digit8, "8", UnitArchetype.AirborneCitadel, false)
+            new(Key.Digit5, "5", UnitArchetype.Artillery, true),
         };
 
         public static IReadOnlyList<ProductionCommand> GetCommands()

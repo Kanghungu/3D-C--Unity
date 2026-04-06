@@ -10,7 +10,7 @@ function Show-Section {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
-        [int]$Head = 30
+        [int]$Head = 40
     )
 
     if (-not (Test-Path $Path)) {
@@ -22,9 +22,8 @@ function Show-Section {
     Get-Content $Path -Encoding utf8 | Select-Object -First $Head
 }
 
-Show-Section -Path "START_HERE.md" -Head 40
-Show-Section -Path "SESSION_CONTEXT.md" -Head 50
-Show-Section -Path "TODO.md" -Head 50
+Show-Section -Path "README.md" -Head 35
+Show-Section -Path "DEVLOG.md" -Head 45
 
 if (Test-Path "task_brief.json") {
     $taskBrief = Get-Content "task_brief.json" -Encoding utf8 | ConvertFrom-Json
@@ -52,10 +51,10 @@ if (Test-Path "task_brief.json") {
     }
 
     Write-Host ""
-    Write-Host "== task_brief.json ==" -ForegroundColor Cyan
+    Write-Host "== task_brief.json (full) ==" -ForegroundColor Cyan
     Get-Content "task_brief.json" -Encoding utf8
 }
 
 Write-Host ""
-Write-Host "Keep the main line focused on the ground combat RTS prototype." -ForegroundColor Yellow
+Write-Host "Main line: Campaign + Battle Aces. See AGENTS.md." -ForegroundColor Yellow
 Write-Host "Do not overwrite local uncommitted work unless the user explicitly asks." -ForegroundColor Yellow

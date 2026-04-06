@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4a5b6d7e8f91a2b4c6d7e8f90431, type: 3}
+  m_Name: Mission_04_Heresy
+  m_EditorClassIdentifier: 
+  missionId: mission_04_heresy
+  displayName: "4. 이단 본거지 — 강화 구조물"
+  gameplaySceneName: NewSampleScene
+  campaignSortOrder: 3
+  objectiveKind: 4
+  mirroredLayoutVariant: 0
+  briefingDialogueId: m04_brief
+  victoryDialogueId: m04_win
+  defeatDialogueId: m04_lose
+  playerDeck:
+  - 3
+  - 2
+  - 6
+  - 4
+  - 0
+  - 1
+  - 5
+  - 2
+  enemyPatternId: elite_mix
+  enemyBrainThinkIntervalOverride: 15
+  enemyBrainThinkIntervalMultiplier: 0.88
+  playerFactionRules: {fileID: 0}
+  enemyFactionRules: {fileID: 0}
+  defenseDurationSeconds: 120
+  seizeHoldSeconds: 12
+  relicMaxHealth: 500
+  heresyStrongholdMaxHealth: 1100

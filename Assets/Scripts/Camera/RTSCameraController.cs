@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Game.Selection;
 using Game.Prototype;
+using Game.Settings;
 using Game.Units;
 
 namespace Game.CameraSystem
@@ -46,6 +47,8 @@ namespace Game.CameraSystem
         private readonly Vector3[] defaultViewportCornerBuffer = new Vector3[4];
         private Camera attachedCamera;
 
+        private float sensitivityMul = 1f;
+
         public void ApplyMapProfile(BattlefieldMapProfile profile)
         {
             if (profile == null)
@@ -74,6 +77,8 @@ namespace Game.CameraSystem
             {
                 return;
             }
+
+            sensitivityMul = Mathf.Clamp(GameUserSettings.CameraSensitivityMultiplier, 0.35f, 2.5f);
 
             HandleQuickFocusHotkeys();
             HandleRightDragPan();
@@ -148,7 +153,7 @@ namespace Game.CameraSystem
                 Vector3 currentGroundPoint = currentRay.GetPoint(dist);
                 Vector3 pan = _rightDragGrabPoint - currentGroundPoint;
                 pan.y = 0f;
-                transform.position += pan;
+                transform.position += pan * sensitivityMul;
             }
         }
 
@@ -222,7 +227,7 @@ namespace Game.CameraSystem
             forward.Normalize();
             right.Normalize();
 
-            float currentMoveSpeed = moveSpeed * EvaluateZoomMoveMultiplier();
+            float currentMoveSpeed = moveSpeed * EvaluateZoomMoveMultiplier() * sensitivityMul;
 
             if (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed)
             {
@@ -252,7 +257,7 @@ namespace Game.CameraSystem
                 return;
             }
 
-            transform.Rotate(Vector3.up, rotationInput * rotationSpeed * Time.deltaTime, Space.World);
+            transform.Rotate(Vector3.up, rotationInput * rotationSpeed * sensitivityMul * Time.deltaTime, Space.World);
         }
 
         private void HandleZoom()
@@ -371,6 +376,14 @@ namespace Game.CameraSystem
             Vector3 delta = worldPoint - currentFocusPoint;
             delta.y = 0f;
             transform.position += delta;
+            ClampPosition();
+        }
+
+        /// <summary>미니맵 드래그 등 — 월드 XZ 평면 이동량만큼 카메라 이동</summary>
+        public void PanWorldDeltaXZ(Vector3 deltaWorldXZ)
+        {
+            deltaWorldXZ.y = 0f;
+            transform.position += deltaWorldXZ;
             ClampPosition();
         }
 

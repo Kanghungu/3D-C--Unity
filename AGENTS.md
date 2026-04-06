@@ -10,6 +10,8 @@
 ## 2. 현재 단계
 - 현재 단계는 완성작이 아니라 MVP/전투 프로토타입이다.
 - 목표는 "짧게라도 직접 조작하고 전투가 성립하는 빌드"를 만드는 것이다.
+- **진행 방향(우선): 스토리 미션** — 씬·`MissionDefinition`·대사·승패 목표로 짧은 캠페인 흐름을 쌓는다. (`CampaignMenu` → `NewSampleScene` 등)
+- 구형 샘플 전장(`SampleScene` + `PrototypeBootstrapper`)은 참고·실험용으로 두되, 새 기능은 **Battle Aces + Campaign** 쪽에 붙이는 것을 기본으로 한다.
 - 멀티플레이, 대규모 콘텐츠, 장기 운영 구조는 지금 범위에 포함하지 않는다.
 
 ## 3. 우선순위 기능
@@ -42,12 +44,32 @@
 - Codex는 큰 리팩터링보다 현재 목표를 빠르게 검증하는 변경을 우선한다.
 - 설명이 필요하면 Unity 초보도 따라갈 수 있게 짧고 직접적으로 적는다.
 - 협업용 복잡한 프로세스보다 1인 개발에 맞는 단순한 작업 흐름을 유지한다.
+- 저장소 루트 문서는 **`AGENTS.md` · `README.md` · `DEVLOG.md`** 를 우선한다. 세부 작업 로그는 필요 시 Git 히스토리로 추적한다.
 
 ## 6. 폴더/코드 규칙
 - Unity 기본 구조를 존중하고, 주요 게임 코드는 `Assets/Scripts` 아래에 둔다.
 - 폴더는 역할 기준으로 나눈다.
 - 예시: `Assets/Scripts/Core`, `Assets/Scripts/Units`, `Assets/Scripts/Combat`, `Assets/Scripts/UI`
 - C# 클래스는 한 파일에 하나씩 둔다.
+
+### 6.1 `Assets/Scripts` 하위 폴더 역할 (한 줄)
+- **`Audio/`** — 외부 WAV 없이 쓰는 짧은 프로시저럴 효과음 등.
+- **`BattleAces/`** — `NewSampleScene`용 단일 코어 RTS(경제·매치·IMGUI HUD·**UGUI 상단 목표** `BattleAcesObjectiveUgui`·미니맵·미션 런타임 목표).
+- **`Camera/`** — RTS 카메라 이동·회전·줌(`RTSCameraController`).
+- **`UI/`** — IMGUI 공용 팔레트·패널·버튼(`ImGuiGameUi`) — Battle Aces·캠페인 메뉴/브리핑/결과 톤 통일(UGUI 전까지).
+- **`Campaign/`** — 스토리 미션 데이터(ScriptableObject)·메뉴·진행 저장·`CampaignSceneLoadUtility`(빌드 씬 검증 후 로드)·씬 마커(유물·점령 등).
+- **`Editor/`** — 캠페인 자산 생성·빌드 씬 등록 등 에디터 전용 메뉴.
+- **`Prototype/`** — `SampleScene` 계열 런타임 생성·구형 전장·`PrototypeGameDatabase` 등 공용 프로토타입 인프라.
+- **`Selection/`** — 유닛 선택·드래그·명령 입력(`PrototypeSelectionController`).
+- **`Settings/`** — 볼륨·감도·전체화면 등 플레이어 설정(PlayerPrefs).
+- **`Units/`** — 유닛 이동·전투·체력·정의(`UnitDefinition` / `UnitArchetype`) — **Battle Aces·Prototype 공통**.
+
+### 6.2 레이어 경계 (Prototype / Battle Aces / Campaign)
+- **`Prototype`** — 과거 대형 전장 프로토타입. `PrototypeBootstrapper`가 씬을 통째로 깎아 쓴다. 여기서만 쓰는 연출·거점 로직이 섞일 수 있다.
+- **`BattleAces`** — “짧은 전투 데모”의 기준 루프. 코어·덱·자원·승패·(옵션) 미션 목표 런타임. `Prototype`의 DB/팩토리를 **가져다 쓰지만** 부트스트랩은 `BattleAcesSceneBootstrapper`가 담당.
+- **`Campaign`** — 메뉴·`MissionDefinition`·대사·해금·브리핑/결과 UI 흐름. 전투 규칙 자체는 Battle Aces에 두고, Campaign은 “어떤 미션을 싣는지”만 정한다.
+- **의존 방향**: `Campaign` → `BattleAces`·`Prototype`(데이터) 는 자연스럽다. 반대로 `PrototypeBootstrapper`가 Campaign을 직접 알 필요는 없다.
+- **삭제된 실험**: 과거 함대 실험(`Assets/Scripts/Fleet`, `FleetExperimentScene`)은 MVP 범위 축소로 제거되었다. 재도입은 목표 정한 뒤 별도 검토.
 - 클래스명, 파일명, MonoBehaviour명은 일치시킨다.
 - 네이밍은 Unity/C# 관례를 따른다.
 - 불필요한 매니저 남발을 피한다.

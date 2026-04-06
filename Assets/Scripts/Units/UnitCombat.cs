@@ -1,4 +1,5 @@
-﻿using Game.Prototype;
+﻿using Game.BattleAces;
+using Game.Prototype;
 using UnityEngine;
 
 namespace Game.Units
@@ -11,7 +12,7 @@ namespace Game.Units
     [RequireComponent(typeof(SimpleUnitMover))]
     [RequireComponent(typeof(CombatTarget))]
     [RequireComponent(typeof(UnitHealth))]
-    public class UnitCombat : MonoBehaviour
+    public partial class UnitCombat : MonoBehaviour
     {
         [SerializeField] private float attackRange = 2.2f;
         [SerializeField] private float attackDamage = 10f;
@@ -119,6 +120,28 @@ namespace Game.Units
             {
                 pursuitDestination = GetEngagementPosition(currentTarget);
                 hasPursuitDestination = true;
+            }
+
+            // V 토글 — 가까운 적 우선: 교전 중 더 가까운 적이 있으면 표적 교체 시도
+            if (BattleAcesCombatSettings.AutoAcquireMode == AutoAcquireMode.PreferNearest &&
+                currentTarget != null &&
+                currentTarget.IsAlive &&
+                retargetTimer <= 0f)
+            {
+                CombatTarget candidate = FindClosestEnemyTarget();
+                if (candidate != null && candidate != currentTarget)
+                {
+                    float dCur = Vector3.Distance(transform.position, currentTarget.transform.position);
+                    float dNew = Vector3.Distance(transform.position, candidate.transform.position);
+                    if (dNew + 0.4f < dCur)
+                    {
+                        currentTarget = candidate;
+                        pursuitDestination = GetEngagementPosition(currentTarget);
+                        hasPursuitDestination = true;
+                    }
+                }
+
+                retargetTimer = retargetInterval;
             }
 
             if ((currentTarget == null || !currentTarget.IsAlive) && retargetTimer <= 0f)
@@ -338,241 +361,6 @@ namespace Game.Units
             Destroy(root, 0.24f);
         }
 
-        private Vector3 GetEngagementPosition(CombatTarget target)
-        {
-            // 같은 팀에서 같은 타겟을 공격하는 유닛들 수집
-            int mySlot = 0;
-            int totalAttackers = 0;
-
-            foreach (UnitCombat other in PrototypeRuntimeRegistry.GetUnitCombats())
-            {
-                if (other == null || other.owner == null || other.owner.Team != owner.Team)
-                {
-                    continue;
-                }
-
-                if (other.currentTarget != target)
-                {
-                    continue;
-                }
-
-                if (other == this)
-                {
-                    mySlot = totalAttackers;
-                }
-
-                totalAttackers++;
-            }
-
-            if (totalAttackers <= 1)
-            {
-                return target.transform.position;
-            }
-
-            // 공격 반지름: attackRange의 75% 지점에 원형 배치
-            float radius = attackRange * 0.75f;
-            float angle = mySlot * (Mathf.PI * 2f / totalAttackers);
-            Vector3 offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
-            Vector3 pos = target.transform.position + offset;
-            pos.y = transform.position.y;
-            return pos;
-        }
-
-        private CombatTarget FindClosestEnemyTarget()
-        {
-            CombatTarget bestTarget = null;
-            float bestDistance = aggroRange;
-            Vector3 searchOrigin = GetSearchOrigin();
-
-            foreach (CombatTarget target in PrototypeRuntimeRegistry.GetCombatTargets())
-            {
-                if (target == null || target == owner || !target.IsAlive || target.Team == owner.Team)
-                {
-                    continue;
-                }
-
-                if (!CanAcceptCombatTarget(target))
-                {
-                    continue;
-                }
-
-                float distance = Vector3.Distance(searchOrigin, target.transform.position);
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    bestTarget = target;
-                }
-            }
-
-            CombatTarget supportTarget = FindNearbySupportTarget();
-            if (supportTarget != null)
-            {
-                float supportDistance = Vector3.Distance(transform.position, supportTarget.transform.position);
-                if (bestTarget == null || supportDistance < bestDistance)
-                {
-                    bestTarget = supportTarget;
-                }
-            }
-
-            return bestTarget;
-        }
-
-        private CombatTarget FindNearbySupportTarget()
-        {
-            if (selectableUnit != null && selectableUnit.IsSelected)
-            {
-                return null;
-            }
-
-            CombatTarget bestTarget = null;
-            float bestDistance = supportTargetRadius;
-
-            foreach (UnitCombat allyCombat in PrototypeRuntimeRegistry.GetUnitCombats())
-            {
-                if (allyCombat == null || allyCombat == this)
-                {
-                    continue;
-                }
-
-                CombatTarget allyOwner = allyCombat.owner;
-                if (allyOwner == null || allyOwner.Team != owner.Team || allyCombat.CurrentTarget == null || !allyCombat.CurrentTarget.IsAlive)
-                {
-                    continue;
-                }
-
-                if (Vector3.Distance(transform.position, allyCombat.transform.position) > supportAssistRadius)
-                {
-                    continue;
-                }
-
-                if (!CanAcceptCombatTarget(allyCombat.CurrentTarget))
-                {
-                    continue;
-                }
-
-                float targetDistance = Vector3.Distance(transform.position, allyCombat.CurrentTarget.transform.position);
-                if (targetDistance > supportAssistRadius)
-                {
-                    continue;
-                }
-
-                if (targetDistance < bestDistance)
-                {
-                    bestDistance = targetDistance;
-                    bestTarget = allyCombat.CurrentTarget;
-                }
-            }
-
-            return bestTarget;
-        }
-
-        private bool CanAcceptCombatTarget(CombatTarget target)
-        {
-            if (target == null)
-            {
-                return false;
-            }
-
-            if (roleController != null && !roleController.CanAcceptTarget(target))
-            {
-                return false;
-            }
-
-            BaseStructure baseStructure = target.GetComponent<BaseStructure>();
-            if (baseStructure != null && !BattleDirectiveController.CanTargetEnemyBaseStatic(owner.Team))
-            {
-                return false;
-            }
-
-            if (hasHoldPosition || hasGuardPoint)
-            {
-                Vector3 anchor = hasGuardPoint ? guardPoint : holdPosition;
-                float leash = hasGuardPoint ? guardRadius + aggroRange + 6f : Mathf.Max(aggroRange + 2f, 10f);
-                if (Vector3.Distance(anchor, target.transform.position) > leash)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        private bool RunGuardOrderIfNeeded()
-        {
-            if (hasGuardPoint)
-            {
-                Vector3 anchor = new Vector3(guardPoint.x, transform.position.y, guardPoint.z);
-                float distance = Vector3.Distance(transform.position, anchor);
-
-                if (distance > guardRadius * 0.6f)
-                {
-                    mover.SetDestination(anchor);
-                    return true;
-                }
-
-                mover.Stop();
-                return true;
-            }
-
-            if (hasHoldPosition)
-            {
-                Vector3 anchor = new Vector3(holdPosition.x, transform.position.y, holdPosition.z);
-                float distance = Vector3.Distance(transform.position, anchor);
-
-                if (distance > Mathf.Max(0.8f, attackRange * 0.28f))
-                {
-                    mover.SetDestination(anchor);
-                    return true;
-                }
-
-                mover.Stop();
-                return true;
-            }
-
-            return false;
-        }
-
-        private bool RunPursuitAdvance()
-        {
-            if (!hasPursuitDestination)
-            {
-                return false;
-            }
-
-            Vector3 destination = new Vector3(pursuitDestination.x, transform.position.y, pursuitDestination.z);
-            float remainingDistance = Vector3.Distance(transform.position, destination);
-
-            if (remainingDistance <= Mathf.Max(0.45f, attackRange * 0.3f))
-            {
-                hasPursuitDestination = false;
-                mover.Stop();
-                return false;
-            }
-
-            mover.SetDestination(destination);
-            return true;
-        }
-
-        private void RunAttackMoveIfNeeded()
-        {
-            if (!hasAttackMoveDestination)
-            {
-                return;
-            }
-
-            Vector3 flatDestination = new Vector3(attackMoveDestination.x, transform.position.y, attackMoveDestination.z);
-            float remainingDistance = Vector3.Distance(transform.position, flatDestination);
-
-            if (remainingDistance <= Mathf.Max(0.35f, attackRange * 0.2f))
-            {
-                hasAttackMoveDestination = false;
-                mover.Stop();
-                return;
-            }
-
-            mover.SetDestination(flatDestination);
-        }
-
         private void ApplyDirectDamage(CombatTarget target)
         {
             if (target == null || !target.IsAlive)
@@ -631,55 +419,6 @@ namespace Game.Units
             return rendererComponent != null ? rendererComponent.material.color : Color.white;
         }
 
-        private Vector3 GetSearchOrigin()
-        {
-            if (hasGuardPoint)
-            {
-                return guardPoint;
-            }
-
-            if (hasHoldPosition)
-            {
-                return holdPosition;
-            }
-
-            return transform.position;
-        }
-
-        private string BuildOrderLabel()
-        {
-            if (currentTarget != null)
-            {
-                return "Engage";
-            }
-
-            if (hasAttackMoveDestination)
-            {
-                return "Advance";
-            }
-
-            if (hasGuardPoint)
-            {
-                return "Guard";
-            }
-
-            if (hasHoldPosition)
-            {
-                return "Hold";
-            }
-
-            return mover != null && mover.IsMoving ? "Move" : "Idle";
-        }
-
-        private void ClearDirectiveState()
-        {
-            currentTarget = null;
-            hasAttackMoveDestination = false;
-            hasPursuitDestination = false;
-            hasHoldPosition = false;
-            hasGuardPoint = false;
-        }
-
         private void FaceTarget(Vector3 targetPosition)
         {
             Vector3 direction = targetPosition - transform.position;
@@ -694,213 +433,6 @@ namespace Game.Units
                 transform.rotation,
                 Quaternion.LookRotation(direction.normalized, Vector3.up),
                 540f * Time.deltaTime);
-        }
-
-        private void EnsureEngagementVisuals()
-        {
-            if (engagementAnchor != null)
-            {
-                return;
-            }
-
-            engagementAnchor = new GameObject("Engagement Anchor").transform;
-            engagementAnchor.SetParent(transform);
-            engagementAnchor.localPosition = new Vector3(0f, 0.82f, 0f);
-            engagementAnchor.localRotation = Quaternion.identity;
-            engagementAnchor.localScale = Vector3.one;
-
-            engagementBeam = CreateEngagementPrimitive(
-                engagementAnchor,
-                PrimitiveType.Cube,
-                "Engagement Beam",
-                new Vector3(0f, 0f, 0.4f),
-                new Vector3(0.05f, 0.05f, 0.8f),
-                new Color(1f, 0.42f, 0.24f));
-            engagementBeamRenderer = engagementBeam.GetComponent<Renderer>();
-
-            engagementTip = CreateEngagementPrimitive(
-                engagementAnchor,
-                PrimitiveType.Sphere,
-                "Engagement Tip",
-                new Vector3(0f, 0f, 0.82f),
-                new Vector3(0.12f, 0.12f, 0.12f),
-                new Color(1f, 0.42f, 0.24f));
-            engagementTipRenderer = engagementTip.GetComponent<Renderer>();
-        }
-
-        private void UpdateEngagementVisuals()
-        {
-            if (engagementAnchor == null)
-            {
-                return;
-            }
-
-            bool show = engagementBeamTimer > 0f
-                && health != null && health.IsAlive
-                && currentTarget != null && currentTarget.IsAlive;
-            engagementAnchor.gameObject.SetActive(show);
-
-            if (!show)
-            {
-                return;
-            }
-
-            Vector3 targetPosition = currentTarget.transform.position + Vector3.up * 0.72f;
-            Vector3 localTarget = transform.InverseTransformPoint(targetPosition);
-            Vector3 planarTarget = new Vector3(localTarget.x, Mathf.Clamp(localTarget.y, -0.35f, 0.65f), localTarget.z);
-            float distance = Mathf.Max(0.12f, planarTarget.magnitude);
-            Vector3 direction = planarTarget / distance;
-            float pulse = 0.88f + Mathf.PingPong(Time.time * 4.4f, 0.18f);
-            Color linkColor = usesProjectile ? new Color(1f, 0.56f, 0.24f) : new Color(1f, 0.34f, 0.22f);
-
-            if (engagementAnchor != null)
-            {
-                engagementAnchor.localPosition = new Vector3(0f, 0.82f + Mathf.PingPong(Time.time * 1.2f, 0.06f), 0f);
-                engagementAnchor.localRotation = Quaternion.LookRotation(direction, Vector3.up);
-            }
-
-            if (engagementBeam != null)
-            {
-                engagementBeam.localPosition = new Vector3(0f, 0f, distance * 0.5f);
-                engagementBeam.localScale = new Vector3(0.045f, 0.045f, distance);
-            }
-
-            if (engagementBeamRenderer != null)
-            {
-                engagementBeamRenderer.material.color = linkColor * pulse;
-            }
-
-            if (engagementTip != null)
-            {
-                engagementTip.localPosition = new Vector3(0f, 0f, distance);
-                engagementTip.localScale = Vector3.one * (0.1f + Mathf.PingPong(Time.time * 2.8f, 0.03f));
-            }
-
-            if (engagementTipRenderer != null)
-            {
-                engagementTipRenderer.material.color = Color.Lerp(linkColor, Color.white, 0.18f) * pulse;
-            }
-        }
-
-        private static Transform CreateEngagementPrimitive(Transform parent, PrimitiveType primitiveType, string objectName, Vector3 localPosition, Vector3 localScale, Color color)
-        {
-            GameObject child = GameObject.CreatePrimitive(primitiveType);
-            child.name = objectName;
-            child.transform.SetParent(parent);
-            child.transform.localPosition = localPosition;
-            child.transform.localRotation = Quaternion.identity;
-            child.transform.localScale = localScale;
-
-            Collider collider = child.GetComponent<Collider>();
-            if (collider != null)
-            {
-                collider.enabled = false;
-            }
-
-            Renderer rendererComponent = child.GetComponent<Renderer>();
-            if (rendererComponent != null)
-            {
-                rendererComponent.material.color = color;
-            }
-
-            return child.transform;
-        }
-
-        private void EnsureOrderAnchorVisuals()
-        {
-            if (orderAnchorVisual != null)
-            {
-                return;
-            }
-
-            orderAnchorVisual = new GameObject("Order Anchor Visual").transform;
-            orderAnchorVisual.SetParent(transform);
-            orderAnchorVisual.localPosition = new Vector3(0f, 0.42f, 0f);
-            orderAnchorVisual.localRotation = Quaternion.identity;
-            orderAnchorVisual.localScale = Vector3.one;
-
-            orderAnchorBeam = CreateEngagementPrimitive(
-                orderAnchorVisual,
-                PrimitiveType.Cube,
-                "Order Anchor Beam",
-                new Vector3(0f, 0f, 0.5f),
-                new Vector3(0.04f, 0.04f, 1f),
-                new Color(0.34f, 0.95f, 1f));
-            orderAnchorBeamRenderer = orderAnchorBeam.GetComponent<Renderer>();
-
-            orderAnchorMarker = CreateEngagementPrimitive(
-                orderAnchorVisual,
-                PrimitiveType.Cylinder,
-                "Order Anchor Marker",
-                new Vector3(0f, -0.1f, 1f),
-                new Vector3(0.12f, 0.04f, 0.12f),
-                new Color(0.34f, 0.95f, 1f));
-            orderAnchorMarkerRenderer = orderAnchorMarker.GetComponent<Renderer>();
-        }
-
-        private void UpdateOrderAnchorVisuals()
-        {
-            if (orderAnchorVisual == null)
-            {
-                return;
-            }
-
-            bool canShow = health != null
-                && health.IsAlive
-                && selectableUnit != null
-                && selectableUnit.IsSelected
-                && currentTarget == null;
-
-            bool hasAnchor = canShow && (hasHoldPosition || hasGuardPoint || hasAttackMoveDestination);
-            orderAnchorVisual.gameObject.SetActive(hasAnchor);
-
-            if (!hasAnchor)
-            {
-                return;
-            }
-
-            Vector3 anchorWorld = hasGuardPoint
-                ? guardPoint
-                : hasHoldPosition
-                    ? holdPosition
-                    : attackMoveDestination;
-            Vector3 targetPoint = new Vector3(anchorWorld.x, transform.position.y + 0.08f, anchorWorld.z);
-            Vector3 localTarget = transform.InverseTransformPoint(targetPoint);
-            Vector3 planarTarget = new Vector3(localTarget.x, Mathf.Clamp(localTarget.y, -0.25f, 0.35f), localTarget.z);
-            float distance = Mathf.Max(0.2f, planarTarget.magnitude);
-            Vector3 direction = planarTarget / distance;
-            float pulse = 0.86f + Mathf.PingPong(Time.time * 3.2f, 0.16f);
-
-            Color anchorColor = hasGuardPoint
-                ? new Color(1f, 0.86f, 0.34f)
-                : hasHoldPosition
-                    ? new Color(0.52f, 0.76f, 1f)
-                    : new Color(0.34f, 0.95f, 1f);
-
-            orderAnchorVisual.localPosition = new Vector3(0f, 0.42f + Mathf.PingPong(Time.time * 1.2f, 0.04f), 0f);
-            orderAnchorVisual.localRotation = Quaternion.LookRotation(direction, Vector3.up);
-
-            if (orderAnchorBeam != null)
-            {
-                orderAnchorBeam.localPosition = new Vector3(0f, 0f, distance * 0.5f);
-                orderAnchorBeam.localScale = new Vector3(0.035f, 0.035f, distance);
-            }
-
-            if (orderAnchorBeamRenderer != null)
-            {
-                orderAnchorBeamRenderer.material.color = anchorColor * pulse;
-            }
-
-            if (orderAnchorMarker != null)
-            {
-                orderAnchorMarker.localPosition = new Vector3(0f, -0.08f, distance);
-                orderAnchorMarker.localScale = new Vector3(0.12f + Mathf.PingPong(Time.time * 1.5f, 0.03f), 0.04f, 0.12f + Mathf.PingPong(Time.time * 1.5f, 0.03f));
-            }
-
-            if (orderAnchorMarkerRenderer != null)
-            {
-                orderAnchorMarkerRenderer.material.color = Color.Lerp(anchorColor, Color.white, 0.14f) * pulse;
-            }
         }
     }
 }

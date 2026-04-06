@@ -166,8 +166,7 @@ namespace Game.Prototype
                 team == UnitTeam.Player ? new Color(0.7f, 0.86f, 0.98f) : new Color(0.98f, 0.6f, 0.34f),
                 UnitArchetype.Spearman,
                 UnitArchetype.ShieldInfantry,
-                UnitArchetype.Rifleman,
-                UnitArchetype.SpecialWarrior);
+                UnitArchetype.Rifleman);
             production.Initialize(combatTarget, health, parent, PrototypeRuntimeQuery.FindDatabase(), PrototypeRuntimeQuery.FindBase(team));
         }
     }

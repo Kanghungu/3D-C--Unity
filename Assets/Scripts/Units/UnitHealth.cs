@@ -11,6 +11,9 @@ namespace Game.Units
         /// <summary>유닛 사망 시 발생 — (사망한 팀, 병종)</summary>
         public static event Action<UnitTeam, UnitArchetype> OnUnitDied;
 
+        /// <summary>피해 적용 직후 — 실제 적용 피해량(연출·사운드용)</summary>
+        public event Action<float> Damaged;
+
         [SerializeField] private float maxHealth = 35f;
         [SerializeField] private bool createHealthBar = true;
         [SerializeField] private Vector3 healthBarOffset = new(0f, 2.2f, 0f);
@@ -127,6 +130,11 @@ namespace Game.Units
             displayedDamageNormalized = Mathf.Max(displayedDamageNormalized, previousNormalized);
             lastDamageTime = Time.time;
 
+            if (damage > 0f)
+            {
+                Damaged?.Invoke(damage);
+            }
+
             if (currentHealth <= 0f)
             {
                 Die();
@@ -153,6 +161,18 @@ namespace Game.Units
 
             currentHealth = maxHealth;
             displayedDamageNormalized = 1f;
+        }
+
+        /// <summary>코어 업그레이드 등 — 최대 체력 증가분만큼 현재 체력도 증가</summary>
+        public void AddMaxHealthBonus(float deltaMax)
+        {
+            if (deltaMax <= 0f || !IsAlive)
+            {
+                return;
+            }
+
+            maxHealth += deltaMax;
+            currentHealth += deltaMax;
         }
 
         private static Camera GetCamera()

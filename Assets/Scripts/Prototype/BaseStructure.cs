@@ -283,6 +283,7 @@ namespace Game.Prototype
 
         private UnitArchetype[] GetPhaseWaveArchetypes()
         {
+            // 페이즈 증원은 보병 삼각 + 포/전투기 중심으로 단순화 (특수·거점급 유닛 난사 방지)
             if (Team == UnitTeam.Player)
             {
                 return currentPhase switch
@@ -295,15 +296,15 @@ namespace Game.Prototype
                     },
                     3 => new[]
                     {
-                        UnitArchetype.ShieldInfantry, UnitArchetype.ShieldInfantry, UnitArchetype.Spearman, UnitArchetype.Spearman,
-                        UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.SpecialWarrior,
-                        UnitArchetype.RoyalGuard
+                        UnitArchetype.ShieldInfantry, UnitArchetype.Spearman, UnitArchetype.Rifleman,
+                        UnitArchetype.Rifleman, UnitArchetype.Rifleman,
+                        UnitArchetype.Artillery, UnitArchetype.Fighter
                     },
                     4 => new[]
                     {
-                        UnitArchetype.RoyalGuard, UnitArchetype.SpecialWarrior,
-                        UnitArchetype.ShieldInfantry, UnitArchetype.ShieldInfantry, UnitArchetype.Rifleman, UnitArchetype.Rifleman,
-                        UnitArchetype.Spearman, UnitArchetype.Artillery, UnitArchetype.MobileFortress
+                        UnitArchetype.ShieldInfantry, UnitArchetype.Spearman, UnitArchetype.Rifleman,
+                        UnitArchetype.Artillery, UnitArchetype.Artillery,
+                        UnitArchetype.Fighter, UnitArchetype.Fighter
                     },
                     _ => System.Array.Empty<UnitArchetype>()
                 };
@@ -319,15 +320,14 @@ namespace Game.Prototype
                 },
                 3 => new[]
                 {
-                    UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.Rifleman,
-                    UnitArchetype.Spearman, UnitArchetype.SpecialWarrior,
-                    UnitArchetype.Artillery, UnitArchetype.Fighter, UnitArchetype.Rifleman
+                    UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.Spearman,
+                    UnitArchetype.ShieldInfantry,
+                    UnitArchetype.Artillery, UnitArchetype.Fighter
                 },
                 4 => new[]
                 {
-                    UnitArchetype.SpecialWarrior, UnitArchetype.SpecialWarrior,
-                    UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.Spearman, UnitArchetype.Artillery,
-                    UnitArchetype.MobileFortress, UnitArchetype.Fighter, UnitArchetype.Rifleman, UnitArchetype.Fighter
+                    UnitArchetype.Rifleman, UnitArchetype.Rifleman, UnitArchetype.Spearman,
+                    UnitArchetype.Artillery, UnitArchetype.Fighter, UnitArchetype.Fighter
                 },
                 _ => System.Array.Empty<UnitArchetype>()
             };

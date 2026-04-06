@@ -1,16 +1,15 @@
 {
   "project": "3D-Unity",
-  "phase": "MVP combat prototype",
-  "primary_goal": "Finish a playable ground combat RTS prototype loop before expanding scope.",
+  "phase": "MVP combat prototype + short campaign",
+  "primary_goal": "Playable Battle Aces loop with CampaignMenu missions; ground RTS feel before scope expansion.",
   "home_ai_workflow": {
     "read_first": [
       "AGENTS.md",
-      "START_HERE.md",
-      "SESSION_CONTEXT.md",
-      "TODO.md",
-      "DEVLOG.md",
-      "HOME_AI_PROMPTS.md",
-      "HOME_AI_HARNESS.md"
+      "README.md",
+      "DEVLOG.md"
+    ],
+    "optional": [
+      "task_brief.json"
     ],
     "default_sequence": [
       "check git status",
@@ -18,58 +17,51 @@
       "pick the safest small task",
       "implement",
       "do lightweight verification",
-      "update docs if needed"
+      "update DEVLOG if needed"
     ],
     "behavior_rules": [
-      "Do not stop after one small step.",
-      "Work in 30 to 60 minute chunks when possible.",
+      "Do not stop after one small step when the user wants a full slice.",
       "Avoid unnecessary questions when a reasonable assumption is safe.",
       "Do not overwrite local uncommitted changes."
     ]
   },
   "world_direction": {
-    "summary": "Grand crusade, giant empire, and space-scale sci-fi warfare.",
-    "player_faction": "Heavy armored crusade empire with sacred imperial symbolism and sci-fi weapons.",
-    "enemy_faction": "Opposing sci-fi war civilization with stronger frontal firepower feel.",
+    "summary": "Crusade empire vs opposing powers; religious war in space SF skin.",
+    "player_faction": "Heavy armored crusade empire, sacred imperial tone.",
+    "enemy_faction": "Strong frontal firepower SF adversary.",
     "must_keep": [
       "space war feeling",
-      "imperial grandeur",
       "religious crusade tone",
-      "science fiction armor and weapons"
+      "SF armor and weapons"
     ],
     "avoid": [
       "pure medieval fantasy",
-      "generic sci-fi without sacred imperial weight",
-      "primitive placeholder visuals as the final direction"
+      "multiplayer scope creep"
     ]
   },
   "current_focus": [
-    "protect the ground combat prototype direction",
-    "improve battlefield readability and faction identity",
-    "support home AI development with better instructions and harness files"
+    "Campaign mission flow and objective clarity",
+    "Battle Aces combat + HUD/UGUI polish",
+    "Playtest and balance in short sessions"
   ],
   "priority_work_queue": {
     "immediate": [
-      "Show minimap as current camera view area instead of only a camera position dot.",
-      "Fix edge-case match resolution such as simultaneous army wipe or base destruction.",
-      "Simplify or relax the total assault unlock rule for the prototype."
+      "Home Unity playtest: campaign 1→4, console clean",
+      "Tune mission data if too long/short"
     ],
     "soon": [
-      "Rework battlefield layout readability from rear base to central shrine to enemy front.",
-      "Make production and rally flow easier to read for first-time players.",
-      "Strengthen readability of the core infantry triangle: spearman, shield infantry, rifleman.",
-      "Reduce HUD wording and information density."
+      "Skirmish mode vs AI (reuse same battle scene)",
+      "Additional mission types or maps"
     ],
     "later": [
-      "Reduce extension-unit emphasis and refocus combat on the core infantry triangle.",
-      "Do a first pass on battlefield environment polish to reduce test-map feel.",
-      "Set build scenes and execution baseline for a replayable prototype build."
+      "UGUI expansion beyond objective strip",
+      "SampleScene legacy cleanup only if blocking"
     ]
   },
   "not_now": [
     "multiplayer",
     "steam integration",
-    "large backend systems",
+    "large backend",
     "over-abstract architecture"
   ]
 }
