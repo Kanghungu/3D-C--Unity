@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Mission_05_Stub
   m_EditorClassIdentifier: 
   missionId: mission_05_stub
-  displayName: "5. 거점 점령 — 동부 장애 구역"
+  displayName: "5. 거점 점령 - 실험 구역"
   gameplaySceneName: NewSampleScene
   campaignSortOrder: 4
   objectiveKind: 3

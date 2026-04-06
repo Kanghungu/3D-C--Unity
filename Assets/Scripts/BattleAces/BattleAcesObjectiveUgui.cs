@@ -1,13 +1,9 @@
-using Game.Campaign.Data;
+﻿using Game.Campaign.Data;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Game.BattleAces
 {
-    /// <summary>
-    /// UGUI 최소 셸 — Screen Space 캔버스 + 상단 작전 목표(텍스트만).
-    /// IMGUI와 중복되지 않도록 BattleAcesHudOverlay 가 목표 줄만 숨긴다.
-    /// </summary>
     public sealed class BattleAcesObjectiveUgui : MonoBehaviour
     {
         private const float StripHeight = 118f;
@@ -21,10 +17,7 @@ namespace Game.BattleAces
         private Text textDetail;
         private bool built;
 
-        /// <summary>미션 UGUI가 생성되어 IMGUI 목표 블록을 대체할 수 있는지.</summary>
         public bool HasObjectiveUi => built && mission != null;
-
-        /// <summary>IMGUI 패널이 UGUI 아래에서 시작하도록 남겨둘 상단 픽셀(대략).</summary>
         public float TopReservePixels => HasObjectiveUi ? TopMargin + StripHeight + 6f : 0f;
 
         public void Initialize(MissionDefinition m, CampaignBattleFlow battleFlow)
@@ -60,7 +53,6 @@ namespace Game.BattleAces
 
         private void OnDestroy()
         {
-            // 부모 파괴 시 자식도 함께 사라질 수 있음 — 이중 Destroy 방지
             if (rootCanvas != null)
             {
                 Destroy(rootCanvas.gameObject);
@@ -71,10 +63,6 @@ namespace Game.BattleAces
         private void BuildUi()
         {
             Font font = GetUiFont();
-            if (font == null)
-            {
-                Debug.LogWarning("[BattleAces] UGUI 폰트(LegacyRuntime/Arial)를 찾지 못했습니다. Text 기본 폰트에 의존합니다.");
-            }
 
             GameObject root = new GameObject("BA_ObjectiveUgui");
             root.transform.SetParent(transform, false);
@@ -129,7 +117,6 @@ namespace Game.BattleAces
             RefreshTexts();
         }
 
-        /// <summary>패널 상단 기준으로 아래로 떨어진 위치에 가로 풀 스트레치 텍스트.</summary>
         private static Text CreateStretchedTopText(
             Transform parent,
             string name,
@@ -200,12 +187,12 @@ namespace Game.BattleAces
 
             if (flow == null || !flow.IsGameplayStarted)
             {
-                return "작전 시작 후 제한 시간이 표시됩니다.";
+                return "작전 시작 후 방어 타이머가 진행됩니다.";
             }
 
             float elapsed = Time.time - flow.GameplayStartTime;
             float remain = Mathf.Max(0f, mission.DefenseDurationSeconds - elapsed);
-            return $"남은 시간  {remain:0}초  /  목표  {mission.DefenseDurationSeconds:0}초  생존";
+            return $"남은 시간 {remain:0}초 / 목표 {mission.DefenseDurationSeconds:0}초 생존";
         }
     }
 }

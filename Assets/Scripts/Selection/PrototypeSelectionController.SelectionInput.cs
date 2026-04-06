@@ -1,4 +1,4 @@
-using Game.Prototype;
+﻿using Game.Prototype;
 using Game.Units;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,10 +7,12 @@ using UnityEngine.InputSystem;
 namespace Game.Selection
 {
     /// <summary>
-    /// 드래그 선택, 단일 선택, 화면 사각 선택.
+    /// ?쒕옒洹??좏깮, ?⑥씪 ?좏깮, ?붾㈃ ?ш컖 ?좏깮.
     /// </summary>
     public partial class PrototypeSelectionController
     {
+        private const float DragSelectThresholdPixels = 6f;
+
         private void OnGUI()
         {
             if (!isDraggingSelection || Mouse.current == null)
@@ -31,7 +33,7 @@ namespace Game.Selection
 
             Vector2 releasePosition = Mouse.current.position.ReadValue();
 
-            if (Vector2.Distance(dragStartScreenPosition, releasePosition) < 10f)
+            if (Vector2.Distance(dragStartScreenPosition, releasePosition) < DragSelectThresholdPixels)
             {
                 TrySingleSelect();
                 return;
@@ -149,7 +151,7 @@ namespace Game.Selection
         }
 
         /// <summary>
-        /// 미니맵 박스 등 — 월드 XZ 범위 안의 아군 유닛만 선택(프로토타입용).
+        /// 誘몃땲留?諛뺤뒪 ?????붾뱶 XZ 踰붿쐞 ?덉쓽 ?꾧뎔 ?좊떅留??좏깮(?꾨줈?좏??낆슜).
         /// </summary>
         public void SelectPlayerUnitsInWorldXZBounds(float worldXMin, float worldXMax, float worldZMin, float worldZMax)
         {
@@ -210,3 +212,4 @@ namespace Game.Selection
         }
     }
 }
+

@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Mission_03_Escort
   m_EditorClassIdentifier: 
   missionId: mission_03_escort
-  displayName: "3. 성유물 호위 — 녹색 목표 구역"
+  displayName: "3. 성유물 호위 - 목표 구역 도달"
   gameplaySceneName: NewSampleScene
   campaignSortOrder: 2
   objectiveKind: 2

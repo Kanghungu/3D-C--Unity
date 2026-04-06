@@ -1,4 +1,4 @@
-using Game.Audio;
+﻿using Game.Audio;
 using Game.Campaign;
 using Game.Campaign.Core;
 using Game.Campaign.Data;
@@ -9,9 +9,6 @@ using UnityEngine.SceneManagement;
 
 namespace Game.BattleAces
 {
-    /// <summary>
-    /// 브리?????�투 ??결과(?�?? ??메뉴/?�시?? BA_Systems ??붙인??
-    /// </summary>
     public sealed class CampaignBattleFlow : MonoBehaviour
     {
         private MissionDefinition mission;
@@ -27,8 +24,6 @@ namespace Game.BattleAces
 
         public bool IsGameplayStarted => gameplayStarted;
         public float GameplayStartTime => gameplayStartTime;
-
-        /// <summary>브리???�체?�면 �???미니맵·F1 ??차단??/summary>
         public bool IsBriefingBlocking => mission != null && briefingActive;
 
         public static CampaignBattleFlow Instance { get; private set; }
@@ -92,7 +87,7 @@ namespace Game.BattleAces
             Keyboard kb = Keyboard.current;
             bool confirmKey = kb != null &&
                               (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame);
-            UnityEngine.InputSystem.Mouse pointer = UnityEngine.InputSystem.Mouse.current;
+            Mouse pointer = Mouse.current;
             bool confirmClick = pointer != null && pointer.leftButton.wasPressedThisFrame;
 
             if (confirmKey || confirmClick)
@@ -169,7 +164,6 @@ namespace Game.BattleAces
             DrawResultScreen(core);
         }
 
-        /// <summary>?�전 브리?????�단 목표 �?+ 중앙 ?�이???�널.</summary>
         private void DrawBriefingScreen(PersistentGameCore core)
         {
             ImGuiGameUi.DrawFilledRect(new Rect(0f, 0f, Screen.width, Screen.height), ImGuiGameUi.DimFullscreen);
@@ -180,7 +174,7 @@ namespace Game.BattleAces
 
             if (string.IsNullOrEmpty(text))
             {
-                text = $"??{mission.DisplayName} ??n\n?�전 목표: {MissionObjectiveDisplayText.GetPrimaryLine(mission.ObjectiveKind)}\n\n?�단??몰아?�고 교단???�을 ???�에 ?�우??��??";
+                text = $"작전명: {mission.DisplayName}\n\n작전 목표: {MissionObjectiveDisplayText.GetPrimaryLine(mission.ObjectiveKind)}\n\n전열을 정비하고 적 진영 목표를 돌파하십시오.";
             }
 
             float cardW = Mathf.Min(760f, Screen.width - 48f);
@@ -199,13 +193,12 @@ namespace Game.BattleAces
             GUI.skin.label.fontSize = 15;
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(new Rect(card.x + 20f, card.yMax - 44f, card.width - 40f, 32f),
-                "Space · Enter · ?�릭 ???�전 개시");
+                "Space / Enter / 좌클릭으로 작전 시작");
             GUI.color = Color.white;
 
             DrawBriefingTopObjectiveBar(mission);
         }
 
-        /// <summary>?�패 ?�버?�이 ??중앙 카드 + ?��???버튼.</summary>
         private void DrawResultScreen(PersistentGameCore core)
         {
             ImGuiGameUi.DrawFilledRect(new Rect(0f, 0f, Screen.width, Screen.height), ImGuiGameUi.DimFullscreen);
@@ -215,7 +208,7 @@ namespace Game.BattleAces
             string body = core != null && !string.IsNullOrEmpty(did) ? core.TryGetDialogue(did) : null;
             if (string.IsNullOrEmpty(body))
             {
-                body = won ? "?�리?��??? ?�스?�운 ?��?가 ???�을 비춘??" : "?�배?��??? 그러???�앙?� 꺼�?지 ?�는??";
+                body = won ? "적 목표를 무너뜨렸습니다. 다음 진격 준비를 시작하십시오." : "전선이 붕괴되었습니다. 병력을 재정비한 뒤 다시 시도하십시오.";
             }
 
             float cardW = Mathf.Min(700f, Screen.width - 48f);
@@ -223,7 +216,7 @@ namespace Game.BattleAces
             Rect card = new Rect((Screen.width - cardW) * 0.5f, (Screen.height - cardH) * 0.5f, cardW, cardH);
             ImGuiGameUi.DrawPanelFrame(card, ImGuiGameUi.PanelBgLift, won ? ImGuiGameUi.BorderAccent : ImGuiGameUi.BorderCool, 2f);
 
-            string title = won ? "?�술 ?�리" : "?�술 ?�배";
+            string title = won ? "작전 승리" : "작전 실패";
             GUI.skin.label.fontSize = 26;
             GUI.color = won ? ImGuiGameUi.VictoryTint : ImGuiGameUi.DefeatTint;
             GUI.Label(new Rect(card.x + 24f, card.y + 18f, card.width - 48f, 40f), title);
@@ -247,12 +240,12 @@ namespace Game.BattleAces
             GUI.skin.label.fontSize = 14;
             GUI.color = ImGuiGameUi.TextMuted;
             string statsLine =
-                $"?�레???�간  {resultPlaySeconds:0.0}�?  ·   종료 ???�원  {resultPlayerCredits}";
+                $"플레이 시간 {resultPlaySeconds:0.0}초  ·  종료 시 자원 {resultPlayerCredits}";
             GUI.Label(new Rect(card.x + 24f, card.y + bodyTop + bodyH + 6f, card.width - 48f, 28f), statsLine);
 
             GUI.skin.label.fontSize = 13;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(new Rect(card.x + 24f, card.y + bodyTop + bodyH + 34f, card.width - 48f, 22f), "Press R to retry this mission.");
+            GUI.Label(new Rect(card.x + 24f, card.y + bodyTop + bodyH + 34f, card.width - 48f, 22f), "R 키로 현재 미션을 다시 시작할 수 있습니다.");
             GUI.color = Color.white;
             GUI.skin.label.fontSize = 14;
 
@@ -271,33 +264,31 @@ namespace Game.BattleAces
             {
                 Time.timeScale = 1f;
                 string menuScene = core != null ? core.CampaignMenuSceneName : "CampaignMenu";
-                CampaignSceneLoadUtility.TryLoadSceneByName(menuScene, "캠페??결과 ??메뉴");
+                CampaignSceneLoadUtility.TryLoadSceneByName(menuScene, "캠페인 결과 화면에서 메뉴 복귀");
             }
         }
 
-        /// <summary>Battle Aces ?�패 ?�면 ??�???MatchEndReason ?�약.</summary>
         private static string FormatMatchEndReasonLine(BattleAcesMatchController.MatchEndReason reason, bool won)
         {
             if (won)
             {
                 return reason switch
                 {
-                    BattleAcesMatchController.MatchEndReason.VictoryEnemyCoreDestroyed => "종료 ?�유: ??교단 코어 격파",
-                    BattleAcesMatchController.MatchEndReason.VictoryMissionObjective => "종료 ?�유: ?�전 목표 ?�성",
-                    _ => "종료 ?�유: ?�술 ?�리"
+                    BattleAcesMatchController.MatchEndReason.VictoryEnemyCoreDestroyed => "종료 사유: 적 코어 파괴",
+                    BattleAcesMatchController.MatchEndReason.VictoryMissionObjective => "종료 사유: 미션 목표 달성",
+                    _ => "종료 사유: 작전 승리"
                 };
             }
 
             return reason switch
             {
-                BattleAcesMatchController.MatchEndReason.DefeatPlayerCoreDestroyed => "종료 ?�유: ?�군 코어 붕괴",
-                BattleAcesMatchController.MatchEndReason.DefeatRelicOrKeyObjectiveLost => "종료 ?�유: ?�유�??�심 목표 ?�실",
-                BattleAcesMatchController.MatchEndReason.DefeatMissionFailed => "종료 ?�유: ?�전 ?�패",
-                _ => "종료 ?�유: ?�술 ?�배"
+                BattleAcesMatchController.MatchEndReason.DefeatPlayerCoreDestroyed => "종료 사유: 아군 코어 파괴",
+                BattleAcesMatchController.MatchEndReason.DefeatRelicOrKeyObjectiveLost => "종료 사유: 핵심 목표 상실",
+                BattleAcesMatchController.MatchEndReason.DefeatMissionFailed => "종료 사유: 미션 실패",
+                _ => "종료 사유: 작전 실패"
             };
         }
 
-        /// <summary>최상??목표 �????�른 UI보다 ?�에 그림.</summary>
         private static void DrawBriefingTopObjectiveBar(MissionDefinition m)
         {
             if (m == null)
@@ -313,7 +304,7 @@ namespace Game.BattleAces
             GUI.color = ImGuiGameUi.AccentGold;
             GUI.Label(
                 new Rect(22f, 14f, Screen.width - 44f, 36f),
-                $"?�전 목표 ??{MissionObjectiveDisplayText.GetPrimaryLine(m.ObjectiveKind)}");
+                $"작전 목표 · {MissionObjectiveDisplayText.GetPrimaryLine(m.ObjectiveKind)}");
             GUI.skin.label.fontSize = prevSize;
             GUI.color = Color.white;
         }

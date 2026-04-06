@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Game.CameraSystem;
 using Game.Prototype;
 using Game.Selection;
@@ -176,6 +176,14 @@ namespace Game.BattleAces
             return wxMax > wxMin && wzMax > wzMin;
         }
 
+        private Rect WorldRectToMapRect(float xMin, float xMax, float zMin, float zMax, float worldW, float worldH)
+        {
+            Vector2 p0 = WorldToMapPixels(new Vector3(xMin, 0f, zMin), worldW, worldH);
+            Vector2 p1 = WorldToMapPixels(new Vector3(xMax, 0f, zMax), worldW, worldH);
+            Vector2 min = Vector2.Min(p0, p1);
+            Vector2 max = Vector2.Max(p0, p1);
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+        }
         private void HandleMinimapPanAndClick(float worldW, float worldH)
         {
             if (matchController != null && matchController.IsFinished)
@@ -314,6 +322,11 @@ namespace Game.BattleAces
             };
 
             Vector2?[] corners = new Vector2?[4];
+            float minX = float.PositiveInfinity;
+            float maxX = float.NegativeInfinity;
+            float minZ = float.PositiveInfinity;
+            float maxZ = float.NegativeInfinity;
+
             for (int i = 0; i < 4; i++)
             {
                 Ray ray = cam.ScreenPointToRay(scr[i]);
@@ -321,7 +334,22 @@ namespace Game.BattleAces
                 {
                     Vector3 hit = ray.GetPoint(dist);
                     corners[i] = WorldToMapPixels(hit, worldW, worldH);
+                    minX = Mathf.Min(minX, hit.x);
+                    maxX = Mathf.Max(maxX, hit.x);
+                    minZ = Mathf.Min(minZ, hit.z);
+                    maxZ = Mathf.Max(maxZ, hit.z);
                 }
+            }
+
+            if (minX < maxX && minZ < maxZ)
+            {
+                float side = Mathf.Max(maxX - minX, maxZ - minZ);
+                float centerX = (minX + maxX) * 0.5f;
+                float centerZ = (minZ + maxZ) * 0.5f;
+                float half = side * 0.5f;
+                Rect cameraSquare = WorldRectToMapRect(centerX - half, centerX + half, centerZ - half, centerZ + half, worldW, worldH);
+                DrawBorder(cameraSquare, new Color(1f, 0.9f, 0.25f, 0.82f));
+                return;
             }
 
             for (int i = 0; i < 4; i++)
@@ -382,3 +410,4 @@ namespace Game.BattleAces
         }
     }
 }
+
