@@ -17,7 +17,7 @@ namespace Game.BattleAces
                 return;
             }
 
-            (string id1, string id2) = ResolveFieldDialogueIds(mission.MissionId);
+            (string id1, string id2) = ResolveFieldDialogueIds(mission);
             if (string.IsNullOrEmpty(id1))
             {
                 return;
@@ -35,25 +35,31 @@ namespace Game.BattleAces
             }
         }
 
-        private static (string, string) ResolveFieldDialogueIds(string missionId)
+        private static (string, string) ResolveFieldDialogueIds(MissionDefinition mission)
         {
-            if (string.IsNullOrEmpty(missionId))
+            if (mission == null || string.IsNullOrEmpty(mission.MissionId))
             {
                 return (null, null);
             }
 
-            switch (missionId)
+            switch (mission.MissionId)
             {
                 case "mission_01_skirmish":
                     return ("m01_field_1", "m01_field_2");
                 case "mission_02_sanctuary":
-                    return ("m02_field_1", null);
+                    return ("m02_field_1", "m02_field_2");
                 case "mission_03_escort":
                     return ("m03_field_1", "m03_field_2");
                 case "mission_04_heresy":
                     return ("m04_field_1", "m04_field_2");
                 case "mission_05_stub":
-                    return ("m05_field_1", null);
+                    return ("m05_field_1", "m05_field_2");
+                case "mission_06_fortress":
+                    return mission.AirborneCitadelFocus
+                        ? ("m06_field_1", "m06_field_2_air")
+                        : ("m06_field_1", "m06_field_2");
+                case "mission_07_counter_rush":
+                    return ("m07_field_1", "m07_field_2");
                 default:
                     return (null, null);
             }

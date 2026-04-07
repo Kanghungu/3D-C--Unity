@@ -333,6 +333,12 @@ namespace Game.BattleAces
                 {
                     if (team == UnitTeam.Player)
                     {
+                        BattleAcesRunStats rs = BattleAcesRunStats.Instance;
+                        if (rs != null)
+                        {
+                            rs.RegisterPlayerUnitProduced(currentProductionArchetype);
+                        }
+
                         unit.MoveTo(rallyWorldPosition);
                         ProceduralAudioUtility.PlayProductionComplete();
                     }

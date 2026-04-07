@@ -10,7 +10,7 @@ namespace Game.BattleAces
     {
         public static BattleAcesStoryBanner Instance { get; private set; }
 
-        [SerializeField] private float defaultDurationSeconds = 6.5f;
+        [SerializeField] private float defaultDurationSeconds = 5.5f;
 
         private string currentLine;
         private float hideAtUnscaled;
@@ -61,18 +61,20 @@ namespace Game.BattleAces
                 return;
             }
 
+            ImGuiGameUi.BeginScaledGui();
             float pad = 18f;
             float boxW = Mathf.Min(920f, Screen.width - pad * 2f);
-            float boxH = 72f;
+            float boxH = 66f;
             float x = (Screen.width - boxW) * 0.5f;
             float y = Screen.height - boxH - 28f;
             Rect r = new Rect(x, y, boxW, boxH);
 
             ImGuiGameUi.DrawPanelFrame(r, ImGuiGameUi.PanelBgLift, ImGuiGameUi.BorderAccent, 2f);
-            GUI.skin.label.fontSize = 15;
+            GUI.skin.label.fontSize = 14;
             GUI.color = ImGuiGameUi.TextTitle;
             GUI.Label(new Rect(r.x + 16f, r.y + 10f, r.width - 32f, r.height - 20f), currentLine);
             GUI.color = Color.white;
+            ImGuiGameUi.EndScaledGui();
         }
     }
 }

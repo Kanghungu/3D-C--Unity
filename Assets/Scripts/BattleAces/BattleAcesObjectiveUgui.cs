@@ -6,8 +6,9 @@ namespace Game.BattleAces
 {
     public sealed class BattleAcesObjectiveUgui : MonoBehaviour
     {
-        private const float StripHeight = 118f;
-        private const float TopMargin = 14f;
+        // 보조 힌트 2줄 + 방어 미션 시 타이머 줄 수용
+        private const float StripHeight = 136f;
+        private const float TopMargin = 12f;
         private const float SideMargin = 18f;
 
         private MissionDefinition mission;
@@ -42,6 +43,12 @@ namespace Game.BattleAces
             }
 
             bool show = flow == null || flow.IsGameplayStarted;
+            // 승패 결과 IMGUI와 겹치지 않도록 전투 종료 시 상단 목표 바 숨김
+            if (BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController matchCtrl) && matchCtrl.IsFinished)
+            {
+                show = false;
+            }
+
             rootCanvas.gameObject.SetActive(show);
             if (!show)
             {
@@ -104,11 +111,11 @@ namespace Game.BattleAces
             accentImg.color = new Color(0.72f, 0.62f, 0.28f, 0.95f);
             accentImg.raycastTarget = false;
 
-            textPrimary = CreateStretchedTopText(panel.transform, "Primary", font, 19, TextAnchor.MiddleLeft, 18f, 32f);
+            textPrimary = CreateStretchedTopText(panel.transform, "Primary", font, 18, TextAnchor.MiddleLeft, 18f, 32f);
             textPrimary.color = new Color(0.96f, 0.86f, 0.42f, 1f);
             AddOutline(textPrimary);
 
-            textDetail = CreateStretchedTopText(panel.transform, "Detail", font, 14, TextAnchor.UpperLeft, 52f, 62f);
+            textDetail = CreateStretchedTopText(panel.transform, "Detail", font, 14, TextAnchor.UpperLeft, 52f, 78f);
             textDetail.color = new Color(0.65f, 0.72f, 0.8f, 1f);
             textDetail.horizontalOverflow = HorizontalWrapMode.Wrap;
             textDetail.verticalOverflow = VerticalWrapMode.Truncate;

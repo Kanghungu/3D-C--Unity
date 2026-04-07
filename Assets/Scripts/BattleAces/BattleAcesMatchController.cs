@@ -1,4 +1,5 @@
 using System;
+using Game.Audio;
 using Game.Units;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -45,10 +46,16 @@ namespace Game.BattleAces
         private MatchState state = MatchState.Playing;
         private MatchEndReason lastEndReason = MatchEndReason.None;
 
+        /// <summary>적 코어 임박 승리 톤 1회</summary>
+        private bool victoryImminentChimePlayed;
+
         public MatchState State => state;
         public bool IsFinished => state != MatchState.Playing;
         public VictoryMode WinMode => victoryMode;
         public MatchEndReason LastEndReason => lastEndReason;
+
+        public BattleAcesCore PlayerCore => playerCore;
+        public BattleAcesCore EnemyCore => enemyCore;
 
         public event Action<MatchState> MatchEnded;
 
@@ -141,13 +148,22 @@ namespace Game.BattleAces
                 return;
             }
 
-            if (victoryMode == VictoryMode.EnemyCoreDestroyed && !enemyHealth.IsAlive)
+            if (victoryMode == VictoryMode.EnemyCoreDestroyed)
             {
-                lastEndReason = MatchEndReason.VictoryEnemyCoreDestroyed;
-                state = MatchState.Victory;
-                Time.timeScale = 0f;
-                MatchEnded?.Invoke(state);
-                return;
+                if (!victoryImminentChimePlayed && enemyHealth.IsAlive && enemyHealth.Normalized <= 0.22f)
+                {
+                    victoryImminentChimePlayed = true;
+                    ProceduralAudioUtility.PlayVictoryImminentChime();
+                }
+
+                if (!enemyHealth.IsAlive)
+                {
+                    lastEndReason = MatchEndReason.VictoryEnemyCoreDestroyed;
+                    state = MatchState.Victory;
+                    Time.timeScale = 0f;
+                    MatchEnded?.Invoke(state);
+                    return;
+                }
             }
 
             if (!playerHealth.IsAlive)

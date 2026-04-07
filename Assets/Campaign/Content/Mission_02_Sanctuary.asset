@@ -33,7 +33,7 @@ MonoBehaviour:
   enemyPatternId: defensive_turtle
   playerFactionRules: {fileID: 0}
   enemyFactionRules: {fileID: 0}
-  defenseDurationSeconds: 145
+  defenseDurationSeconds: 120
   seizeHoldSeconds: 14
   relicMaxHealth: 520
   heresyStrongholdMaxHealth: 1280

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Game.Settings;
 using UnityEngine;
 
 namespace Game.UI
@@ -38,6 +40,32 @@ namespace Game.UI
         public static readonly Color VictoryTint = new Color(0.45f, 0.9f, 0.55f, 1f);
         public static readonly Color DefeatTint = new Color(0.95f, 0.45f, 0.42f, 1f);
 
+        private static readonly Stack<Matrix4x4> GuiMatrixStack = new Stack<Matrix4x4>(4);
+
+        /// <summary>OnGUI 시작부 — PlayerPrefs UI 스케일(전체 IMGUI 공통).</summary>
+        public static void BeginScaledGui()
+        {
+            GuiMatrixStack.Push(GUI.matrix);
+            float s = Mathf.Clamp(GameUserSettings.UiScale01, 0.75f, 1.35f);
+            if (Mathf.Approximately(s, 1f))
+            {
+                return;
+            }
+
+            GUIUtility.ScaleAroundPivot(new Vector2(s, s), new Vector2(Screen.width * 0.5f, Screen.height * 0.5f));
+        }
+
+        /// <summary>OnGUI 끝 — BeginScaledGui와 반드시 짝.</summary>
+        public static void EndScaledGui()
+        {
+            if (GuiMatrixStack.Count == 0)
+            {
+                return;
+            }
+
+            GUI.matrix = GuiMatrixStack.Pop();
+        }
+
         public static void DrawFilledRect(Rect r, Color c)
         {
             Color prev = GUI.color;
@@ -68,7 +96,8 @@ namespace Game.UI
         public static bool GameMenuButton(Rect r, string text, bool enabled = true)
         {
             Color prevCol = GUI.color;
-            bool hover = enabled && r.Contains(Event.current.mousePosition);
+            Event ev = Event.current;
+            bool hover = enabled && ev != null && r.Contains(ev.mousePosition);
             Color bg = !enabled
                 ? new Color(0.12f, 0.12f, 0.14f, 0.65f)
                 : hover

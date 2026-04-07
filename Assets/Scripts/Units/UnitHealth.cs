@@ -1,4 +1,7 @@
 using System;
+using Game.Audio;
+using Game.BattleAces;
+using Game.UI;
 using UnityEngine;
 
 namespace Game.Units
@@ -24,6 +27,7 @@ namespace Game.Units
         private float currentHealth;
         private float displayedDamageNormalized = 1f;
         private float lastDamageTime = -99f;
+        private float nextHitSoundUnscaledTime;
 
         private UnitAbilityState abilityState;
         private CombatTarget combatTarget;
@@ -66,14 +70,27 @@ namespace Game.Units
         {
             if (!createHealthBar || !IsAlive) return;
 
+            ImGuiGameUi.BeginScaledGui();
             Camera cam = GetCamera();
-            if (cam == null) return;
+            if (cam == null)
+            {
+                ImGuiGameUi.EndScaledGui();
+                return;
+            }
 
             // 카메라 높이가 일정 이상이면 체력바 숨김
-            if (cam.transform.position.y > 45f) return;
+            if (cam.transform.position.y > 45f)
+            {
+                ImGuiGameUi.EndScaledGui();
+                return;
+            }
 
             Vector3 screenPos = cam.WorldToScreenPoint(transform.position + healthBarOffset);
-            if (screenPos.z < 0f) return;
+            if (screenPos.z < 0f)
+            {
+                ImGuiGameUi.EndScaledGui();
+                return;
+            }
 
             const float barW = 36f;
             const float barH = 4f;
@@ -105,6 +122,7 @@ namespace Game.Units
                 ? new Color(0.95f, 0.18f, 0.12f)
                 : isEnemy ? new Color(1f, 0.52f, 0.1f) : new Color(0.18f, 0.9f, 0.28f);
             DrawRect(new Rect(x, y, hpW, barH), fillColor);
+            ImGuiGameUi.EndScaledGui();
         }
 
         private static void DrawRect(Rect rect, Color color)
@@ -133,6 +151,8 @@ namespace Game.Units
             if (damage > 0f)
             {
                 Damaged?.Invoke(damage);
+                TryPlayHitFeedback(damage);
+                TryNotifyPlayerHitFlash(damage);
             }
 
             if (currentHealth <= 0f)
@@ -184,6 +204,42 @@ namespace Game.Units
             }
 
             return cachedCamera;
+        }
+
+        /// <summary>선택 가능 유닛만 가벼운 피격음(코어·구조물 제외, 짧은 쿨다운).</summary>
+        private void TryPlayHitFeedback(float damageAmount)
+        {
+            if (selectableUnit == null || combatTarget == null || damageAmount <= 0f)
+            {
+                return;
+            }
+
+            if (Time.unscaledTime < nextHitSoundUnscaledTime)
+            {
+                return;
+            }
+
+            nextHitSoundUnscaledTime = Time.unscaledTime + 0.085f;
+            float norm = damageAmount / Mathf.Max(1f, maxHealth);
+            UnitArchetype arch = selectableUnit != null ? selectableUnit.Archetype : UnitArchetype.Spearman;
+            ProceduralAudioUtility.PlayUnitHitLight(Mathf.Clamp01(norm * 3.5f), arch);
+        }
+
+        /// <summary>아군 코어·유닛 피격 시 화면 플래시(스커미시 등 비캠페인은 스킵).</summary>
+        private void TryNotifyPlayerHitFlash(float damageAmount)
+        {
+            if (combatTarget == null || combatTarget.Team != UnitTeam.Player || damageAmount <= 0f)
+            {
+                return;
+            }
+
+            if (BattleAcesMatchController.Instance == null)
+            {
+                return;
+            }
+
+            float norm = damageAmount / Mathf.Max(1f, maxHealth);
+            BattleAcesPlayerHitFlash.NotifyPlayerDamage(Mathf.Clamp01(norm * 2.2f));
         }
 
         private void Die()

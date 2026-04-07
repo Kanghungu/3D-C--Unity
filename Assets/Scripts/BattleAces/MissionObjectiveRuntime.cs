@@ -225,7 +225,7 @@ namespace Game.BattleAces
             ProceduralAudioUtility.PlayObjectivePulse();
             if (BattleAcesStoryBanner.Instance != null)
             {
-                BattleAcesStoryBanner.Instance.ShowLine(line, 5.5f);
+                BattleAcesStoryBanner.Instance.ShowLine(line, 5f);
             }
         }
     }

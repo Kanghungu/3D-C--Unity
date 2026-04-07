@@ -4,6 +4,7 @@
 // - Campaign이 선택한 MissionDefinition이 있으면 덱·목표·팩션 배율을 읽어 적용한다.
 // - PrototypeBootstrapper와 별개 — 전장 생성은 이 클래스가 담당한다.
 // =============================================================================
+using Game.Audio;
 using Game.CameraSystem;
 using Game.Campaign.Core;
 using Game.Campaign.Data;
@@ -14,6 +15,7 @@ using Game.Units;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Audio;
 
 namespace Game.BattleAces
 {
@@ -28,13 +30,38 @@ namespace Game.BattleAces
         [SerializeField] private Color groundTint = new(0.22f, 0.24f, 0.28f);
         [SerializeField] private string groundObjectName = "Battle Arena Ground";
 
+        /// <summary>GameObject.Find 반복 호출 줄이기 — 부트스트랩 1회성 캐시</summary>
+        private GameObject cachedBattleGround;
+
         [Header("Spawns")]
         [SerializeField] private Vector3 playerCorePosition = new(-22f, 1.6f, -18f);
         [SerializeField] private Vector3 enemyCorePosition = new(22f, 1.6f, 18f);
         [SerializeField] private Vector3 playerRallyPoint = new(-12f, 1f, -8f);
 
+        [Header("Audio (승·패 스팅)")]
+        [Tooltip("Game/Audio/Create BattleAces_Main.mixer 로 만든 믹서 — Master 아래 ResultSting 권장")]
+        [SerializeField] private AudioMixer battleAcesAudioMixer;
+
+        [Tooltip("믹서 안 그룹 이름 — ResultSting 이 없으면 Master 로 폴백")]
+        [SerializeField] private string resultStingGroupName = "ResultSting";
+
+        [Tooltip("믹서 에셋 없이 그룹만 직접 넣을 때(있으면 AudioMixer 할당보다 우선)")]
+        [SerializeField] private AudioMixerGroup resultStingMixerGroup;
+
+        [Tooltip("전투 앰비언트 — 같은 믹서에서 BattleAmbient 자식 그룹을 만들고 이름 맞춤")]
+        [SerializeField] private string battleAmbientGroupName = "BattleAmbient";
+
+        [Tooltip("Audio Mixer 에서 그룹 Volume → Expose 한 파라미터 이름(설정 O 패널과 연결)")]
+        [SerializeField] private string exposedBattleAmbientVolume = "BattleAmbientVol";
+
+        [SerializeField] private string exposedResultStingVolume = "ResultStingVol";
+
         private void Awake()
         {
+            ApplyResultStingMixerRouting();
+            ApplyBattleAmbientMixerRouting();
+            RegisterMixerVolumeExposes();
+
             EnsureRtsCameraControllerOnMainCamera();
 
             MissionDefinition mission = PersistentGameCore.Instance != null
@@ -60,7 +87,7 @@ namespace Game.BattleAces
                 SetupMinimalArena();
             }
 
-            GameObject ground = GameObject.Find(groundObjectName);
+            GameObject ground = ResolveBattleGroundObject();
             if (ground != null)
             {
                 BakeNavMeshAroundGround(ground.transform.position, groundScale);
@@ -69,12 +96,18 @@ namespace Game.BattleAces
             systems.AddComponent<RtsTimeControl>();
             PrototypeGameDatabase database = systems.AddComponent<PrototypeGameDatabase>();
             BattleAcesEconomy economy = systems.AddComponent<BattleAcesEconomy>();
+            BattleAcesRunStats runStats = systems.AddComponent<BattleAcesRunStats>();
+            ApplyMissionIncomeTuning(economy, mission);
+            if (mission != null && mission.MissionId == "mission_01_skirmish")
+            {
+                economy.ActivateOpeningIncomeBoost(60f, 1.35f);
+            }
             BattleAcesMatchController match = systems.AddComponent<BattleAcesMatchController>();
             BattleAcesHudOverlay hud = systems.AddComponent<BattleAcesHudOverlay>();
             systems.AddComponent<PrototypeSelectionController>();
             BattleAcesEnemyBrain enemyBrain = systems.AddComponent<BattleAcesEnemyBrain>();
 
-            UnitArchetype[] deck = BuildDeckArray(mission);
+            UnitArchetype[] deck = ApplyAirborneCitadelDeckVariant(mission, BuildDeckArray(mission));
 
             float playerHpMul = mission != null && mission.PlayerFactionRules != null
                 ? mission.PlayerFactionRules.UnitMaxHealthMultiplier
@@ -136,7 +169,7 @@ namespace Game.BattleAces
             if (mission != null)
             {
                 campaignFlow = systems.AddComponent<CampaignBattleFlow>();
-                campaignFlow.Initialize(mission, match, economy);
+                campaignFlow.Initialize(mission, match, economy, runStats);
             }
 
             BattleAcesObjectiveUgui objectiveUgui = systems.AddComponent<BattleAcesObjectiveUgui>();
@@ -144,7 +177,7 @@ namespace Game.BattleAces
             hud.Bind(economy, playerCore, match, mission, campaignFlow, objectiveUgui);
             enemyBrain.Bind(enemyCore, match);
 
-            float thinkBase = 19f;
+            float thinkBase = 18.25f;
             if (mission != null && mission.EnemyFactionRules != null)
             {
                 thinkBase *= Mathf.Clamp(mission.EnemyFactionRules.ProductionDurationMultiplier, 0.5f, 2f);
@@ -160,18 +193,53 @@ namespace Game.BattleAces
                 thinkBase *= mission.EnemyBrainThinkIntervalMultiplier;
             }
 
-            enemyBrain.ApplyEnemyPattern(
-                mission != null ? mission.EnemyPatternId : "default_skirmish",
-                thinkBase);
+            string enemyPatternId = mission != null ? mission.EnemyPatternId : "default_skirmish";
+            if (mission != null && mission.AirborneCitadelFocus)
+            {
+                enemyPatternId = "airborne_siege";
+            }
+
+            enemyBrain.ApplyEnemyPattern(enemyPatternId, thinkBase);
 
             float halfX = groundScale.x * 5f;
             float halfZ = groundScale.z * 5f;
             BattleAcesMinimap minimap = systems.AddComponent<BattleAcesMinimap>();
-            minimap.Bind(new Vector2(-halfX, -halfZ), new Vector2(halfX, halfZ), playerCore, enemyCore, match);
+            Vector2 fogWorldMin = new Vector2(-halfX, -halfZ);
+            Vector2 fogWorldMax = new Vector2(halfX, halfZ);
+            minimap.Bind(
+                fogWorldMin,
+                fogWorldMax,
+                playerCore,
+                enemyCore,
+                match,
+                mission != null ? mission.ObjectiveKind : (MissionObjectiveKind?)null,
+                showRallyOnLegend: mission != null);
+
+            float fogSurfaceY = 0.08f;
+            GameObject groundForFog = ResolveBattleGroundObject();
+            if (groundForFog != null)
+            {
+                Renderer groundR = groundForFog.GetComponent<Renderer>();
+                if (groundR != null)
+                {
+                    fogSurfaceY = groundR.bounds.max.y + 0.04f;
+                }
+            }
+
+            GameObject fogWorldRoot = new GameObject("FogOfWar_WorldRoot");
+            fogWorldRoot.transform.SetParent(systems.transform, false);
+            BattleAcesFogWorldOverlay fogWorldOverlay = fogWorldRoot.AddComponent<BattleAcesFogWorldOverlay>();
+            fogWorldOverlay.Initialize(fogWorldMin, fogWorldMax, fogSurfaceY);
+
+            BattleAcesFogOfWarDebug fogDebug = systems.AddComponent<BattleAcesFogOfWarDebug>();
+            fogDebug.Initialize(fogWorldMin, fogWorldMax, match);
 
             systems.AddComponent<BattleAcesStoryBanner>();
             systems.AddComponent<BattleAcesCombatAudio>();
             systems.AddComponent<BattleAcesInGameHelp>();
+            systems.AddComponent<BattleAcesCombatAmbientLoop>();
+            systems.AddComponent<BattleAcesMixerParameterSync>();
+            systems.AddComponent<BattleAcesScreenFlashHud>();
             systems.AddComponent<BattleAcesInputToggles>();
             BattleAcesSelectionInfoHud selectionInfo = systems.AddComponent<BattleAcesSelectionInfoHud>();
             selectionInfo.Bind(playerCore, economy, database);
@@ -207,6 +275,68 @@ namespace Game.BattleAces
 
                 BattleAcesMissionStorySpawner.SpawnForMission(mission, structuresRoot, pPos, ePos);
             }
+        }
+
+        private void ApplyResultStingMixerRouting()
+        {
+            if (resultStingMixerGroup != null)
+            {
+                ProceduralAudioUtility.SetResultStingMixerGroup(resultStingMixerGroup);
+                return;
+            }
+
+            if (battleAcesAudioMixer == null || string.IsNullOrEmpty(resultStingGroupName))
+            {
+                return;
+            }
+
+            AudioMixerGroup[] groups = battleAcesAudioMixer.FindMatchingGroups(resultStingGroupName);
+            if (groups == null || groups.Length == 0)
+            {
+                groups = battleAcesAudioMixer.FindMatchingGroups("Master");
+            }
+
+            if (groups != null && groups.Length > 0)
+            {
+                ProceduralAudioUtility.SetResultStingMixerGroup(groups[0]);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[BattleAcesSceneBootstrapper] AudioMixer 에 '" + resultStingGroupName + "' 또는 Master 그룹이 없습니다.");
+            }
+        }
+
+        private void ApplyBattleAmbientMixerRouting()
+        {
+            if (battleAcesAudioMixer == null || string.IsNullOrEmpty(battleAmbientGroupName))
+            {
+                return;
+            }
+
+            AudioMixerGroup[] ag = battleAcesAudioMixer.FindMatchingGroups(battleAmbientGroupName);
+            if (ag != null && ag.Length > 0)
+            {
+                ProceduralAudioUtility.SetBattleAmbientMixerGroup(ag[0]);
+            }
+        }
+
+        private void RegisterMixerVolumeExposes()
+        {
+            if (battleAcesAudioMixer == null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrEmpty(exposedBattleAmbientVolume) && string.IsNullOrEmpty(exposedResultStingVolume))
+            {
+                return;
+            }
+
+            ProceduralAudioUtility.RegisterMixerExposedVolumeParameters(
+                battleAcesAudioMixer,
+                exposedBattleAmbientVolume,
+                exposedResultStingVolume);
         }
 
         private static void AddMissionMarkersToMinimap(
@@ -384,6 +514,58 @@ namespace Game.BattleAces
             return ct;
         }
 
+        /// <summary>캠페인 미션별로 자원 곡선만 살짝 조정(A 밸런스 패스).</summary>
+        /// <remarks>
+        /// DEVLOG §I · 미션 3~6 한 판씩 플레이 후 숫자만 메모해 여기서 미세 조정하면 됨.
+        /// 예: mission_03 — playerMul +0.01 / mission_04 — enemyMul -0.02 등(감각·재현 기준).
+        /// </remarks>
+        private static void ApplyMissionIncomeTuning(BattleAcesEconomy economy, MissionDefinition mission)
+        {
+            if (economy == null || mission == null || string.IsNullOrEmpty(mission.MissionId))
+            {
+                return;
+            }
+
+            float playerMul = 1f;
+            float enemyMul = 1f;
+
+            switch (mission.MissionId)
+            {
+                case "mission_01_skirmish":
+                    playerMul = 1.11f;
+                    enemyMul = 0.93f;
+                    break;
+                case "mission_02_sanctuary":
+                    playerMul = 1.065f;
+                    enemyMul = 0.985f;
+                    break;
+                case "mission_03_escort":
+                    playerMul = 1.058f;
+                    enemyMul = 1.032f;
+                    break;
+                case "mission_04_heresy":
+                    playerMul = 1.032f;
+                    enemyMul = 1.05f;
+                    break;
+                case "mission_05_stub":
+                    playerMul = 1.045f;
+                    enemyMul = 1.035f;
+                    break;
+                case "mission_06_fortress":
+                    playerMul = 1.04f;
+                    enemyMul = 1.025f;
+                    break;
+                case "mission_07_counter_rush":
+                    playerMul = 1.048f;
+                    enemyMul = 1.038f;
+                    break;
+                default:
+                    return;
+            }
+
+            economy.ApplyIncomeMultipliers(playerMul, enemyMul);
+        }
+
         private static UnitArchetype[] BuildDeckArray(MissionDefinition mission)
         {
             if (mission == null)
@@ -436,15 +618,48 @@ namespace Game.BattleAces
             };
         }
 
+        /// <summary>미션 옵션 — 이동 요새를 공중 요새로 바꾸고 공성 슬롯을 강조</summary>
+        private static UnitArchetype[] ApplyAirborneCitadelDeckVariant(MissionDefinition mission, UnitArchetype[] deck)
+        {
+            if (mission == null || !mission.AirborneCitadelFocus || deck == null || deck.Length != 8)
+            {
+                return deck;
+            }
+
+            UnitArchetype[] copy = new UnitArchetype[8];
+            System.Array.Copy(deck, copy, 8);
+            for (int i = 0; i < copy.Length; i++)
+            {
+                if (copy[i] == UnitArchetype.MobileFortress)
+                {
+                    copy[i] = UnitArchetype.AirborneCitadel;
+                }
+            }
+
+            copy[3] = UnitArchetype.AirborneCitadel;
+            return copy;
+        }
+
+        private GameObject ResolveBattleGroundObject()
+        {
+            if (cachedBattleGround == null)
+            {
+                cachedBattleGround = GameObject.Find(groundObjectName);
+            }
+
+            return cachedBattleGround;
+        }
+
         private void SetupMinimalArena()
         {
-            if (GameObject.Find(groundObjectName) != null)
+            if (ResolveBattleGroundObject() != null)
             {
                 return;
             }
 
             GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = groundObjectName;
+            cachedBattleGround = ground;
             ground.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             ground.transform.localScale = groundScale;
 

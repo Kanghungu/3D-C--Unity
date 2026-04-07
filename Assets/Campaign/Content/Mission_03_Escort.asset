@@ -30,10 +30,12 @@ MonoBehaviour:
   - 6
   - 4
   - 5
-  enemyPatternId: aggressive_push
+  enemyPatternId: escort_harass
+  enemyBrainThinkIntervalOverride: 17
+  enemyBrainThinkIntervalMultiplier: 0.93
   playerFactionRules: {fileID: 0}
   enemyFactionRules: {fileID: 0}
   defenseDurationSeconds: 120
   seizeHoldSeconds: 12
-  relicMaxHealth: 500
+  relicMaxHealth: 520
   heresyStrongholdMaxHealth: 1280

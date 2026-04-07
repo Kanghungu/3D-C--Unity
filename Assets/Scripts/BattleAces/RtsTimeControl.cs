@@ -21,6 +21,23 @@ namespace Game.BattleAces
             ? speedSteps[Mathf.Clamp(speedIndex, 0, speedSteps.Length - 1)]
             : 1f;
 
+        /// <summary>HUD 한 줄 — 일시정지·배속 표시</summary>
+        public string GetStatusLineKo()
+        {
+            if (!allowControl)
+            {
+                return string.Empty;
+            }
+
+            if (paused)
+            {
+                return "시간: 일시정지 (P) · 1·2·3 배속";
+            }
+
+            float s = CurrentSpeedStep;
+            return $"시간: 배속 {s:0.##}× (P 일시정지 · 1·2·3 단계)";
+        }
+
         private void Awake()
         {
             Instance = this;

@@ -1,8 +1,8 @@
 // =============================================================================
-// [Scripts ?ˆì´?? Campaign]
-// - ?¤í† ë¦?ë¯¸ì…˜ ?ë¦„: ?œì„± ë¯¸ì…˜Â·?€???Œì´ë¸”Â·ë©”??ë³µê? ???´ë¦„. DontDestroyOnLoad.
-// - ?„íˆ¬ ê·œì¹™?€ BattleAces???ê³ , ?¬ê¸°?œëŠ” "ë¬´ìŠ¨ ë¯¸ì…˜???£ëŠ”ì§€"ë§?? ì??œë‹¤.
-// - PrototypeBootstrapper?€ ë¬´ê? ??CampaignMenu ?±ì—?œë§Œ ë°°ì¹˜?œë‹¤.
+// [Scripts ???: Campaign]
+// - DontDestroyOnLoad ? ?? ??·?? ???·??? ?? ? ??? ?? ?? ??.
+// - ?? ??? BattleAces ?, ???? "?? ??? ???"? ??.
+// - PrototypeBootstrapper? ?? ? CampaignMenu ???? ??.
 // =============================================================================
 using Game.Campaign.Data;
 using UnityEngine;
@@ -11,27 +11,27 @@ using UnityEngine.SceneManagement;
 namespace Game.Campaign.Core
 {
     /// <summary>
-    /// ìº í˜??ê³µí†µ ë¶€?¸ìŠ¤?¸ë© ?????„í™˜ ?„ì—??? ì??˜ì–´ ?„ì¬ ë¯¸ì…˜Â·?€???Œì´ë¸?ì°¸ì¡°ë¥?ê³µìœ ?œë‹¤.
-    /// ì²??¬ì— ë¹??¤ë¸Œ?íŠ¸ë¡??˜ë‚˜ë§??”ë‹¤.
+    /// ??? ?? ????? ? ??? ?? ? ???? ?? ??·?? ???? ???.
+    /// ??? ??? ?? ??.
     /// </summary>
     public sealed class PersistentGameCore : MonoBehaviour
     {
         public static PersistentGameCore Instance { get; private set; }
 
-        [Header("? íƒ ???œì‘ ??ê¸°ë³¸ ë¯¸ì…˜")]
+        [Header("?? ? ?? ? ?? ??")]
         [SerializeField] private MissionDefinition startingMission;
 
         [Header("Shared dialogue table")]
         [SerializeField] private DialogueTable dialogueTable;
 
-        [Header("ìº í˜??UI")]
-        [Tooltip("?„íˆ¬ ì¢…ë£Œ ??'ë©”ë‰´ë¡? ?ì„œ ë¶ˆëŸ¬?????´ë¦„(Build Settings ?±ë¡)")]
+        [Header("??? UI")]
+        [Tooltip("?? ?? ? '???'?? ??? ? ??(Build Settings ??)")]
         [SerializeField] private string campaignMenuSceneName = "CampaignMenu";
 
-        /// <summary>?„ì¬ ë¡œë“œ??ë¯¸ì…˜ ?•ì˜(?„íˆ¬ ??ë¶€?¸ìŠ¤?¸ë˜?¼ê? ?½ìŒ)</summary>
+        /// <summary>?? ??? ??(?? ?????? ??)</summary>
         public MissionDefinition ActiveMission { get; private set; }
 
-        /// <summary>ë¯¸ì…˜ ? íƒ ë©”ë‰´?ì„œ ?¤ì • ???¹ë¦¬ ???´ê¸ˆ ?¸ë±???€?¥ìš©(-1 ?´ë©´ MissionDefinition.sortOrder ?¬ìš©)</summary>
+        /// <summary>?? ?? ???? ?? ?? ???(-1?? MissionDefinition.sortOrder ??)</summary>
         public int PendingMissionOrderIndex { get; set; } = -1;
 
         public DialogueTable DialogueTable => dialogueTable;
@@ -54,13 +54,13 @@ namespace Game.Campaign.Core
             }
         }
 
-        /// <summary>ë¯¸ì…˜ ? íƒ ?”ë©´ ?ëŠ” ??ë¡œë“œ ì§í›„ ?¸ì¶œ</summary>
+        /// <summary>?? ?? ? ?? ?? ??? ??</summary>
         public void SetActiveMission(MissionDefinition mission)
         {
             ActiveMission = mission;
         }
 
-        /// <summary>?€??IDë¡?ë³¸ë¬¸ ì¡°íšŒ ???†ìœ¼ë©?null</summary>
+        /// <summary>?? ID? ?? ?? ? ??? null</summary>
         public string TryGetDialogue(string dialogueId)
         {
             if (dialogueTable == null || string.IsNullOrEmpty(dialogueId))
@@ -71,10 +71,18 @@ namespace Game.Campaign.Core
             return dialogueTable.TryGetText(dialogueId);
         }
 
-        /// <summary>?ë””???”ë²„ê·¸ìš© ???„ì¬ ?¬ë§Œ ?¤ì‹œ ë¡œë“œ</summary>
+        /// <summary>???·???? ? ?? ?? ?? ??</summary>
         public static void ReloadActiveScene()
         {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().path);
+            Scene active = SceneManager.GetActiveScene();
+            string path = active.path;
+            if (string.IsNullOrEmpty(path))
+            {
+                Debug.LogWarning("[PersistentGameCore] ?? ? ??? ?? ?? Reload ? ?????.");
+                return;
+            }
+
+            SceneManager.LoadScene(path);
         }
     }
 }

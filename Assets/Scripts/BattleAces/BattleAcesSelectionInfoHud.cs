@@ -26,8 +26,11 @@ namespace Game.BattleAces
                 return;
             }
 
+            ImGuiGameUi.BeginScaledGui();
+
             if (BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController matchCtrl) && matchCtrl.IsFinished)
             {
+                ImGuiGameUi.EndScaledGui();
                 return;
             }
 
@@ -42,10 +45,10 @@ namespace Game.BattleAces
                 UnitDefinition nextDef = database.GetDefinition(nextArch);
                 string unitName = nextDef != null ? nextDef.DisplayName : nextArch.ToString();
                 string prodLine = secLeft > 0.05f
-                    ? $"Next unit: {unitName} ({secLeft:0.0}s)"
-                    : $"Next unit: {unitName} (queued)";
+                    ? $"다음 유닛: {unitName}  ({secLeft:0.0}초)"
+                    : $"다음 유닛: {unitName}  (대기)";
 
-                GUI.skin.label.fontSize = 13;
+                GUI.skin.label.fontSize = 14;
                 GUI.color = ImGuiGameUi.AccentGold;
                 GUI.Label(new Rect(x, bottomY - 22f, w, 20f), prodLine);
                 GUI.color = Color.white;
@@ -58,22 +61,24 @@ namespace Game.BattleAces
             if (sel != null && sel.SelectedUnits.Count == 1)
             {
                 DrawSingleUnit(r, sel.SelectedUnits[0]);
+                ImGuiGameUi.EndScaledGui();
                 return;
             }
 
             DrawCoreOnly(r);
+            ImGuiGameUi.EndScaledGui();
         }
 
         private void DrawCoreOnly(Rect r)
         {
             UnitHealth h = playerCore.Health;
             string hpLine = h != null
-                ? $"Player Core  {h.CurrentHealth:0} / {h.MaxHealth:0}"
-                : "Player Core  --";
+                ? $"아군 코어  {h.CurrentHealth:0} / {h.MaxHealth:0}"
+                : "아군 코어 —";
 
-            GUI.skin.label.fontSize = 14;
+            GUI.skin.label.fontSize = 15;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(new Rect(r.x + 10f, r.y + 6f, r.width - 20f, 20f), "Select one unit to see its details.");
+            GUI.Label(new Rect(r.x + 10f, r.y + 6f, r.width - 20f, 20f), "유닛을 선택하면 상세 스탯이 표시됩니다.");
             GUI.color = ImGuiGameUi.TextTitle;
             GUI.Label(new Rect(r.x + 10f, r.y + 26f, r.width - 20f, 22f), hpLine);
             GUI.color = Color.white;
@@ -90,16 +95,16 @@ namespace Game.BattleAces
             UnitHealth uh = unit.GetComponent<UnitHealth>();
             int cost = BattleAcesEconomy.GetTrainCost(def);
 
-            GUI.skin.label.fontSize = 14;
+            GUI.skin.label.fontSize = 15;
             GUI.color = ImGuiGameUi.AccentGold;
             string title = def != null ? def.DisplayName : unit.Archetype.ToString();
             GUI.Label(new Rect(r.x + 10f, r.y + 6f, r.width - 20f, 22f), title);
 
             GUI.color = ImGuiGameUi.TextTitle;
-            string hp = uh != null ? $"HP {uh.CurrentHealth:0} / {uh.MaxHealth:0}" : "HP --";
+            string hp = uh != null ? $"체력  {uh.CurrentHealth:0} / {uh.MaxHealth:0}" : "체력 —";
             string infoLine = economy != null
-                ? $"{hp} | Cost {cost} | Credits {economy.PlayerCredits:0}"
-                : $"{hp} | Cost {cost}";
+                ? $"{hp}   ·   재훈련 비용(참고)  {cost}   ·   자원  {economy.PlayerCredits:0}"
+                : $"{hp}   ·   재훈련 비용(참고)  {cost}";
 
             GUI.Label(new Rect(r.x + 10f, r.y + 26f, r.width - 20f, 22f), infoLine);
             GUI.color = Color.white;

@@ -1,3 +1,5 @@
+using Game.Audio;
+using Game.BattleAces;
 using Game.Prototype;
 using Game.Units;
 using System.Collections.Generic;
@@ -110,6 +112,11 @@ namespace Game.Selection
 
             if (!TryGetMouseRaycastHit(out RaycastHit hit))
             {
+                if (SelectionHasAlivePlayerUnit())
+                {
+                    TryPlayCommandRejectFeedback();
+                }
+
                 return;
             }
 
@@ -227,6 +234,7 @@ namespace Game.Selection
 
             if (priorityNode == null)
             {
+                TryPlayCommandRejectFeedback();
                 return;
             }
 
@@ -294,6 +302,38 @@ namespace Game.Selection
             }
 
             moveMarkerLabel = string.Empty;
+        }
+
+        private bool SelectionHasAlivePlayerUnit()
+        {
+            for (int i = 0; i < selectedUnits.Count; i++)
+            {
+                SelectableUnit u = selectedUnits[i];
+                if (u == null || u.Team != UnitTeam.Player)
+                {
+                    continue;
+                }
+
+                CombatTarget ct = u.GetComponent<CombatTarget>();
+                if (ct == null || ct.IsAlive)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void TryPlayCommandRejectFeedback()
+        {
+            if (Time.unscaledTime - lastCommandRejectFeedbackUnscaledTime < CommandRejectFeedbackCooldown)
+            {
+                return;
+            }
+
+            lastCommandRejectFeedbackUnscaledTime = Time.unscaledTime;
+            ProceduralAudioUtility.PlayUiCommandRejected();
+            BattleAcesHudOverlay.PulseCommandRejectTextHint();
         }
     }
 }

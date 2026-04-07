@@ -29,6 +29,10 @@ namespace Game.BattleAces
         private void OnDamaged(float amount)
         {
             ProceduralAudioUtility.PlayCoreHit(Mathf.Clamp01(amount / 140f));
+            if (BattleAcesMatchController.Instance != null && amount > 0f)
+            {
+                BattleAcesPlayerHitFlash.NotifyPlayerDamage(Mathf.Clamp01(amount / 180f));
+            }
         }
     }
 }

@@ -31,6 +31,8 @@ MonoBehaviour:
   - 5
   - 9
   enemyPatternId: default_skirmish
+  enemyBrainThinkIntervalOverride: 0
+  enemyBrainThinkIntervalMultiplier: 1.1
   playerFactionRules: {fileID: 0}
   enemyFactionRules: {fileID: 0}
   defenseDurationSeconds: 135

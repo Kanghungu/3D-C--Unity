@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Game.EditorTools
 {
     /// <summary>
-    /// CampaignDialogue_KR ??ÎØ∏ÏÖò¬∑?ÑÎìú ?Ä??IDÍ∞Ä Îπ†Ï°å?îÏ? Í≤Ä???ÑÎ°ú???†Ï?Î≥¥Ïàò??.
+    /// CampaignDialogue_KR? ????? ?? ID? ???? ????.
     /// </summary>
     public static class CampaignDialogueValidator
     {
@@ -19,7 +19,7 @@ namespace Game.EditorTools
             DialogueTable table = AssetDatabase.LoadAssetAtPath<DialogueTable>(DialoguePath);
             if (table == null)
             {
-                EditorUtility.DisplayDialog("Dialogue", "CampaignDialogue_KR.asset ??Ï∞æÏùÑ ???ÜÏäµ?àÎã§.", "?ïÏù∏");
+                EditorUtility.DisplayDialog("Dialogue", "CampaignDialogue_KR.asset? ?? ? ????.", "??");
                 return;
             }
 
@@ -56,39 +56,89 @@ namespace Game.EditorTools
 
                     if (!ids.Contains(id))
                     {
-                        missing.Add($"{m.MissionId} ??{label}: [{id}]");
+                        missing.Add($"{m.MissionId} / {label}: [{id}]");
                     }
                 }
 
                 Check(m.BriefingDialogueId, "brief");
                 Check(m.VictoryDialogueId, "win");
                 Check(m.DefeatDialogueId, "lose");
+
+                // ?? ??: ???? *_air ?? ??? ????? ??? ?
+                if (m.AirborneCitadelFocus)
+                {
+                    if (!string.IsNullOrEmpty(m.BriefingDialogueId))
+                    {
+                        Check(m.BriefingDialogueId + "_air", "brief_air");
+                    }
+
+                    if (!string.IsNullOrEmpty(m.VictoryDialogueId))
+                    {
+                        Check(m.VictoryDialogueId + "_air", "win_air");
+                    }
+
+                    if (!string.IsNullOrEmpty(m.DefeatDialogueId))
+                    {
+                        Check(m.DefeatDialogueId + "_air", "lose_air");
+                    }
+                }
             }
 
             string[] fieldIds =
             {
-                "m01_field_1", "m01_field_2", "m02_field_1", "m03_field_1", "m03_field_2",
-                "m04_field_1", "m04_field_2", "m05_field_1"
+                "m01_field_1", "m01_field_2", "m02_field_1", "m02_field_2",
+                "m03_field_1", "m03_field_2",
+                "m04_field_1", "m04_field_2",
+                "m05_field_1", "m05_field_2",
+                "m06_field_1", "m06_field_2", "m06_field_2_air",
+                "m07_field_1", "m07_field_2"
             };
 
             foreach (string fid in fieldIds)
             {
                 if (!ids.Contains(fid))
                 {
-                    missing.Add($"?ÑÎìú ?Ä???§ÌÜ†Î¶?Ï°? ??[{fid}]");
+                    missing.Add("field dialogue: [" + fid + "]");
+                }
+            }
+
+            string[] hintIds =
+            {
+                "hint_retry_player_core",
+                "hint_retry_player_core_m01",
+                "hint_retry_player_core_m02",
+                "hint_retry_player_core_m03",
+                "hint_retry_player_core_m04",
+                "hint_retry_player_core_m05",
+                "hint_retry_player_core_m06",
+                "hint_retry_player_core_m07",
+                "hint_retry_relic_objective",
+                "hint_retry_relic_objective_m03",
+                "hint_retry_mission_fail",
+                "hint_retry_mission_fail_m02",
+                "hint_retry_mission_fail_m03",
+                "hint_retry_mission_fail_m05",
+                "hint_retry_generic"
+            };
+
+            foreach (string hid in hintIds)
+            {
+                if (!ids.Contains(hid))
+                {
+                    missing.Add("defeat hint: [" + hid + "]");
                 }
             }
 
             if (missing.Count == 0)
             {
-                EditorUtility.DisplayDialog("Dialogue Check", "No missing dialogue IDs found.", "OK");
+                EditorUtility.DisplayDialog("Dialogue Check", "??? ?? ID? ????.", "OK");
                 return;
             }
 
-            Debug.LogWarning("[CampaignDialogueValidator] ?ÑÎùΩ:\n" + string.Join("\n", missing));
+            Debug.LogWarning("[CampaignDialogueValidator] ??:\n" + string.Join("\n", missing));
             EditorUtility.DisplayDialog(
                 "Dialogue Check",
-                "Found " + missing.Count + " missing dialogue IDs. Check the console warning.",
+                "?? " + missing.Count + "?. ?? ??? ?????.",
                 "OK");
         }
     }

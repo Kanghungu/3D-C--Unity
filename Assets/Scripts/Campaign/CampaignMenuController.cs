@@ -12,6 +12,7 @@ namespace Game.Campaign
 
         private void OnGUI()
         {
+            ImGuiGameUi.BeginScaledGui();
             DrawMenuBackground();
 
             float pad = 36f;
@@ -73,6 +74,7 @@ namespace Game.Campaign
             }
 
             DrawClearButton(pad);
+            ImGuiGameUi.EndScaledGui();
         }
 
         private static void DrawMenuBackground()
@@ -106,13 +108,37 @@ namespace Game.Campaign
                 return string.Empty;
             }
 
-            int missionCount = Mathf.Min(5, catalog.Count);
+            int missionCount = catalog.Count;
             string line = "Progress ";
             for (int i = 0; i < missionCount; i++)
             {
                 MissionDefinition mission = catalog.GetMissionAt(i);
-                bool cleared = mission != null && CampaignProgressStorage.IsMissionCompleted(mission.MissionId);
-                line += cleared ? "[Done] " : "[Open] ";
+                if (mission == null)
+                {
+                    line += "[?] ";
+                    continue;
+                }
+
+                bool cleared = CampaignProgressStorage.IsMissionCompleted(mission.MissionId);
+                bool hasBonus = !string.IsNullOrEmpty(mission.OptionalBonusObjectiveId);
+                bool bonusDone = CampaignProgressStorage.IsBonusObjectiveCompleted(mission.MissionId);
+
+                if (!hasBonus)
+                {
+                    line += cleared ? "[●] " : "[○] ";
+                }
+                else if (cleared && bonusDone)
+                {
+                    line += "[●★] ";
+                }
+                else if (cleared)
+                {
+                    line += "[● ] ";
+                }
+                else
+                {
+                    line += "[○] ";
+                }
             }
 
             return line.TrimEnd();

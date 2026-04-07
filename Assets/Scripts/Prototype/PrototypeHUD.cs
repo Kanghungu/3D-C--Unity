@@ -1,5 +1,6 @@
 ﻿using Game.CameraSystem;
 using Game.Selection;
+using Game.UI;
 using Game.Units;
 using System.Collections.Generic;
 using UnityEngine;
@@ -57,6 +58,7 @@ namespace Game.Prototype
 
         private void OnGUI()
         {
+            ImGuiGameUi.BeginScaledGui();
             EnsureStyles();
 
             BaseStructure playerBase = PrototypeRuntimeQuery.FindBase(UnitTeam.Player);
@@ -88,6 +90,8 @@ namespace Game.Prototype
             {
                 DrawMatchOverlay(matchController.Result, playerBase, enemyBase, playerUnits, enemyUnits);
             }
+
+            ImGuiGameUi.EndScaledGui();
         }
 
         private void DrawStatsPanel()

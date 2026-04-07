@@ -13,11 +13,12 @@ MonoBehaviour:
   m_Name: Mission_05_Stub
   m_EditorClassIdentifier: 
   missionId: mission_05_stub
-  displayName: "5. 거점 점령 - 실험 구역"
+  displayName: "5. 거점 점령 - 동부 장애 구역"
   gameplaySceneName: NewSampleScene
   campaignSortOrder: 4
   objectiveKind: 3
   mirroredLayoutVariant: 1
+  briefingUseCompactFont: 1
   briefingDialogueId: m05_brief
   victoryDialogueId: m05_win
   defeatDialogueId: m05_lose
@@ -30,12 +31,12 @@ MonoBehaviour:
   - 4
   - 5
   - 9
-  enemyPatternId: aggressive_push
+  enemyPatternId: seize_pressure
   enemyBrainThinkIntervalOverride: 0
-  enemyBrainThinkIntervalMultiplier: 0.92
+  enemyBrainThinkIntervalMultiplier: 0.88
   playerFactionRules: {fileID: 0}
   enemyFactionRules: {fileID: 0}
   defenseDurationSeconds: 120
-  seizeHoldSeconds: 14
+  seizeHoldSeconds: 13
   relicMaxHealth: 500
   heresyStrongholdMaxHealth: 1200

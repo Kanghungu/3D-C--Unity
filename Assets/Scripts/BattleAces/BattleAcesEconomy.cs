@@ -4,24 +4,28 @@ using UnityEngine;
 namespace Game.BattleAces
 {
     /// <summary>
-    /// ?ë™ ?ì›: ë§?ì´??¬ë ˆ?§ì´ ì¦ê??œë‹¤. ?ì‚° ë¹„ìš©?€ TrySpend?ì„œ ì°¨ê°.
+    /// Battle Aces ?? ? ?? ? ?? ???·?? ??. ??/??? TrySpend ? ??.
     /// </summary>
     public class BattleAcesEconomy : MonoBehaviour
     {
         [Header("Starting economy values")]
-        [SerializeField] private float playerCredits = 220f;
+        [SerializeField] private float playerCredits = 235f;
         [SerializeField] private float enemyCredits = 55f;
-        [SerializeField] private float playerIncomePerSecond = 7.5f;
-        [SerializeField] private float enemyIncomePerSecond = 1.65f;
+        [SerializeField] private float playerIncomePerSecond = 8f;
+        [SerializeField] private float enemyIncomePerSecond = 1.68f;
 
-        /// <summary>?Œë ˆ?´ì–´ ì½”ì–´ ?…ê·¸?ˆì´?œë¡œ ì¶”ê??˜ëŠ” ì´ˆë‹¹ ?ì›</summary>
+        /// <summary>?? ????? ??? ?? ???? ?? ??? ??</summary>
         private float playerBonusIncomePerSecond;
+
+        /// <summary>??1 ???? ? ? ?? N? ?? ?? ??? ??(?? ??)</summary>
+        private float openingBoostSecondsRemaining;
+        private float openingBoostCreditsPerSecond;
 
         public float PlayerCredits => playerCredits;
         public float EnemyCredits => enemyCredits;
         public float PlayerTotalIncomePerSecond => playerIncomePerSecond + playerBonusIncomePerSecond;
 
-        /// <summary>?©ì…˜/ë¯¸ì…˜?ì„œ ê¸°ë³¸ ?˜ì…??ê³±í•¨(ì½”ì–´ U ?…ê·¸?ˆì´??ë³´ë„ˆ?¤ëŠ” ë³„ë„)</summary>
+        /// <summary>??? ??? ?? ?? ??(?? ?? ? ????? ??????? 1??)</summary>
         public void ApplyIncomeMultipliers(float playerMult, float enemyMult)
         {
             playerMult = Mathf.Max(0.05f, playerMult);
@@ -30,13 +34,39 @@ namespace Game.BattleAces
             enemyIncomePerSecond *= enemyMult;
         }
 
-        private void Update()
+        /// <summary>?? ??? ? duration ?? ? ? extraCreditsPerSecond ?? ???? ??? ??</summary>
+        public void ActivateOpeningIncomeBoost(float durationSeconds, float extraCreditsPerSecond)
         {
-            playerCredits += (playerIncomePerSecond + playerBonusIncomePerSecond) * Time.deltaTime;
-            enemyCredits += enemyIncomePerSecond * Time.deltaTime;
+            if (durationSeconds <= 0f || extraCreditsPerSecond <= 0f)
+            {
+                return;
+            }
+
+            openingBoostSecondsRemaining = Mathf.Max(openingBoostSecondsRemaining, durationSeconds);
+            openingBoostCreditsPerSecond = Mathf.Max(openingBoostCreditsPerSecond, extraCreditsPerSecond);
         }
 
-        /// <summary>ì½”ì–´ ?…ê·¸?ˆì´?????ë™ ?ì› ì¦ê?</summary>
+        private void Update()
+        {
+            float dt = Time.deltaTime;
+
+            if (openingBoostSecondsRemaining > 0f)
+            {
+                float step = Mathf.Min(dt, openingBoostSecondsRemaining);
+                playerCredits += openingBoostCreditsPerSecond * step;
+                openingBoostSecondsRemaining -= dt;
+                if (openingBoostSecondsRemaining <= 0f)
+                {
+                    openingBoostSecondsRemaining = 0f;
+                    openingBoostCreditsPerSecond = 0f;
+                }
+            }
+
+            playerCredits += (playerIncomePerSecond + playerBonusIncomePerSecond) * dt;
+            enemyCredits += enemyIncomePerSecond * dt;
+        }
+
+        /// <summary>?? ?????(T ?)?? ??</summary>
         public void AddPlayerIncomePerSecond(float delta)
         {
             if (delta > 0f)
@@ -45,7 +75,7 @@ namespace Game.BattleAces
             }
         }
 
-        /// <summary>? ë‹› ?•ì˜ ê¸°ë°˜ ?ˆë ¨ ë¹„ìš© (?„ë¡œ?•ì…˜ ?œê°„??ê¸¸ìˆ˜ë¡?ë¹„ìŒˆ)</summary>
+        /// <summary>?? ?? ?? ? ??? ?? ??? ??</summary>
         public static int GetTrainCost(UnitDefinition definition)
         {
             if (definition == null)
@@ -53,8 +83,8 @@ namespace Game.BattleAces
                 return 999;
             }
 
-            float raw = definition.ProductionDuration * 4f;
-            return Mathf.Clamp(Mathf.RoundToInt(raw), 12, 85);
+            float raw = definition.ProductionDuration * 3.92f;
+            return Mathf.Clamp(Mathf.RoundToInt(raw), 12, 82);
         }
 
         public bool TrySpendPlayer(int amount)

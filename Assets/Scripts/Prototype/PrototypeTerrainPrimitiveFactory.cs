@@ -8,6 +8,23 @@ namespace Game.Prototype
     /// </summary>
     public static class PrototypeTerrainPrimitiveFactory
     {
+        /// <summary>FoW 시야 차단용 — 레이어가 없으면 무시(기존 Default 유지).</summary>
+        private static void TrySetVisionObstacleLayer(GameObject target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            int layerId = LayerMask.NameToLayer("VisionObstacle");
+            if (layerId < 0)
+            {
+                return;
+            }
+
+            target.layer = layerId;
+        }
+
         // ── 식생 ──────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -187,6 +204,7 @@ namespace Game.Prototype
             block.transform.localScale = scale;
             block.transform.SetParent(parent);
             block.GetComponent<Renderer>().material.color = color;
+            TrySetVisionObstacleLayer(block);
             EnsureFogObject(block, BattlefieldFogRequirement.Explored);
         }
 
@@ -198,6 +216,7 @@ namespace Game.Prototype
             pillar.transform.localScale = new Vector3(2.6f, 6.2f, 2.6f);
             pillar.transform.SetParent(parent);
             pillar.GetComponent<Renderer>().material.color = color;
+            TrySetVisionObstacleLayer(pillar);
             EnsureFogObject(pillar, BattlefieldFogRequirement.Explored);
         }
 
@@ -217,6 +236,8 @@ namespace Game.Prototype
             cloth.transform.SetParent(parent);
             cloth.GetComponent<Renderer>().material.color = bannerColor;
 
+            TrySetVisionObstacleLayer(pole);
+            TrySetVisionObstacleLayer(cloth);
             EnsureFogObject(pole, BattlefieldFogRequirement.Explored);
             EnsureFogObject(cloth, BattlefieldFogRequirement.Explored);
         }

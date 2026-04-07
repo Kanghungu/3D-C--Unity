@@ -1,16 +1,19 @@
 ﻿using System.Collections.Generic;
 using Game.CameraSystem;
+using Game.Campaign.Data;
 using Game.Prototype;
 using Game.Selection;
+using Game.Settings;
 using Game.UI;
 using Game.Units;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Game.BattleAces
 {
     public class BattleAcesMinimap : MonoBehaviour
     {
-        private const float MapPixelSize = 208f;
+        private const float MapPixelSizeBase = 208f;
         private const float Margin = 14f;
 
         private Vector2 worldMin;
@@ -29,6 +32,12 @@ namespace Game.BattleAces
         private Vector2 minimapBoxStart;
         private Vector2 minimapBoxEnd;
 
+        /// <summary>캠페인 미션일 때만 목표별 범례 한 줄 추가(스커미시는 null).</summary>
+        private MissionObjectiveKind? boundObjectiveKind;
+
+        /// <summary>캠페인에서만 미니맵에 집결·추가 표식이 올라가므로 범례에도 표시.</summary>
+        private bool showRallyLegendLine;
+
         private readonly List<MinimapExtraDot> extraDots = new List<MinimapExtraDot>(8);
         private static Texture2D boxSelectTexture;
 
@@ -39,18 +48,24 @@ namespace Game.BattleAces
             public float Size;
         }
 
+        private const string LegendCollapsedPrefsKey = "ba_mm_legend_collapsed";
+
         public void Bind(
             Vector2 xzWorldMin,
             Vector2 xzWorldMax,
             BattleAcesCore player,
             BattleAcesCore enemy,
-            BattleAcesMatchController match = null)
+            BattleAcesMatchController match = null,
+            MissionObjectiveKind? objectiveKind = null,
+            bool showRallyOnLegend = false)
         {
             worldMin = xzWorldMin;
             worldMax = xzWorldMax;
             playerCore = player;
             enemyCore = enemy;
             matchController = match;
+            boundObjectiveKind = objectiveKind;
+            showRallyLegendLine = showRallyOnLegend;
         }
 
         public void ClearExtraMarkers()
@@ -68,40 +83,84 @@ namespace Game.BattleAces
             });
         }
 
+        private static float MapPixelSize => MapPixelSizeBase * GameUserSettings.MinimapScale01;
+
+        private void Update()
+        {
+            Keyboard kb = Keyboard.current;
+            if (kb == null || !kb.mKey.wasPressedThisFrame || !kb.leftShiftKey.isPressed)
+            {
+                return;
+            }
+
+            float cur = GameUserSettings.MinimapScale01;
+            float next = cur < 0.92f ? 1f : cur < 1.08f ? 1.22f : 0.85f;
+            GameUserSettings.SetMinimapScale(next);
+            GameUserSettings.Save();
+        }
+
         private void OnGUI()
         {
-            mapRect = new Rect(Screen.width - MapPixelSize - Margin, Screen.height - MapPixelSize - Margin, MapPixelSize, MapPixelSize);
+            ImGuiGameUi.BeginScaledGui();
+            float mapPx = MapPixelSize;
+            mapRect = new Rect(Screen.width - mapPx - Margin, Screen.height - mapPx - Margin, mapPx, mapPx);
 
             float w = worldMax.x - worldMin.x;
             float h = worldMax.y - worldMin.y;
+            Rect legendRect = ComputeLegendRect();
             if (w > 0.01f && h > 0.01f)
             {
-                HandleMinimapPanAndClick(w, h);
+                HandleMinimapPanAndClick(w, h, legendRect);
             }
 
             ImGuiGameUi.DrawFilledRect(mapRect, ImGuiGameUi.PanelBgDeep);
+
+            // FoW — 전장과 동일 마스크(유닛 점은 그 위에 그림)
+            Texture2D fogMask = BattleAcesFogOfWarDebug.Instance != null
+                ? BattleAcesFogOfWarDebug.Instance.FogMaskTexture
+                : null;
+            // 파괴된 Texture2D는 Unity fake-null — 단순 != null 만으로는 부족할 수 있음
+            if (fogMask)
+            {
+                GUI.color = Color.white;
+                GUI.DrawTexture(mapRect, fogMask, ScaleMode.StretchToFill, true);
+            }
+
             DrawBorder(mapRect, ImGuiGameUi.BorderCool);
 
             GUI.skin.label.fontSize = 13;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(new Rect(mapRect.x, mapRect.y - 22f, mapRect.width, 20f), "TACTICAL MAP | Click jump | Drag pan");
+            GUI.Label(
+                new Rect(mapRect.x, mapRect.y - 22f, mapRect.width, 20f),
+                "전술 맵 · 클릭 · 드래그 · Shift 박스 · Shift+M · 우하 색 범례(접기)");
             GUI.color = Color.white;
 
             if (w <= 0.01f || h <= 0.01f)
             {
+                ImGuiGameUi.EndScaledGui();
                 return;
             }
 
             if (playerCore != null && playerCore.Health != null && playerCore.Health.IsAlive)
             {
-                DrawWorldDot(playerCore.transform.position, new Color(0.25f, 0.75f, 1f), 9f, w, h);
+                float n = playerCore.Health.Normalized;
+                Color pc = n <= 0.28f
+                    ? new Color(1f, 0.42f, 0.35f, 1f)
+                    : new Color(0.25f, 0.75f, 1f, 1f);
+                DrawWorldDot(playerCore.transform.position, pc, 9f, w, h);
             }
 
             if (enemyCore != null && enemyCore.Health != null && enemyCore.Health.IsAlive)
             {
-                DrawWorldDot(enemyCore.transform.position, new Color(1f, 0.32f, 0.22f), 9f, w, h);
+                float en = enemyCore.Health.Normalized;
+                bool low = en <= 0.32f;
+                Color ec = low
+                    ? new Color(1f, 0.52f, 0.12f, 1f)
+                    : new Color(1f, 0.32f, 0.22f, 1f);
+                DrawWorldDot(enemyCore.transform.position, ec, low ? 10.2f : 9f, w, h);
             }
 
+            SelectableUnit firstSelectedPlayer = null;
             foreach (SelectableUnit unit in PrototypeRuntimeRegistry.GetSelectableUnits())
             {
                 if (unit == null)
@@ -115,11 +174,22 @@ namespace Game.BattleAces
                     continue;
                 }
 
+                bool sel = unit.IsSelected;
+                if (sel && unit.Team == UnitTeam.Player && firstSelectedPlayer == null)
+                {
+                    firstSelectedPlayer = unit;
+                }
+
                 Color c = unit.Team == UnitTeam.Player
-                    ? new Color(0.35f, 0.9f, 0.45f, 0.95f)
+                    ? sel
+                        ? new Color(0.55f, 1f, 0.65f, 1f)
+                        : new Color(0.35f, 0.9f, 0.45f, 0.95f)
                     : new Color(1f, 0.6f, 0.2f, 0.95f);
-                DrawWorldDot(unit.transform.position, c, 4.5f, w, h);
+                float dot = unit.Team == UnitTeam.Player && sel ? 6.8f : 4.5f;
+                DrawWorldDot(unit.transform.position, c, dot, w, h);
             }
+
+            DrawSelectionToCoreLink(firstSelectedPlayer, w, h);
 
             for (int i = 0; i < extraDots.Count; i++)
             {
@@ -133,6 +203,198 @@ namespace Game.BattleAces
             {
                 DrawMinimapBoxSelectOverlay();
             }
+
+            DrawMinimapLegend(legendRect);
+
+            ImGuiGameUi.EndScaledGui();
+        }
+
+        private bool IsLegendCollapsed()
+        {
+            return PlayerPrefs.GetInt(LegendCollapsedPrefsKey, 0) == 1;
+        }
+
+        private Rect ComputeLegendRect()
+        {
+            if (IsLegendCollapsed())
+            {
+                const float chipW = 56f;
+                const float chipH = 22f;
+                float yChip = Mathf.Max(mapRect.yMin + 4f, mapRect.yMax - chipH - 5f);
+                return new Rect(mapRect.xMin + 5f, yChip, chipW, chipH);
+            }
+
+            int lineCount = CountLegendLines();
+            const float pad = 5f;
+            const float headerH = 20f;
+            const float lineH = 15f;
+            float w = Mathf.Min(mapRect.width - 10f, 236f);
+            float h = pad * 2f + headerH + lineCount * lineH;
+            float maxH = Mathf.Max(40f, mapRect.height - 10f);
+            h = Mathf.Min(h, maxH);
+            float y = mapRect.yMax - h - 5f;
+            if (y < mapRect.yMin + 4f)
+            {
+                y = mapRect.yMin + 4f;
+            }
+
+            return new Rect(mapRect.xMin + 5f, y, w, h);
+        }
+
+        private int CountLegendLines()
+        {
+            int n = 4;
+            if (showRallyLegendLine)
+            {
+                n++;
+            }
+
+            if (boundObjectiveKind.HasValue)
+            {
+                switch (boundObjectiveKind.Value)
+                {
+                    case MissionObjectiveKind.EscortRelic:
+                    case MissionObjectiveKind.SeizeRelicOrNode:
+                    case MissionObjectiveKind.DestroyHeresyStronghold:
+                    case MissionObjectiveKind.RecoverRelicAndEvacuate:
+                        n++;
+                        break;
+                }
+            }
+
+            return n;
+        }
+
+        private void DrawMinimapLegend(Rect legendRect)
+        {
+            bool collapsed = IsLegendCollapsed();
+            ImGuiGameUi.DrawFilledRect(legendRect, new Color(0.04f, 0.06f, 0.09f, 0.88f));
+            DrawBorder(legendRect, new Color(0.35f, 0.45f, 0.55f, 0.75f));
+
+            float innerW = legendRect.width;
+            float innerH = legendRect.height;
+            GUI.BeginClip(legendRect);
+
+            if (collapsed)
+            {
+                GUI.skin.label.fontSize = 11;
+                GUI.color = ImGuiGameUi.TextMuted;
+                GUI.Label(new Rect(0f, 0f, innerW, innerH), "  범례 ▶");
+                GUI.color = Color.white;
+                GUI.EndClip();
+                return;
+            }
+
+            GUI.skin.label.fontSize = 11;
+            float x = 6f;
+            float y = 4f;
+            float sw = 9f;
+            float textMaxW = Mathf.Max(40f, innerW - x - sw - 8f);
+
+            GUI.color = ImGuiGameUi.TextTitle;
+            GUI.Label(new Rect(x, y, innerW - 52f, 18f), "색 범례");
+            GUI.color = ImGuiGameUi.AccentGold;
+            GUI.Label(new Rect(innerW - 48f, 3f, 44f, 18f), "접기");
+
+            GUI.color = Color.white;
+            y += 19f;
+
+            DrawLegendRowClipped(x, ref y, sw, textMaxW, new Color(1f, 0.32f, 0.22f, 1f), "적 코어(붉은 큰 점)");
+            DrawLegendRowClipped(x, ref y, sw, textMaxW, new Color(0.25f, 0.75f, 1f, 1f), "아군 코어(청록)");
+            if (showRallyLegendLine)
+            {
+                DrawLegendRowClipped(x, ref y, sw, textMaxW, new Color(0.5f, 0.85f, 1f, 1f), "집결 표식(연청)");
+            }
+
+            DrawLegendRowClipped(x, ref y, sw, textMaxW, new Color(0.4f, 0.92f, 0.5f, 1f), "아군(초록) · 적(주황 점)");
+            DrawLegendRowClipped(x, ref y, sw, textMaxW, new Color(1f, 0.92f, 0.25f, 1f), "시야(노란 테·카메라)");
+
+            if (boundObjectiveKind.HasValue)
+            {
+                switch (boundObjectiveKind.Value)
+                {
+                    case MissionObjectiveKind.EscortRelic:
+                        DrawLegendRowClipped(x, ref y, sw, textMaxW, new Color(0.95f, 0.85f, 0.35f, 1f), "성유물(황금) · 목표구역(연녹)");
+                        break;
+                    case MissionObjectiveKind.RecoverRelicAndEvacuate:
+                        DrawLegendRowClipped(x, ref y, sw, textMaxW, new Color(0.95f, 0.85f, 0.35f, 1f), "성유물(황금) · 철수구역(연파랑)");
+                        break;
+                    case MissionObjectiveKind.SeizeRelicOrNode:
+                        DrawLegendRowClipped(x, ref y, sw, textMaxW, new Color(0.9f, 0.5f, 1f, 1f), "점령 구역(보라)");
+                        break;
+                    case MissionObjectiveKind.DestroyHeresyStronghold:
+                        DrawLegendRowClipped(x, ref y, sw, textMaxW, new Color(1f, 0.35f, 0.5f, 1f), "이단 본거지(분홍)");
+                        break;
+                }
+            }
+
+            GUI.EndClip();
+        }
+
+        /// <summary>BeginClip 안에서 호출 — 좌표는 범례 패널 로컬.</summary>
+        private static void DrawLegendRowClipped(
+            float rowX,
+            ref float y,
+            float swatch,
+            float textMaxW,
+            Color dotColor,
+            string text)
+        {
+            ImGuiGameUi.DrawFilledRect(new Rect(rowX, y + 3f, swatch, swatch), dotColor);
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(rowX + swatch + 6f, y, textMaxW, 16f), text);
+            GUI.color = Color.white;
+            y += 15f;
+        }
+
+        private static Rect GetLegendFoldButtonRect(Rect legendRect)
+        {
+            return new Rect(legendRect.xMax - 48f, legendRect.yMin + 3f, 44f, 18f);
+        }
+
+        private bool TryConsumeLegendMouseDown(Event e, Rect legendRect)
+        {
+            if (e == null || e.type != EventType.MouseDown || e.button != 0)
+            {
+                return false;
+            }
+
+            if (!mapRect.Contains(e.mousePosition) || !legendRect.Contains(e.mousePosition))
+            {
+                return false;
+            }
+
+            if (IsLegendCollapsed())
+            {
+                PlayerPrefs.SetInt(LegendCollapsedPrefsKey, 0);
+                PlayerPrefs.Save();
+                e.Use();
+                return true;
+            }
+
+            if (GetLegendFoldButtonRect(legendRect).Contains(e.mousePosition))
+            {
+                PlayerPrefs.SetInt(LegendCollapsedPrefsKey, 1);
+                PlayerPrefs.Save();
+                e.Use();
+                return true;
+            }
+
+            e.Use();
+            return true;
+        }
+
+        /// <summary>선택된 아군 유닛 1기와 아군 코어 사이 링크(전술 유도선)</summary>
+        private void DrawSelectionToCoreLink(SelectableUnit selectedPlayerUnit, float worldW, float worldH)
+        {
+            if (selectedPlayerUnit == null || playerCore == null || playerCore.Health == null || !playerCore.Health.IsAlive)
+            {
+                return;
+            }
+
+            Vector2 a = WorldToMapPixels(selectedPlayerUnit.transform.position, worldW, worldH);
+            Vector2 b = WorldToMapPixels(playerCore.transform.position, worldW, worldH);
+            DrawLineThick(a, b, new Color(0.32f, 0.95f, 1f, 0.9f), 2.6f);
         }
 
         private void DrawMinimapBoxSelectOverlay()
@@ -184,8 +446,14 @@ namespace Game.BattleAces
             Vector2 max = Vector2.Max(p0, p1);
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
-        private void HandleMinimapPanAndClick(float worldW, float worldH)
+        private void HandleMinimapPanAndClick(float worldW, float worldH, Rect legendRect)
         {
+            Event e = Event.current;
+            if (e != null && TryConsumeLegendMouseDown(e, legendRect))
+            {
+                return;
+            }
+
             if (matchController != null && matchController.IsFinished)
             {
                 return;
@@ -199,7 +467,11 @@ namespace Game.BattleAces
             Camera mainCam = Camera.main;
             RTSCameraController rts = mainCam != null ? mainCam.GetComponent<RTSCameraController>() : null;
 
-            Event e = Event.current;
+            if (e == null)
+            {
+                return;
+            }
+
             const float minBoxDragPixels = 6f;
 
             if (shiftMinimapBoxSelectActive && e.type == EventType.MouseUp && e.button == 0 && !e.shift)
@@ -218,7 +490,8 @@ namespace Game.BattleAces
 
             if (e.shift && e.button == 0)
             {
-                if (e.type == EventType.MouseDown && mapRect.Contains(e.mousePosition))
+                if (e.type == EventType.MouseDown && mapRect.Contains(e.mousePosition) &&
+                    !legendRect.Contains(e.mousePosition))
                 {
                     shiftMinimapBoxSelectActive = true;
                     minimapBoxStart = e.mousePosition;
@@ -255,7 +528,9 @@ namespace Game.BattleAces
                 }
             }
 
-            if (e.type == EventType.MouseDown && mapRect.Contains(e.mousePosition) && (e.button == 0 || e.button == 1))
+            if (e.type == EventType.MouseDown && mapRect.Contains(e.mousePosition) &&
+                !legendRect.Contains(e.mousePosition) &&
+                (e.button == 0 || e.button == 1))
             {
                 minimapPointerActive = true;
                 minimapPointerStart = e.mousePosition;

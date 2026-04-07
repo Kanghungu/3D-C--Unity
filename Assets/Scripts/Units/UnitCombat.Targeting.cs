@@ -1,3 +1,4 @@
+using Game.BattleAces;
 using Game.Prototype;
 using UnityEngine;
 
@@ -54,6 +55,11 @@ namespace Game.Units
             float bestDistance = aggroRange;
             Vector3 searchOrigin = GetSearchOrigin();
 
+            // 적 유닛 — 아군 코어(BattleAcesCore)가 사거리 안이면 일반 유닛보다 우선(슬쩍 더 넓은 허용 거리)
+            CombatTarget preferPlayerCore = null;
+            float preferCoreDistance = aggroRange;
+            bool enemyWantsCore = owner != null && owner.Team == UnitTeam.Enemy;
+
             foreach (CombatTarget target in PrototypeRuntimeRegistry.GetCombatTargets())
             {
                 if (target == null || target == owner || !target.IsAlive || target.Team == owner.Team)
@@ -72,6 +78,24 @@ namespace Game.Units
                     bestDistance = distance;
                     bestTarget = target;
                 }
+
+                if (enemyWantsCore &&
+                    target.Team == UnitTeam.Player &&
+                    target.GetComponent<BattleAcesCore>() != null &&
+                    distance < preferCoreDistance)
+                {
+                    preferCoreDistance = distance;
+                    preferPlayerCore = target;
+                }
+            }
+
+            if (enemyWantsCore &&
+                preferPlayerCore != null &&
+                preferCoreDistance < aggroRange &&
+                (bestTarget == null || preferCoreDistance <= bestDistance + 3.8f))
+            {
+                bestTarget = preferPlayerCore;
+                bestDistance = preferCoreDistance;
             }
 
             CombatTarget supportTarget = FindNearbySupportTarget();

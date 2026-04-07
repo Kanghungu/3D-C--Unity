@@ -58,6 +58,9 @@ namespace Game.Units
         private Renderer orderAnchorMarkerRenderer;
         private float recentAttackPulse;
 
+        /// <summary>Battle Aces — 저체력 후퇴 재시도 간격</summary>
+        private float battleAcesRetreatThrottle;
+
         public CombatTarget CurrentTarget => currentTarget;
         public bool HasAttackMoveDestination => hasAttackMoveDestination;
         public string OrderLabel => BuildOrderLabel();
@@ -115,6 +118,8 @@ namespace Game.Units
                 UpdateOrderAnchorVisuals();
                 return;
             }
+
+            TryBattleAcesLowHealthRetreat();
 
             if (currentTarget != null && currentTarget.IsAlive)
             {
@@ -433,6 +438,61 @@ namespace Game.Units
                 transform.rotation,
                 Quaternion.LookRotation(direction.normalized, Vector3.up),
                 540f * Time.deltaTime);
+        }
+
+        /// <summary>
+        /// Battle Aces — 아군·선택 해제·홀드/가드/공격이동 아님·체력 낮을 때 코어 쪽으로 후퇴 시도.
+        /// </summary>
+        private void TryBattleAcesLowHealthRetreat()
+        {
+            if (owner.Team != UnitTeam.Player)
+            {
+                return;
+            }
+
+            if (health.Normalized >= 0.26f)
+            {
+                return;
+            }
+
+            if (selectableUnit != null && selectableUnit.IsSelected)
+            {
+                return;
+            }
+
+            if (hasHoldPosition || hasGuardPoint || hasAttackMoveDestination)
+            {
+                return;
+            }
+
+            if (!BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController match) || match.IsFinished)
+            {
+                return;
+            }
+
+            BattleAcesCore core = match.PlayerCore;
+            if (core == null || core.Health == null || !core.Health.IsAlive)
+            {
+                return;
+            }
+
+            battleAcesRetreatThrottle -= Time.deltaTime;
+            if (battleAcesRetreatThrottle > 0f)
+            {
+                return;
+            }
+
+            if (Vector3.Distance(transform.position, core.transform.position) < 9f)
+            {
+                return;
+            }
+
+            battleAcesRetreatThrottle = 2.4f;
+            currentTarget = null;
+            hasPursuitDestination = false;
+            Vector3 flat = core.transform.position;
+            flat.y = transform.position.y;
+            mover.SetDestination(flat);
         }
     }
 }

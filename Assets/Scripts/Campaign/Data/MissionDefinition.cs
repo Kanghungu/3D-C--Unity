@@ -28,6 +28,12 @@ namespace Game.Campaign.Data
         [Tooltip("같은 맵 레이아웃을 미러·자원만 바꿔 재사용할 때 체크")]
         [SerializeField] private bool mirroredLayoutVariant;
 
+        [Tooltip("체크 시 브리핑/승패 대사 키에 _air 접미사, 덱·적 패턴이 공중 요새 위주로 조정됨")]
+        [SerializeField] private bool airborneCitadelFocus;
+
+        [Tooltip("브리핑 본문이 길 때만 체크 — 폰트 15·카드 높이를 조금 늘려 잘림을 줄임")]
+        [SerializeField] private bool briefingUseCompactFont;
+
         [Header("대사 ID (DialogueTable 키)")]
         [SerializeField] private string briefingDialogueId;
 
@@ -63,15 +69,43 @@ namespace Game.Campaign.Data
 
         [SerializeField] private float heresyStrongholdMaxHealth = 1280f;
 
+        [Header("보조 목표 (선택 — 실패해도 미션 진행)")]
+        [Tooltip("비어 있으면 없음. core_survive_50: 승리 시 아군 코어 50% 이상 / train_variety_3: 서로 다른 병과 3종 이상 생산")]
+        [SerializeField] private string optionalBonusObjectiveId;
+
         public string MissionId => missionId;
         public string DisplayName => displayName;
         public string GameplaySceneName => gameplaySceneName;
         public int CampaignSortOrder => campaignSortOrder;
         public MissionObjectiveKind ObjectiveKind => objectiveKind;
         public bool MirroredLayoutVariant => mirroredLayoutVariant;
+
+        /// <summary>공중 요새(공성) 위주 미션 변주 — 대사는 *_air 키 우선</summary>
+        public bool AirborneCitadelFocus => airborneCitadelFocus;
+
+        /// <summary>긴 브리핑 전용 — UI에서 본문 폰트·카드 높이만 조정</summary>
+        public bool BriefingUseCompactFont => briefingUseCompactFont;
+
         public string BriefingDialogueId => briefingDialogueId;
         public string VictoryDialogueId => victoryDialogueId;
         public string DefeatDialogueId => defeatDialogueId;
+
+        /// <summary>공중 변주면 briefingDialogueId + "_air" (테이블에 없으면 폴백)</summary>
+        public string EffectiveBriefingDialogueId => ResolveAirDialogueId(briefingDialogueId);
+
+        public string EffectiveVictoryDialogueId => ResolveAirDialogueId(victoryDialogueId);
+
+        public string EffectiveDefeatDialogueId => ResolveAirDialogueId(defeatDialogueId);
+
+        private string ResolveAirDialogueId(string baseId)
+        {
+            if (!airborneCitadelFocus || string.IsNullOrEmpty(baseId))
+            {
+                return baseId;
+            }
+
+            return baseId + "_air";
+        }
         public string EnemyPatternId => enemyPatternId;
 
         /// <summary>0 이하면 부트스트랩이 자동 계산</summary>
@@ -85,6 +119,9 @@ namespace Game.Campaign.Data
         public float SeizeHoldSeconds => Mathf.Max(1f, seizeHoldSeconds);
         public float RelicMaxHealth => Mathf.Max(80f, relicMaxHealth);
         public float HeresyStrongholdMaxHealth => Mathf.Max(200f, heresyStrongholdMaxHealth);
+
+        /// <summary>보조 목표 ID — 빈 문자열이면 없음</summary>
+        public string OptionalBonusObjectiveId => optionalBonusObjectiveId != null ? optionalBonusObjectiveId.Trim() : string.Empty;
 
         /// <summary>코드에서만 쓰는 런타임 데모/테스트 설정(메뉴 없이 씬 단독 실행 시 등)</summary>
         public void AssignRuntimeCampaign(

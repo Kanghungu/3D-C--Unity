@@ -76,6 +76,9 @@ namespace Game.Selection
         private string lastRecalledControlGroupRouteLabel = string.Empty;
         private bool selectionStartedOverHud;
 
+        private float lastCommandRejectFeedbackUnscaledTime = -100f;
+        private const float CommandRejectFeedbackCooldown = 0.42f;
+
         public static PrototypeSelectionController Instance { get; private set; }
         public IReadOnlyList<SelectableUnit> SelectedUnits => selectedUnits;
         public bool HasVisibleMoveMarker => moveMarker != null && moveMarker.activeSelf;
