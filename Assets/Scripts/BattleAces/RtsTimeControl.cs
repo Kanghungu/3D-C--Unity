@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 namespace Game.BattleAces
 {
     /// <summary>
-    /// P 일시정지, 1/2/3 게임 속도. 승패/브리핑 중에는 적용하지 않는다.
+    /// P 일시정지, Q/W/E 게임 속도. 승패/브리핑 중에는 적용하지 않는다.
     /// </summary>
     public sealed class RtsTimeControl : MonoBehaviour
     {
@@ -31,11 +31,11 @@ namespace Game.BattleAces
 
             if (paused)
             {
-                return "시간: 일시정지 (P) · 1·2·3 배속";
+                return "시간: 일시정지 (P) · Q·W·E 배속";
             }
 
             float s = CurrentSpeedStep;
-            return $"시간: 배속 {s:0.##}× (P 일시정지 · 1·2·3 단계)";
+            return $"시간: 배속 {s:0.##}× (P 일시정지 · Q·W·E 단계)";
         }
 
         private void Awake()
@@ -72,19 +72,19 @@ namespace Game.BattleAces
                 ApplyTimeScale();
             }
 
-            if (kb.digit1Key.wasPressedThisFrame)
+            if (kb.qKey.wasPressedThisFrame)
             {
                 speedIndex = 0;
                 paused = false;
                 ApplyTimeScale();
             }
-            else if (kb.digit2Key.wasPressedThisFrame)
+            else if (kb.wKey.wasPressedThisFrame)
             {
                 speedIndex = 1;
                 paused = false;
                 ApplyTimeScale();
             }
-            else if (kb.digit3Key.wasPressedThisFrame)
+            else if (kb.eKey.wasPressedThisFrame)
             {
                 speedIndex = 2;
                 paused = false;

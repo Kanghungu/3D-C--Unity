@@ -1,4 +1,5 @@
 ﻿using Game.Campaign.Data;
+using Game.Campaign.Scene;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -182,6 +183,10 @@ namespace Game.BattleAces
 
             string hint = MissionObjectiveDisplayText.GetGameplayHint(mission.ObjectiveKind);
             string extra = GetDefenseExtraLine();
+            if (string.IsNullOrEmpty(extra))
+            {
+                extra = GetSeizeExtraLine();
+            }
             textDetail.text = string.IsNullOrEmpty(extra) ? hint : $"{hint}\n{extra}";
         }
 
@@ -201,5 +206,33 @@ namespace Game.BattleAces
             float remain = Mathf.Max(0f, mission.DefenseDurationSeconds - elapsed);
             return $"남은 시간 {remain:0}초 / 목표 {mission.DefenseDurationSeconds:0}초 생존";
         }
+
+        private string GetSeizeExtraLine()
+        {
+            if (mission.ObjectiveKind != MissionObjectiveKind.SeizeRelicOrNode)
+            {
+                return string.Empty;
+            }
+
+            MissionCaptureZone zone = MissionCaptureZone.Instance;
+            if (zone == null)
+            {
+                return "보라 구역 안에 아군 병력을 넣어 점령을 시작하십시오.";
+            }
+
+            int pct = Mathf.RoundToInt(zone.HoldProgress01 * 100f);
+            if (zone.IsCompleted)
+            {
+                return "점령 완료. 승리 처리 중입니다.";
+            }
+
+            if (!zone.IsPlayerInside)
+            {
+                return $"점령 대기 중 · 진행 {pct}% / 목표 {zone.HoldSecondsRequired:0}초 유지";
+            }
+
+            return $"점령 진행 중 · 아군 {zone.OccupyingPlayerUnitCount}기 배치 · 진행 {pct}%";
+        }
+
     }
 }

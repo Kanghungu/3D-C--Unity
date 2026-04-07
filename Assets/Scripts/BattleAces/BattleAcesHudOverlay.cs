@@ -112,7 +112,7 @@ namespace Game.BattleAces
                 GUI.color = ImGuiGameUi.TextMuted;
                 GUI.Label(
                     new Rect(x0, y, maxW, 20f),
-                    $"생산 큐 {playerCore.QueueCount}  |  F1 도움말  |  P · 1 · 2 · 3 배속");
+                    $"생산 큐 {playerCore.QueueCount}  |  F1 도움말  |  P · Q · W · E 배속");
                 y += 20f;
 
                 RtsTimeControl rtc = RtsTimeControl.Instance;
@@ -172,7 +172,7 @@ namespace Game.BattleAces
                     line += "  ";
                 }
 
-                line += $"{i + 1}:{GetShortName(playerCore.GetDeckSlot(i))}";
+                line += $"{BattleAcesCore.GetDeckHotkeyLabel(i)}:{GetShortName(playerCore.GetDeckSlot(i))}";
             }
 
             return line;

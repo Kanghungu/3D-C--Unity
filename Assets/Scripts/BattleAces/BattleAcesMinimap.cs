@@ -88,7 +88,7 @@ namespace Game.BattleAces
         private void Update()
         {
             Keyboard kb = Keyboard.current;
-            if (kb == null || !kb.mKey.wasPressedThisFrame || !kb.leftShiftKey.isPressed)
+            if (kb == null || !kb.mKey.wasPressedThisFrame || !(kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed))
             {
                 return;
             }
@@ -220,8 +220,9 @@ namespace Game.BattleAces
             {
                 const float chipW = 56f;
                 const float chipH = 22f;
+                float xChip = Mathf.Max(4f, mapRect.xMin - chipW - 6f);
                 float yChip = Mathf.Max(mapRect.yMin + 4f, mapRect.yMax - chipH - 5f);
-                return new Rect(mapRect.xMin + 5f, yChip, chipW, chipH);
+                return new Rect(xChip, yChip, chipW, chipH);
             }
 
             int lineCount = CountLegendLines();
@@ -230,15 +231,15 @@ namespace Game.BattleAces
             const float lineH = 15f;
             float w = Mathf.Min(mapRect.width - 10f, 236f);
             float h = pad * 2f + headerH + lineCount * lineH;
-            float maxH = Mathf.Max(40f, mapRect.height - 10f);
-            h = Mathf.Min(h, maxH);
-            float y = mapRect.yMax - h - 5f;
-            if (y < mapRect.yMin + 4f)
+            float x = mapRect.xMin - w - 6f;
+            if (x < 4f)
             {
-                y = mapRect.yMin + 4f;
+                x = 4f;
             }
 
-            return new Rect(mapRect.xMin + 5f, y, w, h);
+            float y = mapRect.yMax - h;
+            y = Mathf.Clamp(y, 4f, Mathf.Max(4f, Screen.height - h - 4f));
+            return new Rect(x, y, w, h);
         }
 
         private int CountLegendLines()
@@ -473,13 +474,8 @@ namespace Game.BattleAces
             }
 
             const float minBoxDragPixels = 6f;
-
-            if (shiftMinimapBoxSelectActive && e.type == EventType.MouseUp && e.button == 0 && !e.shift)
-            {
-                shiftMinimapBoxSelectActive = false;
-                e.Use();
-                return;
-            }
+            bool shiftHeld = Keyboard.current != null &&
+                             (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
 
             if (shiftMinimapBoxSelectActive && e.type == EventType.MouseDrag)
             {
@@ -488,7 +484,7 @@ namespace Game.BattleAces
                 return;
             }
 
-            if (e.shift && e.button == 0)
+            if (shiftHeld && e.button == 0)
             {
                 if (e.type == EventType.MouseDown && mapRect.Contains(e.mousePosition) &&
                     !legendRect.Contains(e.mousePosition))
@@ -685,4 +681,5 @@ namespace Game.BattleAces
         }
     }
 }
+
 

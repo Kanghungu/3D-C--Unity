@@ -30,11 +30,11 @@ namespace Game.EditorTools
                     "AudioMixer",
                     "이미 있습니다: " + MixerPath + "\n삭제 후 다시 실행하거나, 인스펙터에서 Battle Aces Root 에 AudioMixer 를 할당하세요.",
                     "OK");
-                Selection.activeObject = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(MixerPath);
+                UnityEditor.Selection.activeObject = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(MixerPath);
                 return;
             }
 
-            Assembly editorAsm = typeof(Editor).Assembly;
+            Assembly editorAsm = typeof(UnityEditor.Editor).Assembly;
             Type controllerType = editorAsm.GetType("UnityEditor.Audio.AudioMixerController");
             if (controllerType == null)
             {
@@ -65,7 +65,7 @@ namespace Game.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             UnityEngine.Object asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(MixerPath);
-            Selection.activeObject = asset;
+            UnityEditor.Selection.activeObject = asset;
             EditorUtility.DisplayDialog(
                 "AudioMixer",
                 "생성됨: " + MixerPath + "\n\n" +

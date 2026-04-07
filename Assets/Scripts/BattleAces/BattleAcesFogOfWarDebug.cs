@@ -51,7 +51,7 @@ namespace Game.BattleAces
         [SerializeField] private int visionUpdateEveryNFrames = 1;
 
         [Header("디버그 UI")]
-        [SerializeField] private bool showOverlay = true;
+        [SerializeField] private bool showOverlay = false;
 
         [SerializeField] private int overlayMaxSide = 220;
 

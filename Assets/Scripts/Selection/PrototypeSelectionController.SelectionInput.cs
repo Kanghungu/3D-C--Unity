@@ -55,7 +55,7 @@ namespace Game.Selection
             }
 
             SelectableUnit unit = hit.collider.GetComponentInParent<SelectableUnit>();
-            if (unit != null)
+            if (IsPlayerSelectable(unit))
             {
                 bool isDoubleClick = lastClickedUnit == unit && Time.time - lastClickTime <= DoubleClickThreshold;
                 lastClickedUnit = unit;
@@ -80,7 +80,7 @@ namespace Game.Selection
 
             foreach (SelectableUnit unit in PrototypeRuntimeRegistry.GetSelectableUnits())
             {
-                if (unit != null && unit.Archetype == archetype)
+                if (IsPlayerSelectable(unit) && unit.Archetype == archetype)
                 {
                     matchingUnits.Add(unit);
                 }
@@ -95,7 +95,7 @@ namespace Game.Selection
 
             foreach (SelectableUnit unit in PrototypeRuntimeRegistry.GetSelectableUnits())
             {
-                if (unit == null)
+                if (!IsPlayerSelectable(unit))
                 {
                     continue;
                 }
@@ -130,7 +130,7 @@ namespace Game.Selection
 
             foreach (SelectableUnit unit in units)
             {
-                if (unit == null)
+                if (!IsPlayerSelectable(unit))
                 {
                     continue;
                 }
@@ -199,6 +199,16 @@ namespace Game.Selection
             SetSelection(list);
         }
 
+        private static bool IsPlayerSelectable(SelectableUnit unit)
+        {
+            if (unit == null || unit.Team != UnitTeam.Player)
+            {
+                return false;
+            }
+
+            CombatTarget ct = unit.GetComponent<CombatTarget>();
+            return ct == null || ct.IsAlive;
+        }
         private bool TryGetMouseRaycastHit(out RaycastHit hit)
         {
             Ray ray = mainCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
@@ -215,4 +225,5 @@ namespace Game.Selection
         }
     }
 }
+
 

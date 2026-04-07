@@ -74,7 +74,7 @@ namespace Game.Campaign.Core
         /// <summary>???·???? ? ?? ?? ?? ??</summary>
         public static void ReloadActiveScene()
         {
-            Scene active = SceneManager.GetActiveScene();
+            UnityEngine.SceneManagement.Scene active = SceneManager.GetActiveScene();
             string path = active.path;
             if (string.IsNullOrEmpty(path))
             {

@@ -72,7 +72,7 @@ namespace Game.Prototype
 
         private void RebuildBattlefieldNodes(Transform parent)
         {
-            foreach (ControlNode existingNode in FindObjectsByType<ControlNode>(FindObjectsSortMode.None))
+            foreach (ControlNode existingNode in FindObjectsByType<ControlNode>())
             {
                 if (existingNode != null)
                 {
@@ -85,7 +85,7 @@ namespace Game.Prototype
 
         private static void EnsureTurret(string turretName, Vector3 position, UnitTeam team, Transform parent)
         {
-            foreach (DefensiveTurret turret in FindObjectsByType<DefensiveTurret>(FindObjectsSortMode.None))
+            foreach (DefensiveTurret turret in FindObjectsByType<DefensiveTurret>())
             {
                 if (turret != null && turret.name == turretName)
                 {

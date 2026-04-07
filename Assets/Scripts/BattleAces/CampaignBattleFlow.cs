@@ -517,7 +517,6 @@ namespace Game.BattleAces
                 alignment = TextAnchor.UpperLeft
             };
             resultNextStepHintStyle.normal.textColor = ImGuiGameUi.TextMuted;
-            resultNextStepHintStyle.lineSpacing = 1.08f;
             return resultNextStepHintStyle;
         }
 
@@ -537,7 +536,6 @@ namespace Game.BattleAces
                 alignment = TextAnchor.UpperLeft
             };
             resultBodyLabelStyle.normal.textColor = ImGuiGameUi.TextTitle;
-            resultBodyLabelStyle.lineSpacing = 1.12f;
             return resultBodyLabelStyle;
         }
 

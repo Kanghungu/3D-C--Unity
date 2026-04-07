@@ -135,7 +135,25 @@ namespace Game.BattleAces
                 return;
             }
 
-            if (playerCore == null || enemyCore == null)
+            if (victoryMode == VictoryMode.EnemyCoreDestroyed && enemyCore == null)
+            {
+                lastEndReason = MatchEndReason.VictoryEnemyCoreDestroyed;
+                state = MatchState.Victory;
+                Time.timeScale = 0f;
+                MatchEnded?.Invoke(state);
+                return;
+            }
+
+            if (playerCore == null)
+            {
+                lastEndReason = MatchEndReason.DefeatPlayerCoreDestroyed;
+                state = MatchState.Defeat;
+                Time.timeScale = 0f;
+                MatchEnded?.Invoke(state);
+                return;
+            }
+
+            if (enemyCore == null)
             {
                 return;
             }

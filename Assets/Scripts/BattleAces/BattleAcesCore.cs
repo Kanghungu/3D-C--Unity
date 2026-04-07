@@ -89,6 +89,21 @@ namespace Game.BattleAces
             return deckSlots[index];
         }
 
+        public static string GetDeckHotkeyLabel(int slot)
+        {
+            return slot switch
+            {
+                0 => "1",
+                1 => "2",
+                2 => "3",
+                3 => "4",
+                4 => "5",
+                5 => "6",
+                6 => "7",
+                _ => "8"
+            };
+        }
+
         public void Initialize(
             UnitTeam assignedTeam,
             IReadOnlyList<UnitArchetype> deckEight,

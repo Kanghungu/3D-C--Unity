@@ -1,8 +1,8 @@
-// =============================================================================
-// [Scripts 레이어: Battle Aces]
-// - NewSampleScene 전용 — 단일 코어 RTS 전투 루프(자원·생산·승패·미니맵).
-// - Campaign이 선택한 MissionDefinition이 있으면 덱·목표·팩션 배율을 읽어 적용한다.
-// - PrototypeBootstrapper와 별개 — 전장 생성은 이 클래스가 담당한다.
+﻿// =============================================================================
+// [Scripts ?덉씠?? Battle Aces]
+// - NewSampleScene ?꾩슜 ???⑥씪 肄붿뼱 RTS ?꾪닾 猷⑦봽(?먯썝쨌?앹궛쨌?뱁뙣쨌誘몃땲留?.
+// - Campaign???좏깮??MissionDefinition???덉쑝硫??굿룸ぉ?쑣룻뙥??諛곗쑉???쎌뼱 ?곸슜?쒕떎.
+// - PrototypeBootstrapper? 蹂꾧컻 ???꾩옣 ?앹꽦? ???대옒?ㅺ? ?대떦?쒕떎.
 // =============================================================================
 using Game.Audio;
 using Game.CameraSystem;
@@ -20,7 +20,7 @@ using UnityEngine.Audio;
 namespace Game.BattleAces
 {
     /// <summary>
-    /// NewSampleScene 진입: 단일 코어×2, 덱 8슬롯, 자동 자원, 미션(선택 시 PersistentGameCore).
+    /// NewSampleScene 吏꾩엯: ?⑥씪 肄붿뼱횞2, ??8?щ’, ?먮룞 ?먯썝, 誘몄뀡(?좏깮 ??PersistentGameCore).
     /// </summary>
     public class BattleAcesSceneBootstrapper : MonoBehaviour
     {
@@ -30,7 +30,7 @@ namespace Game.BattleAces
         [SerializeField] private Color groundTint = new(0.22f, 0.24f, 0.28f);
         [SerializeField] private string groundObjectName = "Battle Arena Ground";
 
-        /// <summary>GameObject.Find 반복 호출 줄이기 — 부트스트랩 1회성 캐시</summary>
+        /// <summary>GameObject.Find 諛섎났 ?몄텧 以꾩씠湲???遺?몄뒪?몃옪 1?뚯꽦 罹먯떆</summary>
         private GameObject cachedBattleGround;
 
         [Header("Spawns")]
@@ -38,20 +38,20 @@ namespace Game.BattleAces
         [SerializeField] private Vector3 enemyCorePosition = new(22f, 1.6f, 18f);
         [SerializeField] private Vector3 playerRallyPoint = new(-12f, 1f, -8f);
 
-        [Header("Audio (승·패 스팅)")]
-        [Tooltip("Game/Audio/Create BattleAces_Main.mixer 로 만든 믹서 — Master 아래 ResultSting 권장")]
+        [Header("Audio (?뮤룻뙣 ?ㅽ똿)")]
+        [Tooltip("Game/Audio/Create BattleAces_Main.mixer 濡?留뚮뱺 誘뱀꽌 ??Master ?꾨옒 ResultSting 沅뚯옣")]
         [SerializeField] private AudioMixer battleAcesAudioMixer;
 
-        [Tooltip("믹서 안 그룹 이름 — ResultSting 이 없으면 Master 로 폴백")]
+        [Tooltip("誘뱀꽌 ??洹몃９ ?대쫫 ??ResultSting ???놁쑝硫?Master 濡??대갚")]
         [SerializeField] private string resultStingGroupName = "ResultSting";
 
-        [Tooltip("믹서 에셋 없이 그룹만 직접 넣을 때(있으면 AudioMixer 할당보다 우선)")]
+        [Tooltip("誘뱀꽌 ?먯뀑 ?놁씠 洹몃９留?吏곸젒 ?ｌ쓣 ???덉쑝硫?AudioMixer ?좊떦蹂대떎 ?곗꽑)")]
         [SerializeField] private AudioMixerGroup resultStingMixerGroup;
 
-        [Tooltip("전투 앰비언트 — 같은 믹서에서 BattleAmbient 자식 그룹을 만들고 이름 맞춤")]
+        [Tooltip("?꾪닾 ?곕퉬?명듃 ??媛숈? 誘뱀꽌?먯꽌 BattleAmbient ?먯떇 洹몃９??留뚮뱾怨??대쫫 留욎땄")]
         [SerializeField] private string battleAmbientGroupName = "BattleAmbient";
 
-        [Tooltip("Audio Mixer 에서 그룹 Volume → Expose 한 파라미터 이름(설정 O 패널과 연결)")]
+        [Tooltip("Audio Mixer ?먯꽌 洹몃９ Volume ??Expose ???뚮씪誘명꽣 ?대쫫(?ㅼ젙 O ?⑤꼸怨??곌껐)")]
         [SerializeField] private string exposedBattleAmbientVolume = "BattleAmbientVol";
 
         [SerializeField] private string exposedResultStingVolume = "ResultStingVol";
@@ -303,7 +303,7 @@ namespace Game.BattleAces
             else
             {
                 Debug.LogWarning(
-                    "[BattleAcesSceneBootstrapper] AudioMixer 에 '" + resultStingGroupName + "' 또는 Master 그룹이 없습니다.");
+                    "[BattleAcesSceneBootstrapper] AudioMixer ??'" + resultStingGroupName + "' ?먮뒗 Master 洹몃９???놁뒿?덈떎.");
             }
         }
 
@@ -436,7 +436,7 @@ namespace Game.BattleAces
             Vector3 pos = new Vector3(0f, 2.5f, 2f);
             Vector3 boxSize = new Vector3(18f, 6f, 18f);
 
-            // 미션 5 — 동일 점령 목표이나 구역·장애물 배치만 변주(스텁과 체감 분리)
+            // 誘몄뀡 5 ???숈씪 ?먮졊 紐⑺몴?대굹 援ъ뿭쨌?μ븷臾?諛곗튂留?蹂二??ㅽ뀅怨?泥닿컧 遺꾨━)
             if (mission != null && mission.MissionId == "mission_05_stub")
             {
                 pos = new Vector3(-7f, 2.5f, 15f);
@@ -451,12 +451,56 @@ namespace Game.BattleAces
             BoxCollider box = z.AddComponent<BoxCollider>();
             box.isTrigger = true;
             box.size = boxSize;
+            CreateCaptureZoneVisual(z.transform, boxSize);
             MissionCaptureZone cap = z.AddComponent<MissionCaptureZone>();
             cap.ConfigureHoldSeconds(mission != null ? mission.SeizeHoldSeconds : 12f);
             return cap;
         }
 
-        /// <summary>미션 5 전용 — 점령 구역 주변 장애물(프로토용 프리미티브).</summary>
+        /// <summary>誘몄뀡 5 ?꾩슜 ???먮졊 援ъ뿭 二쇰? ?μ븷臾??꾨줈?좎슜 ?꾨━誘명떚釉?.</summary>
+        private static void CreateCaptureZoneVisual(Transform parent, Vector3 boxSize)
+        {
+            GameObject ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            ring.name = "SeizeZone_Visual";
+            ring.transform.SetParent(parent, false);
+            ring.transform.localPosition = new Vector3(0f, -2.15f, 0f);
+            ring.transform.localScale = new Vector3(boxSize.x * 0.09f, 0.03f, boxSize.z * 0.09f);
+
+            Collider ringCollider = ring.GetComponent<Collider>();
+            if (ringCollider != null)
+            {
+                ringCollider.enabled = false;
+            }
+
+            Renderer ringRenderer = ring.GetComponent<Renderer>();
+            if (ringRenderer != null)
+            {
+                ringRenderer.material.color = new Color(0.66f, 0.36f, 0.92f, 0.9f);
+                ringRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                ringRenderer.receiveShadows = false;
+            }
+
+            GameObject beacon = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            beacon.name = "SeizeZone_Beacon";
+            beacon.transform.SetParent(parent, false);
+            beacon.transform.localPosition = new Vector3(0f, -0.4f, 0f);
+            beacon.transform.localScale = new Vector3(0.55f, 1.2f, 0.55f);
+
+            Collider beaconCollider = beacon.GetComponent<Collider>();
+            if (beaconCollider != null)
+            {
+                beaconCollider.enabled = false;
+            }
+
+            Renderer beaconRenderer = beacon.GetComponent<Renderer>();
+            if (beaconRenderer != null)
+            {
+                beaconRenderer.material.color = new Color(0.82f, 0.58f, 1f, 0.96f);
+                beaconRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                beaconRenderer.receiveShadows = false;
+            }
+        }
+
         private static void SpawnMission05VariantProps(Transform root, Vector3 seizeCenter)
         {
             for (int i = 0; i < 10; i++)
@@ -472,7 +516,11 @@ namespace Game.BattleAces
                 if (ren != null)
                 {
                     ren.material.color = new Color(0.38f + Random.value * 0.08f, 0.33f, 0.4f, 1f);
+                    ren.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    ren.receiveShadows = false;
                 }
+
+                AddNavMeshObstacleFromCollider(cyl);
             }
 
             for (int j = 0; j < 5; j++)
@@ -487,7 +535,45 @@ namespace Game.BattleAces
                 if (r2 != null)
                 {
                     r2.material.color = new Color(0.28f, 0.3f, 0.34f, 1f);
+                    r2.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    r2.receiveShadows = false;
                 }
+
+                AddNavMeshObstacleFromCollider(cube);
+            }
+        }
+
+        private static void AddNavMeshObstacleFromCollider(GameObject target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            Collider col = target.GetComponent<Collider>();
+            if (col == null)
+            {
+                return;
+            }
+
+            NavMeshObstacle obstacle = target.AddComponent<NavMeshObstacle>();
+            obstacle.carving = true;
+            obstacle.carveOnlyStationary = false;
+
+            if (col is CapsuleCollider capsule)
+            {
+                obstacle.shape = NavMeshObstacleShape.Capsule;
+                obstacle.center = capsule.center;
+                obstacle.radius = capsule.radius * Mathf.Max(target.transform.lossyScale.x, target.transform.lossyScale.z);
+                obstacle.height = capsule.height * target.transform.lossyScale.y;
+                return;
+            }
+
+            if (col is BoxCollider box)
+            {
+                obstacle.shape = NavMeshObstacleShape.Box;
+                obstacle.center = box.center;
+                obstacle.size = Vector3.Scale(box.size, target.transform.lossyScale);
             }
         }
 
@@ -514,10 +600,10 @@ namespace Game.BattleAces
             return ct;
         }
 
-        /// <summary>캠페인 미션별로 자원 곡선만 살짝 조정(A 밸런스 패스).</summary>
+        /// <summary>罹좏럹??誘몄뀡蹂꾨줈 ?먯썝 怨≪꽑留??댁쭩 議곗젙(A 諛몃윴???⑥뒪).</summary>
         /// <remarks>
-        /// DEVLOG §I · 미션 3~6 한 판씩 플레이 후 숫자만 메모해 여기서 미세 조정하면 됨.
-        /// 예: mission_03 — playerMul +0.01 / mission_04 — enemyMul -0.02 등(감각·재현 기준).
+        /// DEVLOG 짠I 쨌 誘몄뀡 3~6 ???먯뵫 ?뚮젅?????レ옄留?硫붾え???ш린??誘몄꽭 議곗젙?섎㈃ ??
+        /// ?? mission_03 ??playerMul +0.01 / mission_04 ??enemyMul -0.02 ??媛먭컖쨌?ы쁽 湲곗?).
         /// </remarks>
         private static void ApplyMissionIncomeTuning(BattleAcesEconomy economy, MissionDefinition mission)
         {
@@ -588,7 +674,7 @@ namespace Game.BattleAces
             return eight;
         }
 
-        /// <summary>NewSampleScene 메인 카메라에 RTS 조작이 없으면 붙인다(미니맵 클릭 이동용).</summary>
+        /// <summary>NewSampleScene 硫붿씤 移대찓?쇱뿉 RTS 議곗옉???놁쑝硫?遺숈씤??誘몃땲留??대┃ ?대룞??.</summary>
         private static void EnsureRtsCameraControllerOnMainCamera()
         {
             Camera cam = Camera.main;
@@ -618,7 +704,7 @@ namespace Game.BattleAces
             };
         }
 
-        /// <summary>미션 옵션 — 이동 요새를 공중 요새로 바꾸고 공성 슬롯을 강조</summary>
+        /// <summary>誘몄뀡 ?듭뀡 ???대룞 ?붿깉瑜?怨듭쨷 ?붿깉濡?諛붽씀怨?怨듭꽦 ?щ’??媛뺤“</summary>
         private static UnitArchetype[] ApplyAirborneCitadelDeckVariant(MissionDefinition mission, UnitArchetype[] deck)
         {
             if (mission == null || !mission.AirborneCitadelFocus || deck == null || deck.Length != 8)

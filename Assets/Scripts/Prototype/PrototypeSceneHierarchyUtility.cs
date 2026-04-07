@@ -11,7 +11,7 @@ namespace Game.Prototype
     {
         public static Transform GetOrCreateRoot(string rootName)
         {
-            foreach (Transform root in Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
+            foreach (Transform root in Object.FindObjectsByType<Transform>())
             {
                 if (root.parent == null && (root.name == rootName || root.name.StartsWith(rootName + " (")))
                 {
@@ -25,7 +25,7 @@ namespace Game.Prototype
 
         public static void DestroyRootIfExists(string rootName)
         {
-            foreach (Transform root in Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
+            foreach (Transform root in Object.FindObjectsByType<Transform>())
             {
                 if (root.parent != null)
                 {
@@ -41,7 +41,7 @@ namespace Game.Prototype
 
         public static void DestroyByType<T>() where T : Object
         {
-            foreach (T instance in Object.FindObjectsByType<T>(FindObjectsSortMode.None))
+            foreach (T instance in Object.FindObjectsByType<T>())
             {
                 if (instance != null)
                 {

@@ -130,7 +130,8 @@ namespace Game.BattleAces
 
             TryWarnEscortNear();
 
-            if (relic.EscortTargetZone != null && relic.IsInsideEscortZone(relic.transform.position))
+            if (relic.EscortTargetZone != null &&
+                (relic.IsInsideEscortZone(relic.transform.position) || IsPlayerUnitInsideZone(relic.EscortTargetZone)))
             {
                 match.DeclarePlayerVictory();
             }
@@ -227,6 +228,35 @@ namespace Game.BattleAces
             {
                 BattleAcesStoryBanner.Instance.ShowLine(line, 5f);
             }
+        }
+
+        private static bool IsPlayerUnitInsideZone(Collider zone)
+        {
+            if (zone == null)
+            {
+                return false;
+            }
+
+            foreach (SelectableUnit unit in Game.Prototype.PrototypeRuntimeRegistry.GetSelectableUnits())
+            {
+                if (unit == null || unit.Team != UnitTeam.Player)
+                {
+                    continue;
+                }
+
+                CombatTarget ct = unit.GetComponent<CombatTarget>();
+                if (ct != null && !ct.IsAlive)
+                {
+                    continue;
+                }
+
+                if (RelicMissionObject.IsPointInsideCollider(zone, unit.transform.position))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

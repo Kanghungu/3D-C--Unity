@@ -98,6 +98,7 @@ namespace Game.BattleAces
                 return;
             }
 
+            GUI.depth = -5000;
             ImGuiGameUi.BeginScaledGui();
             float w = Mathf.Min(580f, Screen.width - 40f);
 
@@ -181,7 +182,7 @@ namespace Game.BattleAces
 
             const string summaryFiveLines =
                 "• 1~8 덱 생산 · 우클릭 이동/공격\n" +
-                "• P · 1·2·3 일시정지·배속\n" +
+                "• P · Q·W·E 일시정지·배속\n" +
                 "• O 설정(음량·UI) · Shift+M 미니맵 · F1 이 창\n" +
                 "• 미니맵 클릭·Shift+박스 선택 · 우하 색 범례\n" +
                 "• T/Y/U 코어 · V 표적 · Space·Home 카메라";
@@ -213,7 +214,7 @@ namespace Game.BattleAces
                 bodyTopY += 48f;
 
                 const string bodyFull =
-                    "P: 일시정지 토글 · 숫자 1·2·3: 배속(느림·보통·빠름)\n" +
+                    "P: 일시정지 토글 · Q / W / E: 배속(느림·보통·빠름)\n" +
                     "우클릭: 선택 유닛 이동 / 적·목표 공격\n" +
                     "1~8: 덱 슬롯에 맞춰 유닛 생산\n" +
                     "T / Y / U: 코어 업그레이드(생산·장갑·자원)\n" +
@@ -270,7 +271,6 @@ namespace Game.BattleAces
                 alignment = TextAnchor.UpperLeft
             };
             helpSummaryStyle.normal.textColor = ImGuiGameUi.TextTitle;
-            helpSummaryStyle.lineSpacing = 1.15f;
             return helpSummaryStyle;
         }
 
@@ -290,7 +290,6 @@ namespace Game.BattleAces
                 alignment = TextAnchor.UpperLeft
             };
             helpMissionHintStyle.normal.textColor = ImGuiGameUi.TextMuted;
-            helpMissionHintStyle.lineSpacing = 1.12f;
             return helpMissionHintStyle;
         }
 
@@ -310,7 +309,6 @@ namespace Game.BattleAces
                 alignment = TextAnchor.UpperLeft
             };
             helpDetailBodyStyle.normal.textColor = ImGuiGameUi.TextTitle;
-            helpDetailBodyStyle.lineSpacing = 1.12f;
             return helpDetailBodyStyle;
         }
     }
