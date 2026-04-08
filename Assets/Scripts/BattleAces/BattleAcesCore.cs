@@ -200,7 +200,7 @@ namespace Game.BattleAces
         public static bool TryFindAliveCore(UnitTeam team, out BattleAcesCore core)
         {
             core = null;
-            BattleAcesCore[] found = Object.FindObjectsByType<BattleAcesCore>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            BattleAcesCore[] found = Object.FindObjectsByType<BattleAcesCore>(FindObjectsInactive.Exclude);
             if (found == null || found.Length == 0)
             {
                 return false;

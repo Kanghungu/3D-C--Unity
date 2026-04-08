@@ -189,6 +189,26 @@ namespace Game.BattleAces
             return visible[iz * CellsX + ix];
         }
 
+        public bool TryGetCell(float worldX, float worldZ, out int ix, out int iz)
+        {
+            ix = -1;
+            iz = -1;
+
+            if (explored == null || visible == null)
+            {
+                return false;
+            }
+
+            if (worldX < WorldMin.x || worldX > WorldMax.x || worldZ < WorldMin.y || worldZ > WorldMax.y)
+            {
+                return false;
+            }
+
+            ix = WorldXToCellIndexClamped(worldX);
+            iz = WorldZToCellIndexClamped(worldZ);
+            return true;
+        }
+
         /// <summary>디버그 텍스처용 — 미탐색 / 탐색만 / 가시</summary>
         public Color32 GetDebugCellColor(int ix, int iz)
         {

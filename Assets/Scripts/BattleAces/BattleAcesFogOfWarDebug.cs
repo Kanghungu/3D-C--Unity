@@ -17,6 +17,16 @@ namespace Game.BattleAces
         /// <summary>지형 오버레이·전술 맵에 공유 — 가시=투명·탐색=안개·미탐색=어둡게</summary>
         public Texture2D FogMaskTexture => fogMaskTexture;
 
+        public bool IsWorldVisible(Vector3 worldPosition)
+        {
+            if (!initialized || grid == null)
+            {
+                return true;
+            }
+
+            return grid.TryGetCell(worldPosition.x, worldPosition.z, out int ix, out int iz) && grid.IsVisible(ix, iz);
+        }
+
         [Header("격자")]
         [SerializeField] private float cellWorldSize = 8f;
 

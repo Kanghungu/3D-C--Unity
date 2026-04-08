@@ -1,6 +1,7 @@
 using System;
 using Game.Audio;
 using Game.BattleAces;
+using Game.Prototype;
 using Game.UI;
 using UnityEngine;
 
@@ -11,10 +12,10 @@ namespace Game.Units
     /// </summary>
     public class UnitHealth : MonoBehaviour
     {
-        /// <summary>유닛 사망 시 발생 — (사망한 팀, 병종)</summary>
+        /// <summary>?�닛 ?�망 ??발생 ??(?�망???�, 병종)</summary>
         public static event Action<UnitTeam, UnitArchetype> OnUnitDied;
 
-        /// <summary>피해 적용 직후 — 실제 적용 피해량(연출·사운드용)</summary>
+        /// <summary>?�해 ?�용 직후 ???�제 ?�용 ?�해???�출·?�운?�용)</summary>
         public event Action<float> Damaged;
 
         [SerializeField] private float maxHealth = 35f;
@@ -32,6 +33,7 @@ namespace Game.Units
         private UnitAbilityState abilityState;
         private CombatTarget combatTarget;
         private SelectableUnit selectableUnit;
+        private Renderer[] cachedRenderers;
 
         public bool IsAlive => currentHealth > 0f;
         public float Normalized => maxHealth <= 0f ? 0f : Mathf.Clamp01(currentHealth / maxHealth);
@@ -43,10 +45,11 @@ namespace Game.Units
             abilityState = GetComponent<UnitAbilityState>();
             combatTarget = GetComponent<CombatTarget>();
             selectableUnit = GetComponent<SelectableUnit>();
+            cachedRenderers = GetComponentsInChildren<Renderer>(true);
             currentHealth = maxHealth;
             displayedDamageNormalized = 1f;
 
-            // 구형 3D 체력바 오브젝트 제거
+            // 구형 3D 체력�??�브?�트 ?�거
             Transform oldBar = transform.Find("Health Bar");
             if (oldBar != null) Destroy(oldBar.gameObject);
         }
@@ -70,6 +73,17 @@ namespace Game.Units
         {
             if (!createHealthBar || !IsAlive) return;
 
+            if (combatTarget != null && combatTarget.Team == UnitTeam.Enemy)
+            {
+                BattlefieldFogObject fogObject = GetComponent<BattlefieldFogObject>();
+                if ((fogObject != null && fogObject.IsFogged) ||
+                    (BattleAcesFogOfWarDebug.Instance != null && !BattleAcesFogOfWarDebug.Instance.IsWorldVisible(transform.position)) ||
+                    !HasAnyVisibleRenderer())
+                {
+                    return;
+                }
+            }
+
             ImGuiGameUi.BeginScaledGui();
             Camera cam = GetCamera();
             if (cam == null)
@@ -78,7 +92,7 @@ namespace Game.Units
                 return;
             }
 
-            // 카메라 높이가 일정 이상이면 체력바 숨김
+            // 카메???�이가 ?�정 ?�상?�면 체력�??��?
             if (cam.transform.position.y > 45f)
             {
                 ImGuiGameUi.EndScaledGui();
@@ -102,7 +116,7 @@ namespace Game.Units
             bool isEnemy = combatTarget != null && combatTarget.Team == UnitTeam.Enemy;
             bool selected = selectableUnit != null && selectableUnit.IsSelected;
 
-            // 테두리
+            // ?�두�?
             Color frameColor = selected
                 ? new Color(1f, 0.92f, 0.2f)
                 : new Color(0.05f, 0.05f, 0.05f);
@@ -111,11 +125,11 @@ namespace Game.Units
             // 배경
             DrawRect(new Rect(x, y, barW, barH), new Color(0.1f, 0.1f, 0.12f));
 
-            // 피해 잔상
+            // ?�해 ?�상
             float dmgW = barW * Mathf.Max(0.01f, displayedDamageNormalized);
             DrawRect(new Rect(x, y, dmgW, barH), new Color(0.58f, 0.18f, 0.06f));
 
-            // 체력 채움
+            // 체력 채�?
             float normalized = Normalized;
             float hpW = barW * Mathf.Max(0.01f, normalized);
             Color fillColor = normalized <= 0.35f
@@ -131,6 +145,27 @@ namespace Game.Units
             GUI.color = color;
             GUI.DrawTexture(rect, Texture2D.whiteTexture);
             GUI.color = prev;
+        }
+
+        private bool HasAnyVisibleRenderer()
+        {
+            if (cachedRenderers == null || cachedRenderers.Length == 0)
+            {
+                cachedRenderers = GetComponentsInChildren<Renderer>(true);
+            }
+
+            for (int i = 0; i < cachedRenderers.Length; i++)
+            {
+                Renderer rendererComponent = cachedRenderers[i];
+                if (rendererComponent != null &&
+                    rendererComponent.enabled &&
+                    rendererComponent.gameObject.activeInHierarchy)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public void ApplyDamage(float damage)
@@ -183,7 +218,7 @@ namespace Game.Units
             displayedDamageNormalized = 1f;
         }
 
-        /// <summary>코어 업그레이드 등 — 최대 체력 증가분만큼 현재 체력도 증가</summary>
+        /// <summary>코어 ?�그?�이??????최�? 체력 증�?분만???�재 체력??증�?</summary>
         public void AddMaxHealthBonus(float deltaMax)
         {
             if (deltaMax <= 0f || !IsAlive)
@@ -206,7 +241,7 @@ namespace Game.Units
             return cachedCamera;
         }
 
-        /// <summary>선택 가능 유닛만 가벼운 피격음(코어·구조물 제외, 짧은 쿨다운).</summary>
+        /// <summary>?�택 가???�닛�?가벼운 ?�격??코어·구조�??�외, 짧�? 쿨다??.</summary>
         private void TryPlayHitFeedback(float damageAmount)
         {
             if (selectableUnit == null || combatTarget == null || damageAmount <= 0f)
@@ -225,7 +260,7 @@ namespace Game.Units
             ProceduralAudioUtility.PlayUnitHitLight(Mathf.Clamp01(norm * 3.5f), arch);
         }
 
-        /// <summary>아군 코어·유닛 피격 시 화면 플래시(스커미시 등 비캠페인은 스킵).</summary>
+        /// <summary>?�군 코어·?�닛 ?�격 ???�면 ?�래???�커미시 ??비캠?�인?� ?�킵).</summary>
         private void TryNotifyPlayerHitFlash(float damageAmount)
         {
             if (combatTarget == null || combatTarget.Team != UnitTeam.Player || damageAmount <= 0f)

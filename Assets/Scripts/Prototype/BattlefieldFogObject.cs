@@ -23,6 +23,7 @@ namespace Game.Prototype
 
         public BattlefieldFogRequirement Requirement => requirement;
         public Vector3 WorldPosition => transform.position;
+        public bool IsFogged => isFogged;
         public static IReadOnlyCollection<BattlefieldFogObject> RegisteredObjects => registeredObjects;
 
         public void Configure(BattlefieldFogRequirement newRequirement)

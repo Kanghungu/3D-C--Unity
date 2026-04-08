@@ -10,6 +10,12 @@ namespace Game.Settings
         Performance = 1
     }
 
+    public enum GameLanguage
+    {
+        Korean = 0,
+        English = 1
+    }
+
     /// <summary>
     /// 마스터 볼륨·카메라 감도·전체화면 — PlayerPrefs 저장.
     /// </summary>
@@ -25,6 +31,7 @@ namespace Game.Settings
         private const string KeyColorblindMinimap = "gs_colorblind_minimap";
         private const string KeyDialogueCps = "gs_dialogue_chars_per_sec";
         private const string KeyGraphicPreset = "gs_demo_graphic_preset";
+        private const string KeyLanguage = "gs_language";
 
         public const float DefaultMasterVolume = 0.82f;
         public const float DefaultCameraSensitivity = 1f;
@@ -58,6 +65,8 @@ namespace Game.Settings
         public static float DialogueRevealCharsPerSecond { get; private set; } = 96f;
 
         public static DemoGraphicQualityPreset GraphicQualityPreset { get; private set; } = DemoGraphicQualityPreset.Balanced;
+
+        public static GameLanguage Language { get; private set; } = GameLanguage.Korean;
 
         static GameUserSettings()
         {
@@ -98,6 +107,7 @@ namespace Game.Settings
                 28f,
                 280f);
             GraphicQualityPreset = (DemoGraphicQualityPreset)Mathf.Clamp(PlayerPrefs.GetInt(KeyGraphicPreset, 0), 0, 1);
+            Language = (GameLanguage)Mathf.Clamp(PlayerPrefs.GetInt(KeyLanguage, 0), 0, 1);
         }
 
         public static void Save()
@@ -111,6 +121,7 @@ namespace Game.Settings
             PlayerPrefs.SetInt(KeyColorblindMinimap, ColorblindFriendlyMinimap ? 1 : 0);
             PlayerPrefs.SetFloat(KeyDialogueCps, DialogueRevealCharsPerSecond);
             PlayerPrefs.SetInt(KeyGraphicPreset, (int)GraphicQualityPreset);
+            PlayerPrefs.SetInt(KeyLanguage, (int)Language);
             PlayerPrefs.SetInt(KeyFullscreen, Screen.fullScreen ? 1 : 0);
             PlayerPrefs.Save();
             AudioListener.volume = MasterVolume01;
@@ -169,6 +180,11 @@ namespace Game.Settings
         {
             GraphicQualityPreset = preset;
             ApplyGraphicQualityPreset(preset);
+        }
+
+        public static void SetLanguage(GameLanguage language)
+        {
+            Language = language;
         }
 
         /// <summary>그림자·거리만 조절(URP/HDRP 에셋은 건드리지 않음)</summary>

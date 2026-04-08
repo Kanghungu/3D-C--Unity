@@ -1,4 +1,4 @@
-﻿// =============================================================================
+// =============================================================================
 // [Scripts ?덉씠?? Battle Aces]
 // - NewSampleScene ?꾩슜 ???⑥씪 肄붿뼱 RTS ?꾪닾 猷⑦봽(?먯썝쨌?앹궛쨌?뱁뙣쨌誘몃땲留?.
 // - Campaign???좏깮??MissionDefinition???덉쑝硫??굿룸ぉ?쑣룻뙥??諛곗쑉???쎌뼱 ?곸슜?쒕떎.
@@ -27,7 +27,7 @@ namespace Game.BattleAces
     {
         [Header("Arena")]
         [SerializeField] private bool createArenaOnPlay = true;
-        [SerializeField] private Vector3 groundScale = new(24f, 1f, 24f);
+        [SerializeField] private Vector3 groundScale = new(32f, 1f, 32f);
         [SerializeField] private Color groundTint = new(0.22f, 0.24f, 0.28f);
         [SerializeField] private string groundObjectName = "Battle Arena Ground";
 
@@ -35,9 +35,9 @@ namespace Game.BattleAces
         private GameObject cachedBattleGround;
 
         [Header("Spawns")]
-        [SerializeField] private Vector3 playerCorePosition = new(-22f, 1.6f, -18f);
-        [SerializeField] private Vector3 enemyCorePosition = new(22f, 1.6f, 18f);
-        [SerializeField] private Vector3 playerRallyPoint = new(-12f, 1f, -8f);
+        [SerializeField] private Vector3 playerCorePosition = new(-34f, 1.6f, -28f);
+        [SerializeField] private Vector3 enemyCorePosition = new(34f, 1.6f, 28f);
+        [SerializeField] private Vector3 playerRallyPoint = new(-22f, 1f, -18f);
 
         [Header("Audio (?뮤룻뙣 ?ㅽ똿)")]
         [Tooltip("Game/Audio/Create BattleAces_Main.mixer 濡?留뚮뱺 誘뱀꽌 ??Master ?꾨옒 ResultSting 沅뚯옣")]
@@ -206,6 +206,7 @@ namespace Game.BattleAces
             objectiveUgui.Initialize(mission, missionFlow);
             hud.Bind(economy, playerCore, match, mission, missionFlow, objectiveUgui);
             enemyBrain.Bind(enemyCore, match);
+            systems.AddComponent<BattleAcesEnemyVisionHider>();
 
             float thinkBase = 18.25f;
             if (mission != null && mission.EnemyFactionRules != null)
@@ -283,7 +284,6 @@ namespace Game.BattleAces
             systems.AddComponent<BattleAcesMixerParameterSync>();
             systems.AddComponent<BattleAcesScreenFlashHud>();
             systems.AddComponent<BattleAcesInputToggles>();
-            systems.AddComponent<BattleAcesQolHotkeys>();
             BattleAcesSelectionInfoHud selectionInfo = systems.AddComponent<BattleAcesSelectionInfoHud>();
             selectionInfo.Bind(playerCore, economy, database);
 

@@ -4,14 +4,10 @@ using UnityEngine;
 
 namespace Game.UI
 {
-    /// <summary>
-    /// Battle Aces / 캠페인 공용 즉시 모드 GUI(IMGUI) 스타일 — UGUI 전환 전까지 한곳에서 색·패널·버튼 톤 맞춤.
-    /// </summary>
     public static class ImGuiGameUi
     {
         private static Texture2D cachedWhite;
 
-        /// <summary>OnGUI DrawTexture용 1×1 화이트(씬마다 중복 생성 방지).</summary>
         public static Texture2D WhitePixel
         {
             get
@@ -28,7 +24,6 @@ namespace Game.UI
             }
         }
 
-        // --- 팔레트 — 실제 RTS에 가까운 어두운 전술 HUD(저채도 네이비·앰버 포인트) ---
         public static readonly Color DimFullscreen = new Color(0.012f, 0.014f, 0.022f, 0.88f);
         public static readonly Color PanelBgDeep = new Color(0.038f, 0.042f, 0.052f, 0.96f);
         public static readonly Color PanelBgLift = new Color(0.065f, 0.07f, 0.082f, 0.96f);
@@ -38,7 +33,6 @@ namespace Game.UI
         public static readonly Color BorderAccent = new Color(0.72f, 0.58f, 0.28f, 0.88f);
         public static readonly Color AccentGold = new Color(0.9f, 0.74f, 0.4f, 1f);
         public static readonly Color AccentCyan = new Color(0.48f, 0.78f, 0.82f, 1f);
-        /// <summary>HUD 카드 왼쪽 세로 강조 — 과한 네온 대신 올리브-틸 전술 느낌</summary>
         public static readonly Color HudStripeTactical = new Color(0.4f, 0.58f, 0.52f, 0.9f);
         public static readonly Color TextTitle = new Color(0.9f, 0.92f, 0.94f, 1f);
         public static readonly Color TextMuted = new Color(0.52f, 0.58f, 0.66f, 1f);
@@ -48,7 +42,6 @@ namespace Game.UI
 
         private static readonly Stack<Matrix4x4> GuiMatrixStack = new Stack<Matrix4x4>(4);
 
-        /// <summary>OnGUI 시작부 — PlayerPrefs UI 스케일(전체 IMGUI 공통).</summary>
         public static void BeginScaledGui()
         {
             GuiMatrixStack.Push(GUI.matrix);
@@ -61,7 +54,6 @@ namespace Game.UI
             GUIUtility.ScaleAroundPivot(new Vector2(s, s), new Vector2(Screen.width * 0.5f, Screen.height * 0.5f));
         }
 
-        /// <summary>OnGUI 끝 — BeginScaledGui와 반드시 짝.</summary>
         public static void EndScaledGui()
         {
             if (GuiMatrixStack.Count == 0)
@@ -80,7 +72,53 @@ namespace Game.UI
             GUI.color = prev;
         }
 
-        /// <summary>얇은 테두리 프레임(배경 + 4변).</summary>
+        public static void DrawVerticalGradient(Rect r, Color top, Color bottom, int slices = 24)
+        {
+            int count = Mathf.Max(1, slices);
+            float h = r.height / count;
+            for (int i = 0; i < count; i++)
+            {
+                float t = (i + 0.5f) / count;
+                DrawFilledRect(new Rect(r.x, r.y + h * i, r.width, h + 1f), Color.Lerp(top, bottom, t));
+            }
+        }
+
+        public static void DrawScanLines(Rect r, Color c, float gap = 24f, float thickness = 1f)
+        {
+            for (float y = r.y; y < r.yMax; y += Mathf.Max(6f, gap))
+            {
+                DrawFilledRect(new Rect(r.x, y, r.width, thickness), c);
+            }
+        }
+
+        public static void DrawGrid(Rect r, Color c, float cellW = 64f, float cellH = 64f, float thickness = 1f)
+        {
+            for (float x = r.x; x <= r.xMax; x += Mathf.Max(12f, cellW))
+            {
+                DrawFilledRect(new Rect(x, r.y, thickness, r.height), c);
+            }
+
+            for (float y = r.y; y <= r.yMax; y += Mathf.Max(12f, cellH))
+            {
+                DrawFilledRect(new Rect(r.x, y, r.width, thickness), c);
+            }
+        }
+
+        public static void DrawSoftShadow(Rect r, Color c, float spread = 18f)
+        {
+            float s = Mathf.Max(4f, spread);
+            DrawFilledRect(new Rect(r.x + 8f, r.y + 10f, r.width, r.height), new Color(c.r, c.g, c.b, c.a * 0.28f));
+            DrawFilledRect(new Rect(r.x + 4f, r.y + 4f, r.width + s * 0.35f, r.height + s * 0.35f), new Color(c.r, c.g, c.b, c.a * 0.12f));
+            DrawFilledRect(new Rect(r.x - 2f, r.y - 2f, r.width + s * 0.7f, r.height + s * 0.7f), new Color(c.r, c.g, c.b, c.a * 0.05f));
+        }
+
+        public static void DrawSweepLine(Rect r, Color c, float normalizedX, float width = 46f)
+        {
+            float w = Mathf.Clamp(width, 8f, r.width * 0.35f);
+            float x = Mathf.Lerp(r.x - w, r.xMax, Mathf.Clamp01(normalizedX));
+            DrawFilledRect(new Rect(x, r.y, w, 2f), c);
+        }
+
         public static void DrawPanelFrame(Rect r, Color fill, Color border, float thickness = 2f)
         {
             DrawFilledRect(r, fill);
@@ -91,14 +129,12 @@ namespace Game.UI
             DrawFilledRect(new Rect(r.xMax - t, r.y, t, r.height), border);
         }
 
-        /// <summary>상단 강조 줄(목표 바 등).</summary>
         public static void DrawTopAccentBar(float height, Color bg, Color accentLine)
         {
             DrawFilledRect(new Rect(0f, 0f, Screen.width, height), bg);
             DrawFilledRect(new Rect(0f, height - 3f, Screen.width, 3f), accentLine);
         }
 
-        /// <summary>HUD 카드 왼쪽 세로 강조(전술 콘솔 느낌)</summary>
         public static void DrawHudCardWithLeftStripe(Rect r, Color fill, Color border, Color stripe, float stripeW = 3f)
         {
             DrawPanelFrame(r, fill, border, 1f);
@@ -106,14 +142,38 @@ namespace Game.UI
             DrawFilledRect(new Rect(r.x, r.y, sw, r.height), stripe);
         }
 
-        /// <summary>섹션 구분 가로선</summary>
+        public static void DrawCornerBrackets(Rect r, Color c, float size = 14f, float thickness = 2f)
+        {
+            float s = Mathf.Clamp(size, 8f, 32f);
+            float t = Mathf.Clamp(thickness, 1f, 4f);
+
+            DrawFilledRect(new Rect(r.x, r.y, s, t), c);
+            DrawFilledRect(new Rect(r.x, r.y, t, s), c);
+            DrawFilledRect(new Rect(r.xMax - s, r.y, s, t), c);
+            DrawFilledRect(new Rect(r.xMax - t, r.y, t, s), c);
+            DrawFilledRect(new Rect(r.x, r.yMax - t, s, t), c);
+            DrawFilledRect(new Rect(r.x, r.yMax - s, t, s), c);
+            DrawFilledRect(new Rect(r.xMax - s, r.yMax - t, s, t), c);
+            DrawFilledRect(new Rect(r.xMax - t, r.yMax - s, t, s), c);
+        }
+
+        public static void DrawGlassPanel(Rect r, Color fill, Color border, Color accent)
+        {
+            DrawSoftShadow(r, new Color(0f, 0f, 0f, 0.38f), 22f);
+            DrawVerticalGradient(r, fill * 1.08f, fill * 0.82f, 12);
+            DrawFilledRect(
+                new Rect(r.x, r.y, r.width, Mathf.Min(28f, r.height * 0.22f)),
+                new Color(accent.r, accent.g, accent.b, 0.08f));
+            DrawPanelFrame(r, new Color(0f, 0f, 0f, 0f), border, 1.5f);
+            DrawCornerBrackets(r, accent, 14f, 2f);
+        }
+
         public static void DrawHorizontalRule(Rect rowRect, Color c, float thickness = 1f)
         {
             float t = Mathf.Max(0.5f, thickness);
             DrawFilledRect(new Rect(rowRect.x, rowRect.y, rowRect.width, t), c);
         }
 
-        /// <summary>호버·비활성 처리된 메뉴 버튼 — 진짜 게임 메뉴 느낌.</summary>
         public static bool GameMenuButton(Rect r, string text, bool enabled = true)
         {
             Color prevCol = GUI.color;
@@ -122,16 +182,26 @@ namespace Game.UI
             Color bg = !enabled
                 ? new Color(0.12f, 0.12f, 0.14f, 0.65f)
                 : hover
-                    ? new Color(0.16f, 0.2f, 0.28f, 0.98f)
-                    : new Color(0.1f, 0.12f, 0.16f, 0.95f);
+                    ? new Color(0.14f, 0.19f, 0.28f, 0.98f)
+                    : new Color(0.075f, 0.09f, 0.125f, 0.96f);
             Color border = !enabled ? new Color(0.3f, 0.3f, 0.32f, 0.5f) : hover ? AccentGold : BorderCool;
+            Color accent = hover ? AccentGold : AccentCyan;
 
-            DrawPanelFrame(r, bg, border, 2f);
+            DrawGlassPanel(r, bg, border, accent);
+            DrawFilledRect(
+                new Rect(r.x + 14f, r.y + 10f, Mathf.Max(42f, r.width * 0.18f), 2f),
+                new Color(accent.r, accent.g, accent.b, hover ? 0.9f : 0.45f));
+            DrawFilledRect(
+                new Rect(r.x + 14f, r.y + 11f, r.width - 28f, 10f),
+                new Color(accent.r, accent.g, accent.b, hover ? 0.08f : 0.035f));
 
             TextAnchor align = GUI.skin.label.alignment;
             int fs = GUI.skin.label.fontSize;
             GUI.skin.label.alignment = TextAnchor.MiddleCenter;
-            GUI.skin.label.fontSize = enabled ? 16 : 14;
+            bool korean = GameUserSettings.Language == GameLanguage.Korean;
+            GUI.skin.label.fontSize = enabled
+                ? (korean ? 13 : 15)
+                : (korean ? 12 : 14);
             GUI.color = enabled ? TextTitle : TextMuted;
             GUI.Label(r, text);
             GUI.skin.label.fontSize = fs;
@@ -143,7 +213,6 @@ namespace Game.UI
                 return false;
             }
 
-            // 그린 프레임 위에 투명 버튼으로 클릭 처리
             return GUI.Button(r, GUIContent.none, GUIStyle.none);
         }
     }

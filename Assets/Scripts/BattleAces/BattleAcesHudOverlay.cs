@@ -1,31 +1,32 @@
-using Game.Campaign.Data;
+﻿using Game.Campaign.Data;
 using Game.Campaign.Scene;
+using Game.Settings;
 using Game.UI;
 using Game.Units;
 using UnityEngine;
 
 namespace Game.BattleAces
 {
-    public class BattleAcesHudOverlay : MonoBehaviour
+    public sealed class BattleAcesHudOverlay : MonoBehaviour
     {
         private const float PanelPad = 14f;
-
-        /// <summary>우클릭 명령 불가 시 짧게 띄우는 안내(과도한 스팸 방지는 Selection 쪽 쿨다운)</summary>
         private const float CommandRejectHintSeconds = 1.05f;
-
-        private static float commandRejectHintHideUnscaled = -999f;
-
-        /// <summary>Alt+우클릭으로 랠리를 잡았을 때 하단 짧은 확인(튜토리얼 없이 도달 가능성 강화)</summary>
         private const float RallyPointHintSeconds = 2.55f;
-
-        private static float rallyPointHintHideUnscaled = -999f;
-
-        /// <summary>덱 생산·T/Y/U 강화 실패 시 하단 한 줄(자원·큐·상한 등 구분)</summary>
         private const float DeckRejectHintSeconds = 2.15f;
 
+        private static float commandRejectHintHideUnscaled = -999f;
+        private static float rallyPointHintHideUnscaled = -999f;
         private static float deckRejectHintHideUnscaled = -999f;
-
         private static string deckRejectHintMessage = string.Empty;
+
+        [SerializeField] private BattleAcesEconomy economy;
+        [SerializeField] private BattleAcesCore playerCore;
+        [SerializeField] private BattleAcesMatchController match;
+        [SerializeField] private MissionDefinition missionContext;
+        [SerializeField] private BattleMissionFlow missionFlow;
+        [SerializeField] private BattleAcesObjectiveUgui uguiObjective;
+
+        private bool IsKorean => GameUserSettings.Language == GameLanguage.Korean;
 
         public static void PulseCommandRejectTextHint()
         {
@@ -38,19 +39,11 @@ namespace Game.BattleAces
             BattleAcesFirstPlayGuide.NotifyRallySet();
         }
 
-        /// <summary>생산·강화 거절 시 HUD 메시지(한국어 한 줄)</summary>
         public static void PulseDeckRejectHint(string messageKo)
         {
             deckRejectHintMessage = messageKo ?? string.Empty;
             deckRejectHintHideUnscaled = Time.unscaledTime + DeckRejectHintSeconds;
         }
-
-        [SerializeField] private BattleAcesEconomy economy;
-        [SerializeField] private BattleAcesCore playerCore;
-        [SerializeField] private BattleAcesMatchController match;
-        [SerializeField] private MissionDefinition missionContext;
-        [SerializeField] private BattleMissionFlow missionFlow;
-        [SerializeField] private BattleAcesObjectiveUgui uguiObjective;
 
         public void Bind(
             BattleAcesEconomy eco,
@@ -72,93 +65,7 @@ namespace Game.BattleAces
         {
             ImGuiGameUi.BeginScaledGui();
             DrawPracticeRoundIntentToast();
-            float x0 = PanelPad;
-            float topReserve = GetImGuiTopReserve();
-            float innerLeft = x0 + 10f;
-            float y = topReserve + 8f;
-            float maxW = Mathf.Min(400f, Screen.width - PanelPad * 2f);
-
-            bool showMissionBlock = missionContext != null &&
-                                    (missionFlow == null || missionFlow.IsGameplayStarted);
-            bool drawImGuiMission = showMissionBlock &&
-                                    (uguiObjective == null || !uguiObjective.HasObjectiveUi);
-
-            float panelH = EstimatePanelHeight(showMissionBlock, drawImGuiMission);
-            float panelTop = Mathf.Max(PanelPad - 2f, topReserve - 4f);
-            Rect fullPanel = new Rect(x0 - 8f, panelTop, maxW + 16f, panelH);
-            ImGuiGameUi.DrawHudCardWithLeftStripe(
-                fullPanel,
-                ImGuiGameUi.PanelBgHud,
-                ImGuiGameUi.BorderCool,
-                ImGuiGameUi.HudStripeTactical,
-                3f);
-
-            float iw = maxW - 4f;
-
-            if (drawImGuiMission)
-            {
-                DrawMissionHeaderBlockCompact(ref y, innerLeft, iw);
-            }
-            else if (missionContext == null)
-            {
-                GUI.skin.label.fontSize = 12;
-                GUI.color = ImGuiGameUi.TextMuted;
-                GUI.Label(
-                    new Rect(innerLeft, y, iw, 40f),
-                    DemoPresentationCopy.RoundGoalOneLineKo + "\n" + DemoPresentationCopy.AfterMatchExitOneLineKo);
-                y += 38f;
-            }
-
-            ImGuiGameUi.DrawHorizontalRule(new Rect(innerLeft, y, iw, 1f), new Color(0.18f, 0.2f, 0.26f, 0.55f));
-            y += 8f;
-
-            if (economy != null)
-            {
-                GUI.skin.label.fontSize = 22;
-                GUI.color = ImGuiGameUi.ResourceHighlight;
-                GUI.Label(new Rect(innerLeft, y, 96f, 28f), $"{economy.PlayerCredits:0}");
-                GUI.skin.label.fontSize = 11;
-                GUI.color = ImGuiGameUi.TextMuted;
-                GUI.Label(
-                    new Rect(innerLeft + 100f, y + 6f, iw - 100f, 20f),
-                    $"+{economy.PlayerTotalIncomePerSecond:0.#}/s   적 동원 {economy.EnemyCredits:0}");
-                y += 30f;
-            }
-
-            if (playerCore != null)
-            {
-                GUI.skin.label.fontSize = 10;
-                GUI.color = ImGuiGameUi.TextMuted;
-                GUI.Label(new Rect(innerLeft, y, iw, 14f), "덱 1–8");
-                y += 14f;
-                DrawDeckSlotGrid(innerLeft, y, iw, playerCore);
-                y += 50f;
-
-                DrawProductionLineCompact(ref y, innerLeft, iw);
-                DrawRallyAndUpgradesMergedLine(ref y, innerLeft, iw);
-
-                GUI.skin.label.fontSize = 10;
-                GUI.color = new Color(0.45f, 0.5f, 0.58f, 1f);
-                GUI.Label(
-                    new Rect(innerLeft, y, iw, 28f),
-                    "덱1~8  WASD·가장자리  ,랠리  Ctrl+A  Esc  TYU  V  F1  P  [ ]");
-                y += 28f;
-
-                RtsTimeControl rtc = RtsTimeControl.Instance;
-                if (rtc != null && match != null && !match.IsFinished &&
-                    (missionFlow == null || missionFlow.IsGameplayStarted))
-                {
-                    string line = rtc.GetStatusLineKo();
-                    if (!string.IsNullOrEmpty(line))
-                    {
-                        GUI.skin.label.fontSize = 10;
-                        GUI.color = ImGuiGameUi.TextMuted;
-                        GUI.Label(new Rect(innerLeft, y, iw, 16f), line);
-                    }
-                }
-            }
-
-            GUI.color = Color.white;
+            DrawLeftCommandPanel();
 
             if (match != null && match.IsFinished && missionContext == null)
             {
@@ -168,190 +75,169 @@ namespace Game.BattleAces
             DrawRallyPointSetTransientHint();
             DrawCommandRejectTransientHint();
             DrawDeckRejectTransientHint();
-
             ImGuiGameUi.EndScaledGui();
         }
 
-        private void DrawProductionLineCompact(ref float y, float innerLeft, float iw)
+        private void DrawLeftCommandPanel()
         {
-            if (playerCore == null || match == null || match.IsFinished)
-            {
-                return;
-            }
+            float topReserve = GetImGuiTopReserve();
+            float x = PanelPad;
+            float y = topReserve + 10f;
+            float width = Mathf.Min(438f, Screen.width * 0.29f);
+            width = Mathf.Max(width, 356f);
 
-            string body;
-            if (playerCore.TryGetNextProductionPreview(out UnitArchetype arch, out float secLeft))
-            {
-                string unitShort = GetShortName(arch);
-                int waiting = playerCore.QueuedProductionCount;
-                if (secLeft > 0.05f)
-                {
-                    body = $"생산 {unitShort} {secLeft:0.0}s · 대기{waiting} · 합{playerCore.QueueCount}";
-                }
-                else
-                {
-                    body = $"대기 {unitShort} · 큐{waiting} · 합{playerCore.QueueCount}";
-                }
-            }
-            else
-            {
-                body = "생산 대기 — 1~8";
-            }
+            Rect shell = new Rect(x, y, width, 276f);
+            ImGuiGameUi.DrawGlassPanel(shell, ImGuiGameUi.PanelBgHud, ImGuiGameUi.BorderCool, ImGuiGameUi.AccentCyan);
+            ImGuiGameUi.DrawFilledRect(
+                new Rect(shell.x, shell.y, shell.width, 26f),
+                new Color(ImGuiGameUi.AccentCyan.r, ImGuiGameUi.AccentCyan.g, ImGuiGameUi.AccentCyan.b, 0.08f));
+            ImGuiGameUi.DrawHorizontalRule(
+                new Rect(shell.x + 16f, shell.y + 36f, shell.width - 32f, 1f),
+                new Color(0.17f, 0.21f, 0.26f, 0.9f));
 
-            GUI.skin.label.fontSize = 11;
-            GUI.color = ImGuiGameUi.TextTitle;
-            GUI.Label(new Rect(innerLeft, y, iw, 18f), body);
-            y += 20f;
+            DrawOperationSummary(shell);
+            DrawEconomyStrip(shell);
+            DrawDeckGrid(shell);
+            DrawProductionAndUpgradeLines(shell);
+            DrawInputHints(shell);
+            DrawTimeStatus(shell);
         }
 
-        private void DrawRallyAndUpgradesMergedLine(ref float y, float innerLeft, float iw)
+        private void DrawOperationSummary(Rect shell)
         {
-            if (playerCore == null || match == null || match.IsFinished)
+            float x = shell.x + 18f;
+            float y = shell.y + 14f;
+            float width = shell.width - 36f;
+
+            GUI.skin.label.fontSize = 10;
+            GUI.color = ImGuiGameUi.AccentGold;
+            GUI.Label(new Rect(x, y, width, 14f), "TACTICAL STATUS");
+
+            GUI.skin.label.fontSize = 18;
+            GUI.color = ImGuiGameUi.TextTitle;
+            GUI.Label(new Rect(x, y + 14f, width, 22f), GetTopTitle());
+
+            GUI.skin.label.fontSize = 11;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(x, y + 40f, width, 18f), GetTopSubtitle());
+
+            string objective = missionContext != null
+                ? MissionObjectiveDisplayText.GetPrimaryLine(missionContext)
+                : DemoPresentationCopy.RoundGoalOneLineKo;
+            GUI.skin.label.fontSize = 11;
+            GUI.color = ImGuiGameUi.TextTitle;
+            GUI.Label(new Rect(x, y + 62f, width, 32f), objective);
+        }
+
+        private void DrawEconomyStrip(Rect shell)
+        {
+            if (economy == null)
             {
                 return;
             }
 
-            string t = playerCore.ProductionUpgradeTier >= 3
-                ? "T✓"
-                : playerCore.TryGetNextProductionUpgradeCost(out int cT)
-                    ? $"T{cT}"
-                    : "T—";
-            string hull = playerCore.HullUpgradeTier >= 3
-                ? "Y✓"
-                : playerCore.TryGetNextHullUpgradeCost(out int cY)
-                    ? $"Y{cY}"
-                    : "Y—";
-            string inc = playerCore.IncomeUpgradeTier >= 3
-                ? "U✓"
-                : playerCore.TryGetNextIncomeUpgradeCost(out int cU)
-                    ? $"U{cU}"
-                    : "U—";
+            Rect strip = new Rect(shell.x + 18f, shell.y + 98f, shell.width - 36f, 36f);
+            ImGuiGameUi.DrawPanelFrame(
+                strip,
+                new Color(0.075f, 0.082f, 0.095f, 0.94f),
+                new Color(0.2f, 0.23f, 0.3f, 0.7f),
+                1f);
+
+            GUI.skin.label.fontSize = 27;
+            GUI.color = ImGuiGameUi.ResourceHighlight;
+            GUI.Label(new Rect(strip.x + 10f, strip.y + 1f, 84f, 32f), $"{economy.PlayerCredits:0}");
+
+            GUI.skin.label.fontSize = 11;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(
+                new Rect(strip.x + 92f, strip.y + 6f, 140f, 16f),
+                IsKorean ? $"+{economy.PlayerTotalIncomePerSecond:0.#}/s 수입" : $"+{economy.PlayerTotalIncomePerSecond:0.#}/s income");
+            GUI.Label(
+                new Rect(strip.x + 92f, strip.y + 18f, strip.width - 102f, 16f),
+                IsKorean ? $"적 전력 추정 {economy.EnemyCredits:0}" : $"Enemy reserve {economy.EnemyCredits:0}");
+        }
+
+        private void DrawDeckGrid(Rect shell)
+        {
+            if (playerCore == null)
+            {
+                return;
+            }
+
+            float x = shell.x + 18f;
+            float y = shell.y + 148f;
+            float width = shell.width - 36f;
+            const float gap = 4f;
+            float cellW = (width - gap * 3f) / 4f;
+            const float cellH = 22f;
 
             GUI.skin.label.fontSize = 10;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(
-                new Rect(innerLeft, y, iw, 28f),
-                $"강화 {t} {hull} {inc}  ·  랠리 Alt+우클릭 지면");
-            y += 28f;
-        }
-
-        private static void DrawRallyPointSetTransientHint()
-        {
-            if (Time.unscaledTime >= rallyPointHintHideUnscaled)
-            {
-                return;
-            }
-
-            int prevSize = GUI.skin.label.fontSize;
-            GUI.skin.label.fontSize = 13;
-            const string msg = "집결 지점 설정 · 이후 생산 유닛이 링으로 집결 (F1)";
-            float w = Mathf.Min(520f, Screen.width - 28f);
-            Rect bar = new Rect((Screen.width - w) * 0.5f, Screen.height - 88f, w, 26f);
-            ImGuiGameUi.DrawPanelFrame(bar, ImGuiGameUi.PanelBgDeep, ImGuiGameUi.HudStripeTactical, 1f);
-            GUI.color = ImGuiGameUi.TextTitle;
-            GUI.Label(new Rect(bar.x + 10f, bar.y + 6f, bar.width - 20f, 22f), msg);
-            GUI.color = Color.white;
-            GUI.skin.label.fontSize = prevSize;
-        }
-
-        private static void DrawDeckSlotGrid(float ix, float iy, float iw, BattleAcesCore core)
-        {
-            const float gap = 4f;
-            float cellW = (iw - gap * 3f) / 4f;
-            const float cellH = 20f;
+            GUI.Label(new Rect(x, y - 14f, width, 12f), IsKorean ? "생산 슬롯 1-8" : "Production slots 1-8");
 
             for (int i = 0; i < 8; i++)
             {
                 int row = i / 4;
                 int col = i % 4;
-                Rect cell = new Rect(ix + col * (cellW + gap), iy + row * (cellH + gap), cellW, cellH);
-                ImGuiGameUi.DrawPanelFrame(cell, ImGuiGameUi.PanelBgHudCard, ImGuiGameUi.BorderCool, 0.5f);
-                string key = BattleAcesCore.GetDeckHotkeyLabel(i);
-                string name = GetShortName(core.GetDeckSlot(i));
-                GUI.skin.label.fontSize = 10;
+                Rect cell = new Rect(x + col * (cellW + gap), y + row * (cellH + gap), cellW, cellH);
+                ImGuiGameUi.DrawPanelFrame(cell, ImGuiGameUi.PanelBgHudCard, ImGuiGameUi.BorderCool, 1f);
                 GUI.color = ImGuiGameUi.AccentGold;
-                GUI.Label(new Rect(cell.x + 3f, cell.y + 1f, 14f, cellH), key);
+                GUI.Label(new Rect(cell.x + 4f, cell.y + 1f, 14f, cellH), BattleAcesCore.GetDeckHotkeyLabel(i));
                 GUI.color = ImGuiGameUi.TextTitle;
-                GUI.Label(new Rect(cell.x + 17f, cell.y + 1f, cell.width - 20f, cellH), name);
+                GUI.Label(new Rect(cell.x + 18f, cell.y + 1f, cell.width - 22f, cellH), GetShortName(playerCore.GetDeckSlot(i)));
             }
         }
 
-        private static void DrawCommandRejectTransientHint()
+        private void DrawProductionAndUpgradeLines(Rect shell)
         {
-            if (Time.unscaledTime >= commandRejectHintHideUnscaled)
+            if (playerCore == null)
             {
                 return;
             }
 
-            int prevSize = GUI.skin.label.fontSize;
-            GUI.skin.label.fontSize = 13;
-            GUI.color = ImGuiGameUi.DefeatTint;
-            const string msg = "명령 불가 — 지면·표적을 확인";
-            float w = Mathf.Min(480f, Screen.width - 32f);
-            Rect bar = new Rect((Screen.width - w) * 0.5f, Screen.height - 56f, w, 24f);
-            ImGuiGameUi.DrawPanelFrame(bar, ImGuiGameUi.PanelBgDeep, new Color(0.55f, 0.32f, 0.3f, 0.75f), 1f);
+            float x = shell.x + 18f;
+            float width = shell.width - 36f;
+            float y = shell.y + 212f;
+
+            GUI.skin.label.fontSize = 11;
             GUI.color = ImGuiGameUi.TextTitle;
-            GUI.Label(new Rect(bar.x + 10f, bar.y + 4f, bar.width - 20f, 22f), msg);
-            GUI.color = Color.white;
-            GUI.skin.label.fontSize = prevSize;
+            GUI.Label(new Rect(x, y, width, 18f), BuildProductionLine());
+
+            GUI.skin.label.fontSize = 10;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(x, y + 18f, width, 16f), BuildUpgradeLine());
         }
 
-        private static void DrawDeckRejectTransientHint()
+        private void DrawInputHints(Rect shell)
         {
-            if (Time.unscaledTime >= deckRejectHintHideUnscaled || string.IsNullOrEmpty(deckRejectHintMessage))
+            float x = shell.x + 18f;
+            float width = shell.width - 36f;
+            float y = shell.y + shell.height - 38f;
+
+            GUI.skin.label.fontSize = 10;
+            GUI.color = new Color(0.56f, 0.62f, 0.7f, 1f);
+            GUI.Label(new Rect(x, y, width, 16f), GetInputHintLine());
+        }
+
+        private void DrawTimeStatus(Rect shell)
+        {
+            RtsTimeControl rtc = RtsTimeControl.Instance;
+            if (rtc == null || match == null || match.IsFinished || (missionFlow != null && !missionFlow.IsGameplayStarted))
             {
                 return;
             }
 
-            int prevSize = GUI.skin.label.fontSize;
-            GUI.skin.label.fontSize = 13;
-            float w = Mathf.Min(560f, Screen.width - 28f);
-            Rect bar = new Rect((Screen.width - w) * 0.5f, Screen.height - 120f, w, 26f);
-            ImGuiGameUi.DrawPanelFrame(bar, ImGuiGameUi.PanelBgDeep, new Color(0.38f, 0.42f, 0.52f, 0.82f), 1f);
-            GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(new Rect(bar.x + 10f, bar.y + 5f, bar.width - 20f, 22f), deckRejectHintMessage);
-            GUI.color = Color.white;
-            GUI.skin.label.fontSize = prevSize;
-        }
-
-        private static string GetShortName(Game.Units.UnitArchetype archetype)
-        {
-            return archetype switch
-            {
-                Game.Units.UnitArchetype.Spearman => "창",
-                Game.Units.UnitArchetype.ShieldInfantry => "방패",
-                Game.Units.UnitArchetype.Rifleman => "소총",
-                Game.Units.UnitArchetype.Artillery => "포",
-                Game.Units.UnitArchetype.Fighter => "전투기",
-                Game.Units.UnitArchetype.SpecialWarrior => "특전",
-                Game.Units.UnitArchetype.RoyalGuard => "근위",
-                Game.Units.UnitArchetype.Outrider => "기동",
-                Game.Units.UnitArchetype.MobileFortress => "요새",
-                Game.Units.UnitArchetype.AirborneCitadel => "공성",
-                _ => archetype.ToString()
-            };
+            GUI.skin.label.fontSize = 10;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(shell.x + 18f, shell.y + shell.height - 20f, shell.width - 36f, 14f), rtc.GetStatusLineKo());
         }
 
         private void DrawSkirmishResultOverlay()
         {
-            if (match == null)
-            {
-                return;
-            }
+            string headline = match != null && match.State == BattleAcesMatchController.MatchState.Victory
+                ? (IsKorean ? "승리 · 적 코어 파괴" : "Victory · Enemy core destroyed")
+                : (IsKorean ? "패배 · 아군 코어 붕괴" : "Defeat · Command core lost");
 
-            string msg = match.State == BattleAcesMatchController.MatchState.Victory
-                ? "승리 — 적 코어 격파"
-                : "패배 — 아군 코어 붕괴";
-
-            float boxW = Mathf.Min(520f, Screen.width - 32f);
-            Rect box = new Rect((Screen.width - boxW) * 0.5f, Screen.height * 0.36f, boxW, 152f);
-            ImGuiGameUi.DrawHudCardWithLeftStripe(box, ImGuiGameUi.PanelBgLift, ImGuiGameUi.BorderAccent, ImGuiGameUi.HudStripeTactical, 3f);
-
-            GUI.skin.label.fontSize = 22;
-            GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(new Rect(box.x + 20f, box.y + 16f, box.width - 40f, 32f), msg);
-            GUI.skin.label.fontSize = 13;
-            GUI.color = ImGuiGameUi.TextMuted;
             float playSec = missionFlow != null
                 ? missionFlow.LastMatchPlaySecondsUnscaled
                 : (BattleAcesRunStats.Instance != null
@@ -360,30 +246,36 @@ namespace Game.BattleAces
             int credits = economy != null ? Mathf.RoundToInt(economy.PlayerCredits) : 0;
             string statLine = BattleAcesRunStats.Instance != null
                 ? BattleAcesRunStats.Instance.BuildFullResultSummaryLine(playSec, credits)
-                : $"플레이 {BattleAcesRunStats.FormatPlayTimeMmSs(playSec)} · 종료 시 자원 {credits}";
-            GUI.Label(new Rect(box.x + 20f, box.y + 48f, box.width - 40f, 40f), statLine);
-            GUI.skin.label.fontSize = 13;
+                : $"{BattleAcesRunStats.FormatPlayTimeMmSs(playSec)} · {credits}";
+
+            float boxW = Mathf.Min(520f, Screen.width - 32f);
+            Rect box = new Rect((Screen.width - boxW) * 0.5f, Screen.height * 0.34f, boxW, 152f);
+            ImGuiGameUi.DrawGlassPanel(box, ImGuiGameUi.PanelBgLift, ImGuiGameUi.BorderAccent, ImGuiGameUi.AccentGold);
+
+            GUI.skin.label.fontSize = 22;
             GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(new Rect(box.x + 20f, box.y + 84f, box.width - 40f, 22f), "R 키 — 같은 판 즉시 재시작");
+            GUI.Label(new Rect(box.x + 20f, box.y + 16f, box.width - 40f, 28f), headline);
+
+            GUI.skin.label.fontSize = 12;
+            GUI.color = ImGuiGameUi.TextTitle;
+            GUI.Label(new Rect(box.x + 20f, box.y + 50f, box.width - 40f, 20f), statLine);
+
+            GUI.skin.label.fontSize = 12;
+            GUI.color = ImGuiGameUi.AccentCyan;
+            GUI.Label(
+                new Rect(box.x + 20f, box.y + 78f, box.width - 40f, 18f),
+                IsKorean ? "R 로 즉시 재시작" : "Press R to restart");
+
+            GUI.skin.label.fontSize = 11;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(new Rect(box.x + 20f, box.y + 104f, box.width - 40f, 44f), DemoPresentationCopy.AfterMatchExitOneLineKo);
-            GUI.color = Color.white;
+            GUI.Label(
+                new Rect(box.x + 20f, box.y + 100f, box.width - 40f, 34f),
+                DemoPresentationCopy.AfterMatchExitOneLineKo);
         }
 
-        /// <summary>스커미시·에디터 폴백 데모 — 작전 시작 후 30초만 상단 한 줄(캠페인 첫 미션 체크리스트와 역할 분리)</summary>
         private void DrawPracticeRoundIntentToast()
         {
-            if (match == null || match.IsFinished)
-            {
-                return;
-            }
-
-            if (missionFlow == null || !missionFlow.IsGameplayStarted)
-            {
-                return;
-            }
-
-            if (missionContext == null || !missionContext.IsPracticeStyleOneMatch)
+            if (match == null || match.IsFinished || missionFlow == null || !missionFlow.IsGameplayStarted || missionContext == null || !missionContext.IsPracticeStyleOneMatch)
             {
                 return;
             }
@@ -394,16 +286,13 @@ namespace Game.BattleAces
                 return;
             }
 
-            float w = Mathf.Min(620f, Screen.width - 20f);
+            float w = Mathf.Min(600f, Screen.width - 32f);
             float top = GetImGuiTopReserve() + 2f;
             Rect bar = new Rect((Screen.width - w) * 0.5f, top, w, 28f);
-            ImGuiGameUi.DrawPanelFrame(bar, ImGuiGameUi.PanelBgDeep, ImGuiGameUi.BorderCool, 1f);
+            ImGuiGameUi.DrawGlassPanel(bar, ImGuiGameUi.PanelBgDeep, ImGuiGameUi.BorderCool, ImGuiGameUi.AccentCyan);
             GUI.skin.label.fontSize = 12;
             GUI.color = ImGuiGameUi.TextTitle;
-            GUI.Label(
-                new Rect(bar.x + 10f, bar.y + 6f, bar.width - 20f, 18f),
-                DemoPresentationCopy.PracticeToastLineKo);
-            GUI.color = Color.white;
+            GUI.Label(new Rect(bar.x + 12f, bar.y + 5f, bar.width - 24f, 18f), DemoPresentationCopy.PracticeToastLineKo);
         }
 
         private float GetImGuiTopReserve()
@@ -416,131 +305,165 @@ namespace Game.BattleAces
             return PanelPad + 4f;
         }
 
-        private float EstimatePanelHeight(bool showMissionBlock, bool drawImGuiMission)
+        private string GetTopTitle()
         {
-            float h = 20f;
-
-            if (missionContext == null && !showMissionBlock)
+            if (missionContext != null)
             {
-                h += 48f;
-            }
-            else if (drawImGuiMission)
-            {
-                bool longDefense = missionContext != null &&
-                                   missionContext.ObjectiveKind == MissionObjectiveKind.SanctuaryDefense;
-                bool seize = missionContext != null &&
-                             missionContext.ObjectiveKind == MissionObjectiveKind.SeizeRelicOrNode;
-                if (longDefense)
-                {
-                    h += 92f;
-                }
-                else if (seize)
-                {
-                    h += 94f;
-                }
-                else
-                {
-                    h += 78f;
-                }
-            }
-            else if (!drawImGuiMission && showMissionBlock)
-            {
-                h += 8f;
+                return BattleAcesObjectiveUgui.FormatTopBarDemoTitle(missionContext);
             }
 
-            h += 12f;
-
-            if (economy != null)
-            {
-                h += 34f;
-            }
-
-            if (playerCore != null)
-            {
-                h += 14f + 50f + 28f;
-                if (match != null && !match.IsFinished)
-                {
-                    h += 20f + 28f;
-                }
-
-                h += 14f;
-            }
-
-            return Mathf.Max(h, 158f);
+            return IsKorean ? "스커미시 전술 네트워크" : "Skirmish Tactical Network";
         }
 
-        private void DrawMissionHeaderBlockCompact(ref float y, float ix, float iw)
+        private string GetTopSubtitle()
         {
-            string primary = MissionObjectiveDisplayText.GetPrimaryLine(missionContext);
-            string hint = MissionObjectiveDisplayText.GetGameplayHint(missionContext);
-            string extra = GetDefenseCountdownLine();
-            if (string.IsNullOrEmpty(extra))
+            if (missionContext != null)
             {
-                extra = GetSeizeProgressLineForImGui();
+                return MissionObjectiveDisplayText.GetGameplayHint(missionContext);
             }
 
+            return IsKorean
+                ? "전장 운영, 생산, 재배치를 한 패널에서 확인"
+                : "Track command flow, production, and redeployment from one panel";
+        }
+
+        private string BuildProductionLine()
+        {
+            if (match != null && match.IsFinished)
+            {
+                return string.Empty;
+            }
+
+            if (playerCore != null && playerCore.TryGetNextProductionPreview(out UnitArchetype arch, out float secLeft))
+            {
+                string unitShort = GetShortName(arch);
+                int waiting = playerCore.QueuedProductionCount;
+                if (IsKorean)
+                {
+                    return secLeft > 0.05f
+                        ? $"생산 {unitShort} {secLeft:0.0}s · 대기 {waiting} · 큐 {playerCore.QueueCount}"
+                        : $"대기 {unitShort} · 대기 {waiting} · 큐 {playerCore.QueueCount}";
+                }
+
+                return secLeft > 0.05f
+                    ? $"Building {unitShort} {secLeft:0.0}s · waiting {waiting} · queue {playerCore.QueueCount}"
+                    : $"Queued {unitShort} · waiting {waiting} · queue {playerCore.QueueCount}";
+            }
+
+            return IsKorean ? "생산 대기 중 · 슬롯 1-8로 호출" : "Production idle · trigger with slots 1-8";
+        }
+
+        private string BuildUpgradeLine()
+        {
+            if (playerCore == null)
+            {
+                return string.Empty;
+            }
+
+            string t = playerCore.ProductionUpgradeTier >= 3
+                ? "T MAX"
+                : playerCore.TryGetNextProductionUpgradeCost(out int cT) ? $"T {cT}" : "T --";
+            string y = playerCore.HullUpgradeTier >= 3
+                ? "Y MAX"
+                : playerCore.TryGetNextHullUpgradeCost(out int cY) ? $"Y {cY}" : "Y --";
+            string u = playerCore.IncomeUpgradeTier >= 3
+                ? "U MAX"
+                : playerCore.TryGetNextIncomeUpgradeCost(out int cU) ? $"U {cU}" : "U --";
+
+            return IsKorean
+                ? $"강화 {t}  {y}  {u} · Alt+우클릭 집결"
+                : $"Upgrades {t}  {y}  {u} · Alt+Right Click rally";
+        }
+
+        private string GetInputHintLine()
+        {
+            return IsKorean
+                ? "1-8 생산 · WASD 이동 · 우클릭 명령 · Ctrl+A 전체 선택 · F1 도움말"
+                : "1-8 build · WASD move · Right Click command · Ctrl+A select all · F1 help";
+        }
+
+        private static void DrawRallyPointSetTransientHint()
+        {
+            if (Time.unscaledTime >= rallyPointHintHideUnscaled)
+            {
+                return;
+            }
+
+            bool korean = GameUserSettings.Language == GameLanguage.Korean;
+            string msg = korean
+                ? "집결 지점 설정 완료 · 이후 생산 유닛이 바로 이동합니다"
+                : "Rally point set · new units will route there";
+            DrawTransientBar(Screen.height - 92f, 560f, ImGuiGameUi.AccentCyan, msg);
+        }
+
+        private static void DrawCommandRejectTransientHint()
+        {
+            if (Time.unscaledTime >= commandRejectHintHideUnscaled)
+            {
+                return;
+            }
+
+            bool korean = GameUserSettings.Language == GameLanguage.Korean;
+            string msg = korean
+                ? "명령 불가 · 유효한 지면이나 대상을 확인하세요"
+                : "Command rejected · check the target or ground";
+            DrawTransientBar(Screen.height - 58f, 500f, ImGuiGameUi.DefeatTint, msg);
+        }
+
+        private static void DrawDeckRejectTransientHint()
+        {
+            if (Time.unscaledTime >= deckRejectHintHideUnscaled || string.IsNullOrEmpty(deckRejectHintMessage))
+            {
+                return;
+            }
+
+            DrawTransientBar(Screen.height - 126f, 580f, ImGuiGameUi.AccentGold, deckRejectHintMessage);
+        }
+
+        private static void DrawTransientBar(float y, float width, Color accent, string msg)
+        {
+            float barW = Mathf.Min(width, Screen.width - 32f);
+            Rect bar = new Rect((Screen.width - barW) * 0.5f, y, barW, 28f);
+            ImGuiGameUi.DrawGlassPanel(bar, ImGuiGameUi.PanelBgDeep, ImGuiGameUi.BorderCool, accent);
             GUI.skin.label.fontSize = 12;
-            GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(new Rect(ix, y, iw, 20f), BattleAcesObjectiveUgui.FormatTopBarDemoTitle(missionContext));
-            y += 20f;
-
-            GUI.skin.label.fontSize = 13;
             GUI.color = ImGuiGameUi.TextTitle;
-            GUI.Label(new Rect(ix, y, iw, 22f), primary);
-            y += 24f;
-
-            GUI.skin.label.fontSize = 10;
-            GUI.color = ImGuiGameUi.TextMuted;
-            string description = string.IsNullOrEmpty(extra) ? hint : $"{hint}\n{extra}";
-            if (!string.IsNullOrEmpty(description))
-            {
-                float hintH = missionContext.ObjectiveKind == MissionObjectiveKind.SanctuaryDefense ? 34f
-                    : missionContext.ObjectiveKind == MissionObjectiveKind.SeizeRelicOrNode ? 36f
-                    : 26f;
-                GUI.Label(new Rect(ix, y, iw, hintH), description);
-                y += hintH + 2f;
-            }
+            GUI.Label(new Rect(bar.x + 12f, bar.y + 5f, bar.width - 24f, 18f), msg);
         }
 
-        /// <summary>UGUI 상단 바와 비슷하게 — 점령 미션만 IMGUI 폴백에서 진행 한 줄 표시</summary>
-        // 챕터5 온보딩: UGUI가 꺼진 경우에도 점령 진행률이 왼쪽 패널에 보이게 함
-        private static string GetSeizeProgressLineForImGui()
+        private string GetShortName(UnitArchetype archetype)
         {
-            MissionCaptureZone zone = MissionCaptureZone.Instance;
-            if (zone == null)
+            if (IsKorean)
             {
-                return string.Empty;
+                return archetype switch
+                {
+                    UnitArchetype.Spearman => "창",
+                    UnitArchetype.ShieldInfantry => "방패",
+                    UnitArchetype.Rifleman => "소총",
+                    UnitArchetype.Artillery => "포",
+                    UnitArchetype.Fighter => "전투기",
+                    UnitArchetype.SpecialWarrior => "특전",
+                    UnitArchetype.RoyalGuard => "근위",
+                    UnitArchetype.Outrider => "기동",
+                    UnitArchetype.MobileFortress => "요새",
+                    UnitArchetype.AirborneCitadel => "공성",
+                    _ => archetype.ToString()
+                };
             }
 
-            int pct = Mathf.RoundToInt(zone.HoldProgress01 * 100f);
-            if (zone.IsCompleted)
+            return archetype switch
             {
-                return "점령 완료 처리 중";
-            }
-
-            if (!zone.IsPlayerInside)
-            {
-                return $"점령 대기 · 진행 {pct}% / {zone.HoldSecondsRequired:0}초 유지 필요";
-            }
-
-            return $"점령 중 · 아군 {zone.OccupyingPlayerUnitCount}기 · {pct}%";
-        }
-
-        private string GetDefenseCountdownLine()
-        {
-            if (missionContext == null || missionContext.ObjectiveKind != MissionObjectiveKind.SanctuaryDefense)
-            {
-                return string.Empty;
-            }
-
-            if (missionFlow == null || !missionFlow.IsGameplayStarted)
-            {
-                return "작전이 시작되면 방어 타이머가 진행됩니다.";
-            }
-
-            float elapsed = Time.time - missionFlow.GameplayStartTime;
-            float remain = Mathf.Max(0f, missionContext.DefenseDurationSeconds - elapsed);
-            return $"남은 시간 {remain:0}초 / 목표 {missionContext.DefenseDurationSeconds:0}초 생존";
+                UnitArchetype.Spearman => "Spear",
+                UnitArchetype.ShieldInfantry => "Shield",
+                UnitArchetype.Rifleman => "Rifle",
+                UnitArchetype.Artillery => "Artillery",
+                UnitArchetype.Fighter => "Fighter",
+                UnitArchetype.SpecialWarrior => "Special",
+                UnitArchetype.RoyalGuard => "Royal Guard",
+                UnitArchetype.Outrider => "Outrider",
+                UnitArchetype.MobileFortress => "Fortress",
+                UnitArchetype.AirborneCitadel => "Citadel",
+                _ => archetype.ToString()
+            };
         }
     }
 }

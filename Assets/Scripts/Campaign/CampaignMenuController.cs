@@ -1,13 +1,14 @@
 using Game.Campaign.Core;
 using Game.Campaign.Data;
+using Game.Settings;
 using Game.UI;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Game.Campaign
 {
     public sealed class CampaignMenuController : MonoBehaviour
     {
-        /// <summary>메인 → 캠페인(미션·진행) / 데모(한 판 전투) 분리</summary>
         private enum MainMenuLayer
         {
             Root,
@@ -16,21 +17,25 @@ namespace Game.Campaign
         }
 
         [SerializeField] private CampaignMissionCatalog catalog;
-
-        [Tooltip("카탈로그가 비어 있을 때도 데모 탭에서 한 판 전투를 허용합니다. 끄면 카탈로그가 있을 때만 데모 버튼이 동작합니다.")]
         [SerializeField] private bool useRuntimeDemoIfCatalogEmpty = true;
 
         private MainMenuLayer currentLayer = MainMenuLayer.Root;
+        private float menuOpenedUnscaled;
+
+        private void OnEnable()
+        {
+            menuOpenedUnscaled = Time.unscaledTime;
+        }
 
         private void Update()
         {
-            // 챕터 1: 하위 화면에서 Esc 로 메인 복귀(전투 전 메뉴만)
             if (currentLayer == MainMenuLayer.Root)
             {
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.Escape))
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
                 currentLayer = MainMenuLayer.Root;
             }
@@ -40,141 +45,238 @@ namespace Game.Campaign
         {
             ImGuiGameUi.BeginScaledGui();
             DrawMenuBackground();
-
-            float pad = 36f;
-            float panelW = Mathf.Min(920f, Screen.width - pad * 2f);
+            DrawLanguageToggle();
 
             switch (currentLayer)
             {
                 case MainMenuLayer.Root:
-                    DrawRootLayer(pad, panelW);
+                    DrawRootLayer();
                     break;
                 case MainMenuLayer.Campaign:
-                    DrawCampaignLayer(pad, panelW);
+                    DrawCampaignLayer();
                     break;
                 case MainMenuLayer.Demo:
-                    DrawDemoLayer(pad, panelW);
+                    DrawDemoLayer();
                     break;
             }
 
-            DrawVersionFooter(pad, panelW);
+            DrawVersionFooter();
             ImGuiGameUi.EndScaledGui();
         }
 
-        private static void DrawVersionFooter(float pad, float panelW)
+        private static void DrawVersionFooter()
         {
+            Rect footer = new Rect(28f, Screen.height - 30f, Screen.width - 56f, 22f);
             GUI.skin.label.fontSize = 11;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(
-                new Rect(pad, Screen.height - 24f, panelW, 22f),
-                DemoPresentationCopy.BuildVersionFooterKo());
+            GUI.Label(footer, DemoPresentationCopy.BuildVersionFooterKo());
             GUI.color = Color.white;
         }
 
-        /// <summary>메인 — 캠페인 / 데모 선택만</summary>
-        private void DrawRootLayer(float pad, float panelW)
+        private static void DrawLanguageToggle()
         {
-            GUI.skin.label.fontSize = 34;
-            GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(new Rect(pad, 32f, panelW, 48f), "Orbital Command");
+            Rect wrap = new Rect(Screen.width - 250f, 96f, 208f, 42f);
+            ImGuiGameUi.DrawGlassPanel(
+                wrap,
+                new Color(ImGuiGameUi.PanelBgDeep.r, ImGuiGameUi.PanelBgDeep.g, ImGuiGameUi.PanelBgDeep.b, 0.9f),
+                new Color(0.26f, 0.34f, 0.42f, 0.72f),
+                ImGuiGameUi.AccentCyan);
 
-            GUI.skin.label.fontSize = 16;
+            GUI.skin.label.fontSize = 10;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(wrap.x + 12f, wrap.y + 12f, 54f, 14f), L("언어", "LANG"));
+
+            Rect track = new Rect(wrap.x + 66f, wrap.y + 8f, wrap.width - 78f, 26f);
+            ImGuiGameUi.DrawPanelFrame(track, new Color(0.06f, 0.09f, 0.14f, 0.92f), new Color(0.22f, 0.3f, 0.38f, 0.8f), 1f);
+
+            bool korean = GameUserSettings.Language == GameLanguage.Korean;
+            Rect koRect = new Rect(track.x + 4f, track.y + 3f, 56f, 20f);
+            Rect enRect = new Rect(track.x + 64f, track.y + 3f, 56f, 20f);
+
+            Color prev = GUI.color;
+            if (korean)
+            {
+                ImGuiGameUi.DrawPanelFrame(koRect, new Color(0.16f, 0.28f, 0.36f, 0.95f), ImGuiGameUi.AccentCyan, 1f);
+                GUI.color = ImGuiGameUi.TextTitle;
+                GUI.Label(koRect, "KO");
+                GUI.color = ImGuiGameUi.TextMuted;
+                GUI.Label(enRect, "EN");
+            }
+            else
+            {
+                GUI.color = ImGuiGameUi.TextMuted;
+                GUI.Label(koRect, "KO");
+                ImGuiGameUi.DrawPanelFrame(enRect, new Color(0.22f, 0.2f, 0.12f, 0.95f), ImGuiGameUi.BorderAccent, 1f);
+                GUI.color = ImGuiGameUi.TextTitle;
+                GUI.Label(enRect, "EN");
+            }
+
+            GUI.color = prev;
+
+            if (!korean && GUI.Button(koRect, GUIContent.none, GUIStyle.none))
+            {
+                GameUserSettings.SetLanguage(GameLanguage.Korean);
+                GameUserSettings.Save();
+            }
+
+            if (korean && GUI.Button(enRect, GUIContent.none, GUIStyle.none))
+            {
+                GameUserSettings.SetLanguage(GameLanguage.English);
+                GameUserSettings.Save();
+            }
+        }
+
+        private void DrawRootLayer()
+        {
+            float margin = Mathf.Lerp(28f, 56f, Mathf.Clamp01(Screen.width / 1800f));
+            float contentTop = 52f;
+            float leftWidth = Mathf.Min(620f, Screen.width * 0.42f);
+            float rightWidth = Mathf.Min(560f, Screen.width * 0.38f);
+            float gap = 34f;
+
+            Rect hero = AnimatedRect(new Rect(margin, contentTop, leftWidth, 262f), -20f, -18f, 0f);
+            Rect command = AnimatedRect(new Rect(hero.xMax + gap, contentTop + 34f, rightWidth, 436f), 22f, 10f, 0.08f);
+
+            DrawHeroPanel(hero);
+            DrawRootCommandPanel(command);
+        }
+
+        private void DrawHeroPanel(Rect rect)
+        {
+            ImGuiGameUi.DrawGlassPanel(rect, ImGuiGameUi.PanelBgDeep, ImGuiGameUi.BorderCool, ImGuiGameUi.AccentCyan);
+
+            GUI.skin.label.fontSize = 14;
+            GUI.color = ImGuiGameUi.AccentCyan;
+            GUI.Label(new Rect(rect.x + 22f, rect.y + 18f, rect.width - 44f, 22f), L("전략 지휘 인터페이스", "STRATEGIC COMMAND INTERFACE"));
+
+            GUI.skin.label.fontSize = 42;
             GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(new Rect(pad, 76f, panelW, 26f), "한 판 데모 — 여기서 시작");
+            GUI.Label(new Rect(rect.x + 20f, rect.y + 44f, rect.width - 40f, 50f), "Orbital Command");
+
+            GUI.skin.label.fontSize = GameUserSettings.Language == GameLanguage.Korean ? 17 : 18;
+            GUI.color = ImGuiGameUi.TextTitle;
+            GUI.Label(new Rect(rect.x + 22f, rect.y + 102f, rect.width - 44f, 28f), L("싱글플레이 RTS 전투 프로토타입", "Single-player RTS combat prototype"));
+
             GUI.skin.label.fontSize = 13;
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(
-                new Rect(pad, 102f, panelW, 40f),
-                "캠페인(●○)은 옵션입니다. 데모·캠페인 하위 화면에서 Esc 또는 「← 메인 (Esc)」으로 복귀합니다.");
+                new Rect(rect.x + 22f, rect.y + 138f, rect.width - 44f, 72f),
+                L(
+                    "지금은 짧더라도 직접 조작 가능한 전투가 우선입니다. 카메라를 움직이고 유닛을 지휘하며, 교전에서 살아남아 한 판을 끝까지 완성하세요.",
+                    "A short, playable battle flow comes first: move camera, command units, survive contact, and finish a match cleanly."));
+
+            Rect infoBar = new Rect(rect.x + 20f, rect.yMax - 52f, rect.width - 40f, 32f);
+            ImGuiGameUi.DrawPanelFrame(infoBar, ImGuiGameUi.PanelBgHudCard, ImGuiGameUi.BorderCool, 1f);
+            GUI.skin.label.fontSize = 12;
+            GUI.color = ImGuiGameUi.ResourceHighlight;
+            GUI.Label(infoBar, DemoPresentationCopy.RoundGoalOneLineKo);
+            GUI.color = Color.white;
+        }
+
+        private void DrawRootCommandPanel(Rect rect)
+        {
+            ImGuiGameUi.DrawGlassPanel(rect, ImGuiGameUi.PanelBgLift, ImGuiGameUi.BorderAccent, ImGuiGameUi.AccentGold);
+
+            GUI.skin.label.fontSize = 13;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(rect.x + 22f, rect.y + 18f, rect.width - 44f, 20f), L("주요 작전", "PRIMARY ACTIONS"));
+
+            GUI.skin.label.fontSize = GameUserSettings.Language == GameLanguage.Korean ? 24 : 26;
+            GUI.color = ImGuiGameUi.TextTitle;
+            GUI.Label(new Rect(rect.x + 22f, rect.y + 44f, rect.width - 44f, 34f), L("다음 출격을 선택하세요", "Choose your next deployment"));
 
             GUI.skin.label.fontSize = 12;
-            GUI.color = ImGuiGameUi.TextTitle;
+            GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(
-                new Rect(pad, 138f, panelW, 52f),
-                DemoPresentationCopy.RoundGoalOneLineKo + "\n" + DemoPresentationCopy.AfterMatchExitOneLineKo);
-            GUI.color = Color.white;
-            GUI.skin.label.fontSize = 15;
+                new Rect(rect.x + 22f, rect.y + 86f, rect.width - 44f, 40f),
+                L(
+                    "이 메뉴는 단순 런처보다 전술 콘솔처럼 보여야 합니다. 데모가 가장 빠르게 전투에 들어가는 경로입니다.",
+                    "This menu should feel like a tactical console, not a plain launcher. Demo is the fastest path to live combat."));
 
-            float btnH = 64f;
-            float gap = 18f;
-            float startY = Mathf.Max(208f, Screen.height * 0.34f);
-            // 데모를 위에 두어 진입·메뉴 흐름이 프로젝트 목표와 맞춤
-            Rect demoBtn = new Rect(pad, startY, panelW, btnH);
-            Rect campaignBtn = new Rect(pad, startY + btnH + gap, panelW, btnH);
+            float buttonX = rect.x + 22f;
+            float buttonY = rect.y + 138f;
+            float buttonW = rect.width - 44f;
+            float buttonH = 62f;
+            float buttonGap = 14f;
 
-            if (ImGuiGameUi.GameMenuButton(demoBtn, "데모 (본전)\n한 판 전투 · 난이도 선택 · 브리핑 없음"))
+            if (ImGuiGameUi.GameMenuButton(
+                    new Rect(buttonX, buttonY, buttonW, buttonH),
+                    L("즉시 전투\n브리핑 없이 바로 한 판 전투에 진입", "Instant Battle\nJump straight into one match with no briefing")))
             {
                 currentLayer = MainMenuLayer.Demo;
+                menuOpenedUnscaled = Time.unscaledTime;
             }
 
-            if (ImGuiGameUi.GameMenuButton(campaignBtn, "캠페인 (옵션)\n미션·브리핑 · 진행 저장"))
+            if (ImGuiGameUi.GameMenuButton(
+                    new Rect(buttonX, buttonY + buttonH + buttonGap, buttonW, buttonH),
+                    L("캠페인 미션\n미션 흐름, 진행 저장, 씬 기반 목표", "Campaign Missions\nMission flow, progression, and scene-based objectives")))
             {
                 currentLayer = MainMenuLayer.Campaign;
+                menuOpenedUnscaled = Time.unscaledTime;
             }
 
-            if (catalog != null && catalog.Count > 0)
+            bool canContinue = catalog != null && catalog.Count > 0;
+            if (ImGuiGameUi.GameMenuButton(
+                    new Rect(buttonX, buttonY + (buttonH + buttonGap) * 2f, buttonW, buttonH),
+                    L("캠페인 이어하기\n다음 해금 미션부터 바로 재개", "Continue Campaign\nResume the next unlocked mission"),
+                    canContinue))
             {
-                Rect continueBtn = new Rect(pad, startY + (btnH + gap) * 2f, panelW, btnH);
-                if (ImGuiGameUi.GameMenuButton(continueBtn, "캠페인 이어하기\n진행 중인 미션부터 바로 시작"))
+                int idx = CampaignProgressStorage.GetSuggestedContinueMissionOrderIndex(catalog);
+                MissionDefinition cont = idx >= 0 ? catalog.GetMissionAt(idx) : null;
+                if (cont != null)
                 {
-                    int idx = CampaignProgressStorage.GetSuggestedContinueMissionOrderIndex(catalog);
-                    MissionDefinition cont = idx >= 0 ? catalog.GetMissionAt(idx) : null;
-                    if (cont != null)
-                    {
-                        StartMission(idx, cont);
-                    }
-                    else
-                    {
-                        Debug.LogWarning("[Campaign] 이어하기: 유효한 미션을 찾지 못했습니다.");
-                    }
+                    StartMission(idx, cont);
                 }
             }
-        }
 
-        private void DrawBackToMainButton(float pad, float y)
-        {
-            if (ImGuiGameUi.GameMenuButton(new Rect(pad, y, 220f, 44f), "← 메인 (Esc)"))
-            {
-                currentLayer = MainMenuLayer.Root;
-            }
-        }
-
-        /// <summary>캠페인 — 미션 목록(챕터 순서)만, 스커미시는 데모 측</summary>
-        private void DrawCampaignLayer(float pad, float panelW)
-        {
-            DrawBackToMainButton(pad, 28f);
-
-            GUI.skin.label.fontSize = 28;
-            GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(new Rect(pad, 78f, panelW, 40f), "캠페인");
-
-            string progressDots = BuildMissionProgressDotsLine();
-            float contentTop = 118f;
-            if (!string.IsNullOrEmpty(progressDots))
-            {
-                GUI.skin.label.fontSize = 14;
-                GUI.color = ImGuiGameUi.TextMuted;
-                GUI.Label(new Rect(pad, contentTop, panelW, 24f), progressDots);
-                contentTop += 28f;
-            }
-
+            Rect note = new Rect(rect.x + 22f, rect.yMax - 48f, rect.width - 44f, 24f);
+            ImGuiGameUi.DrawPanelFrame(note, ImGuiGameUi.PanelBgHudCard, ImGuiGameUi.BorderCool, 1f);
+            GUI.skin.label.fontSize = 11;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(note, L("Esc는 하위 메뉴에서 돌아가기, R은 전투 재시작, F10은 진단 HUD 토글입니다.", "Esc returns from submenus. R restarts after a match. F10 toggles diagnostics."));
             GUI.color = Color.white;
+        }
+
+        private void DrawCampaignLayer()
+        {
+            float margin = 32f;
+            Rect header = AnimatedRect(new Rect(margin, 34f, Screen.width - margin * 2f, 112f), 0f, -18f, 0f);
+            Rect body = AnimatedRect(new Rect(margin, 160f, Screen.width - margin * 2f, Screen.height - 238f), 0f, 18f, 0.08f);
+
+            DrawSubmenuHeader(
+                header,
+                L("캠페인 미션", "Campaign Missions"),
+                L("같은 전투 규칙 위에 짧은 스토리 미션을 얹는 흐름입니다.", "Short story missions layered on top of the same battle rules."));
 
             if (catalog == null || catalog.Count == 0)
             {
-                DrawCampaignEmptyPanel(pad, panelW, contentTop);
+                ImGuiGameUi.DrawGlassPanel(body, ImGuiGameUi.PanelBgLift, ImGuiGameUi.BorderCool, ImGuiGameUi.AccentCyan);
+                GUI.skin.label.fontSize = 18;
+                GUI.color = ImGuiGameUi.TextTitle;
+                GUI.Label(new Rect(body.x + 28f, body.y + 28f, body.width - 56f, 28f), L("미션 카탈로그가 연결되지 않았습니다", "No mission catalog assigned"));
+
+                GUI.skin.label.fontSize = 13;
+                GUI.color = ImGuiGameUi.TextMuted;
+                GUI.Label(
+                    new Rect(body.x + 28f, body.y + 64f, body.width - 56f, 60f),
+                    L("Inspector에서 CampaignMissionCatalog를 연결하거나, 즉시 전투로 빠르게 플레이 테스트를 진행하세요.", "Assign a CampaignMissionCatalog in the inspector, or use Instant Battle for quick playtesting."));
+                GUI.color = Color.white;
                 return;
             }
 
-            float listTop = contentTop + 8f;
-            float listH = Mathf.Max(100f, Screen.height - listTop - 72f);
-            Rect listPanel = new Rect(pad, listTop, panelW, listH);
-            ImGuiGameUi.DrawPanelFrame(listPanel, ImGuiGameUi.PanelBgLift, ImGuiGameUi.BorderCool, 2f);
+            ImGuiGameUi.DrawGlassPanel(body, ImGuiGameUi.PanelBgLift, ImGuiGameUi.BorderCool, ImGuiGameUi.AccentGold);
+
+            string progressDots = BuildMissionProgressDotsLine();
+            if (!string.IsNullOrEmpty(progressDots))
+            {
+                GUI.skin.label.fontSize = 12;
+                GUI.color = ImGuiGameUi.ResourceHighlight;
+                GUI.Label(new Rect(body.x + 24f, body.y + 18f, body.width - 48f, 20f), progressDots);
+            }
 
             int unlocked = CampaignProgressStorage.GetHighestUnlockedMissionIndex();
-            float rowY = listPanel.y + 18f;
-            float innerW = listPanel.width - 40f;
-
+            float rowY = body.y + 54f;
+            float rowW = body.width - 48f;
             for (int i = 0; i < catalog.Count; i++)
             {
                 MissionDefinition mission = catalog.GetMissionAt(i);
@@ -184,109 +286,131 @@ namespace Game.Campaign
                 }
 
                 bool canPlay = i <= unlocked;
-                string label =
-                    $"{i + 1}. {MissionObjectiveDisplayText.ResolveMissionDisplayName(mission)} | {MissionObjectiveDisplayText.GetShortLabelForMenu(mission)}";
+                string title = $"{i + 1}. {MissionObjectiveDisplayText.ResolveMissionDisplayName(mission)}";
+                string subtitle = MissionObjectiveDisplayText.GetShortLabelForMenu(mission);
                 if (!canPlay)
                 {
-                    label += " | Locked";
+                    subtitle += GameUserSettings.Language == GameLanguage.Korean ? " | 잠김" : " | Locked";
                 }
 
-                Rect row = new Rect(listPanel.x + 20f, rowY, innerW, 46f);
-                if (ImGuiGameUi.GameMenuButton(row, label, canPlay))
+                if (ImGuiGameUi.GameMenuButton(new Rect(body.x + 24f, rowY, rowW, 54f), title + "\n" + subtitle, canPlay))
                 {
                     StartMission(i, mission);
                 }
 
-                rowY += 54f;
+                rowY += 62f;
             }
 
-            GUI.skin.label.fontSize = 12;
-            GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(
-                new Rect(pad, Screen.height - 118f, panelW, 44f),
-                "진행 저장: 미션 클리어·해금만 기억합니다. 전투 중간 저장(세이브)은 후순위로 검토합니다.");
-            GUI.color = Color.white;
-
-            DrawClearButton(pad);
+            if (ImGuiGameUi.GameMenuButton(new Rect(body.x + 24f, body.yMax - 56f, 280f, 38f), L("캠페인 진행 초기화", "Reset Campaign Progress")))
+            {
+                CampaignProgressStorage.ClearAllProgress(catalog);
+            }
         }
 
-        /// <summary>데모 — 스커미시 난이도만(전투 씬 직행)</summary>
-        private void DrawDemoLayer(float pad, float panelW)
+        private void DrawDemoLayer()
         {
-            DrawBackToMainButton(pad, 28f);
+            float margin = 32f;
+            Rect header = AnimatedRect(new Rect(margin, 34f, Screen.width - margin * 2f, 112f), 0f, -18f, 0f);
+            Rect left = AnimatedRect(new Rect(margin, 160f, Mathf.Min(540f, Screen.width * 0.36f), Screen.height - 238f), -28f, 14f, 0.08f);
+            Rect right = AnimatedRect(new Rect(left.xMax + 34f, 146f, Screen.width - margin - (left.xMax + 34f), Screen.height - 224f), 32f, 8f, 0.16f);
 
-            GUI.skin.label.fontSize = 28;
-            GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(new Rect(pad, 78f, panelW, 40f), "데모");
+            DrawSubmenuHeader(
+                header,
+                L("즉시 전투", "Instant Battle"),
+                L("한 판 전투에 바로 진입합니다. 전투 감각과 밸런스 반복 확인에 적합합니다.", "Direct access to one match. Good for moment-to-moment combat iteration."));
 
-            GUI.skin.label.fontSize = 14;
-            GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(
-                new Rect(pad, 118f, panelW, 40f),
-                DemoPresentationCopy.RoundGoalOneLineKo);
+            ImGuiGameUi.DrawGlassPanel(left, ImGuiGameUi.PanelBgLift, ImGuiGameUi.BorderAccent, ImGuiGameUi.AccentGold);
+            ImGuiGameUi.DrawGlassPanel(right, ImGuiGameUi.PanelBgDeep, ImGuiGameUi.BorderCool, ImGuiGameUi.AccentCyan);
+
+            GUI.skin.label.fontSize = GameUserSettings.Language == GameLanguage.Korean ? 20 : 22;
+            GUI.color = ImGuiGameUi.TextTitle;
+            GUI.Label(new Rect(left.x + 24f, left.y + 32f, left.width - 48f, 32f), L("전투 프로필 선택", "Select battle profile"));
 
             GUI.skin.label.fontSize = 12;
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(
-                new Rect(pad, 156f, panelW, 36f),
-                "맵·덱은 동일하고, 난이도별로 적 생산 간격·개장 부스트만 다릅니다. " +
-                DemoPresentationCopy.AfterMatchExitOneLineKo);
-            GUI.color = Color.white;
+                new Rect(left.x + 24f, left.y + 68f, left.width - 48f, 44f),
+                L("맵과 덱은 동일하고, 난이도는 주로 적 압박과 생산 템포를 바꿉니다.", "Same core map and deck. Difficulty mainly changes AI pressure and production pace."));
 
-            if (!CanShowStandaloneDemo())
+            float btnY = left.y + 122f;
+            float btnW = left.width - 48f;
+            float btnH = 64f;
+            float btnGap = 16f;
+            bool demoEnabled = CanShowStandaloneDemo();
+
+            if (ImGuiGameUi.GameMenuButton(new Rect(left.x + 24f, btnY, btnW, btnH), L("쉬움 스커미시\n빠른 확인과 낮은 압박", "Easy Skirmish\nFaster verification and lower pressure"), demoEnabled))
             {
-                Rect box = new Rect(pad, 198f, panelW, 120f);
-                ImGuiGameUi.DrawPanelFrame(box, ImGuiGameUi.PanelBgLift, ImGuiGameUi.BorderCool, 2f);
-                GUI.skin.label.fontSize = 14;
-                GUI.color = ImGuiGameUi.TextMuted;
-                GUI.Label(
-                    new Rect(box.x + 16f, box.y + 16f, box.width - 32f, 88f),
-                    "카탈로그가 비어 있고 「빈 카탈로그일 때 데모 허용」이 꺼져 있습니다.\n" +
-                    "CampaignMissionCatalog를 연결하거나 Inspector에서 해당 옵션을 켜 주세요.");
-                GUI.color = Color.white;
-                return;
+                StartSkirmishVsAi(SkirmishDifficultyTier.Easy);
             }
 
-            float listTop = DrawDemoSkirmishRow(pad, panelW, hintLineY: 198f);
+            if (ImGuiGameUi.GameMenuButton(new Rect(left.x + 24f, btnY + btnH + btnGap, btnW, btnH), L("보통 스커미시\n밸런스 확인용 기본 추천값", "Normal Skirmish\nRecommended baseline for balance checks"), demoEnabled))
+            {
+                StartSkirmishVsAi(SkirmishDifficultyTier.Normal);
+            }
 
-            float yAfterRow = listTop + 10f;
-            Rect keyBox = new Rect(pad, yAfterRow, panelW, 56f);
-            ImGuiGameUi.DrawPanelFrame(keyBox, ImGuiGameUi.PanelBgLift, ImGuiGameUi.BorderCool, 1f);
-            GUI.skin.label.fontSize = 12;
-            GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(
-                new Rect(keyBox.x + 12f, keyBox.y + 8f, keyBox.width - 24f, 44f),
-                DemoPresentationCopy.KeyboardOnlyNoticeKo + "\n" + DemoPresentationCopy.AfterMatchExitOneLineKo);
-            GUI.color = Color.white;
+            if (ImGuiGameUi.GameMenuButton(new Rect(left.x + 24f, btnY + (btnH + btnGap) * 2f, btnW, btnH), L("어려움 스커미시\n압박 테스트용 고강도", "Hard Skirmish\nHigher pressure for stress testing"), demoEnabled))
+            {
+                StartSkirmishVsAi(SkirmishDifficultyTier.Hard);
+            }
 
-            yAfterRow += 64f;
-            Rect variantBtn = new Rect(pad, yAfterRow, panelW, 52f);
-            if (ImGuiGameUi.GameMenuButton(
-                    variantBtn,
-                    "데모 변주 (압박 물결)\n보통 난이도 · 적 패턴만 더 공격적 (같은 맵·덱)"))
+            if (ImGuiGameUi.GameMenuButton(new Rect(left.x + 24f, btnY + (btnH + btnGap) * 3f, btnW, 60f), L("공세 변주\n기본 규칙에 더 공격적인 적 패턴 추가", "Aggressive Variant\nNormal rules with a more hostile enemy pattern"), demoEnabled))
             {
                 StartSkirmishVariantAggressive(SkirmishDifficultyTier.Normal);
             }
 
-            yAfterRow += 58f;
+            GUI.skin.label.fontSize = GameUserSettings.Language == GameLanguage.Korean ? 18 : 20;
+            GUI.color = ImGuiGameUi.AccentCyan;
+            GUI.Label(new Rect(right.x + 24f, right.y + 34f, right.width - 48f, 30f), L("임무 브리프", "Mission Brief"));
+
+            GUI.skin.label.fontSize = 13;
+            GUI.color = ImGuiGameUi.TextTitle;
+            GUI.Label(new Rect(right.x + 24f, right.y + 78f, right.width - 48f, 42f), DemoPresentationCopy.RoundGoalOneLineKo);
+
             GUI.skin.label.fontSize = 12;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(
-                new Rect(pad, yAfterRow, panelW, 48f),
-                "캠페인·첫 미션 연습 시 난이도: Normal 권장(튜토리얼 밸런스). Easy는 빠른 확인용, Hard는 압박 테스트용.");
-            GUI.color = Color.white;
+            GUI.Label(new Rect(right.x + 24f, right.y + 138f, right.width - 48f, 64f), DemoPresentationCopy.KeyboardOnlyNoticeKo + "\n\n" + DemoPresentationCopy.AfterMatchExitOneLineKo);
 
-            if (catalog == null || catalog.Count == 0)
+            Rect statCard = new Rect(right.x + 24f, right.y + 232f, right.width - 48f, 104f);
+            ImGuiGameUi.DrawPanelFrame(statCard, ImGuiGameUi.PanelBgHudCard, ImGuiGameUi.BorderCool, 1f);
+            GUI.skin.label.fontSize = GameUserSettings.Language == GameLanguage.Korean ? 10 : 11;
+            GUI.color = ImGuiGameUi.ResourceHighlight;
+            GUI.Label(new Rect(statCard.x + 10f, statCard.y + 8f, statCard.width - 20f, statCard.height - 16f), MissionDefinition.BuildSkirmishDemoMenuStatsLine());
+
+            if (!demoEnabled)
             {
-                Rect hint = new Rect(pad, yAfterRow + 50f, panelW, 40f);
-                GUI.skin.label.fontSize = 13;
-                GUI.color = ImGuiGameUi.TextMuted;
-                GUI.Label(hint, "캠페인 미션이 없어도 위 버튼으로 전투 씬을 바로 열 수 있습니다.");
+                Rect warning = new Rect(right.x + 24f, right.yMax - 96f, right.width - 48f, 64f);
+                ImGuiGameUi.DrawPanelFrame(warning, new Color(0.18f, 0.1f, 0.1f, 0.92f), ImGuiGameUi.DefeatTint, 1f);
+                GUI.skin.label.fontSize = 12;
+                GUI.color = ImGuiGameUi.TextTitle;
+                GUI.Label(warning, L("미션 카탈로그가 없고 런타임 폴백이 꺼져 있어서 단독 데모를 사용할 수 없습니다.", "Standalone demo is disabled because there is no mission catalog and runtime fallback is turned off."));
                 GUI.color = Color.white;
             }
         }
 
-        /// <summary>미션 목록이 있거나, 빈 카탈로그 데모 허용 시 데모 시작 가능</summary>
+        private void DrawSubmenuHeader(Rect rect, string title, string subtitle)
+        {
+            ImGuiGameUi.DrawGlassPanel(rect, ImGuiGameUi.PanelBgDeep, ImGuiGameUi.BorderCool, ImGuiGameUi.AccentCyan);
+
+            Rect backButton = new Rect(rect.x + rect.width - 214f, rect.y + 34f, 166f, 34f);
+            if (ImGuiGameUi.GameMenuButton(backButton, L("메인으로 (Esc)", "Back To Main (Esc)")))
+            {
+                currentLayer = MainMenuLayer.Root;
+                menuOpenedUnscaled = Time.unscaledTime;
+            }
+
+            GUI.skin.label.fontSize = GameUserSettings.Language == GameLanguage.Korean ? 24 : 28;
+            GUI.color = ImGuiGameUi.TextTitle;
+            GUI.Label(new Rect(rect.x + 20f, rect.y + 28f, rect.width - 272f, 34f), title);
+
+            GUI.skin.label.fontSize = 12;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(rect.x + 20f, rect.y + 72f, rect.width - 272f, 22f), subtitle);
+
+            float sweep = Mathf.Repeat(Time.unscaledTime * 0.18f, 1f);
+            ImGuiGameUi.DrawSweepLine(new Rect(rect.x + 16f, rect.y + 14f, rect.width - 32f, 4f), new Color(0.56f, 0.88f, 0.96f, 0.34f), sweep, 64f);
+            GUI.color = Color.white;
+        }
+
         private bool CanShowStandaloneDemo()
         {
             if (catalog != null && catalog.Count > 0)
@@ -299,74 +423,26 @@ namespace Game.Campaign
 
         private static void DrawMenuBackground()
         {
-            ImGuiGameUi.DrawFilledRect(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.03f, 0.04f, 0.07f, 1f));
-            ImGuiGameUi.DrawFilledRect(new Rect(0f, 0f, Screen.width * 0.42f, Screen.height), new Color(0.05f, 0.07f, 0.12f, 0.55f));
+            Rect full = new Rect(0f, 0f, Screen.width, Screen.height);
+            ImGuiGameUi.DrawVerticalGradient(full, new Color(0.02f, 0.025f, 0.045f, 1f), new Color(0.005f, 0.008f, 0.016f, 1f), 28);
+            ImGuiGameUi.DrawVerticalGradient(new Rect(0f, 0f, Screen.width * 0.48f, Screen.height), new Color(0.05f, 0.08f, 0.14f, 0.24f), new Color(0.01f, 0.03f, 0.06f, 0.02f), 18);
+            ImGuiGameUi.DrawFilledRect(new Rect(Screen.width * 0.44f, 0f, 2f, Screen.height), new Color(0.16f, 0.2f, 0.28f, 0.14f));
+            ImGuiGameUi.DrawScanLines(full, new Color(0.65f, 0.78f, 0.95f, 0.03f), 26f, 1f);
+            ImGuiGameUi.DrawGrid(new Rect(Screen.width * 0.52f, 0f, Screen.width * 0.48f, Screen.height), new Color(0.35f, 0.5f, 0.7f, 0.08f), 64f, 48f, 1f);
+
+            float pulse = 0.045f + Mathf.Sin(Time.unscaledTime * 1.3f) * 0.012f;
+            ImGuiGameUi.DrawFilledRect(new Rect(Screen.width * 0.08f, 96f, Screen.width * 0.34f, 1f), new Color(0.42f, 0.76f, 0.88f, pulse));
+            ImGuiGameUi.DrawFilledRect(new Rect(Screen.width * 0.6f, Screen.height - 124f, Screen.width * 0.22f, 1f), new Color(0.92f, 0.74f, 0.34f, pulse));
+            ImGuiGameUi.DrawFilledRect(new Rect(0f, 0f, Screen.width, 8f), new Color(0.92f, 0.74f, 0.34f, 0.25f));
         }
 
-        /// <summary>데모 화면 — 난이도 3버튼, 마지막 줄 아래 Y 반환</summary>
-        private static float DrawDemoSkirmishRow(float pad, float panelW, float hintLineY)
+        private Rect AnimatedRect(Rect rect, float fromOffsetX, float fromOffsetY, float delay)
         {
-            const float hintH = 40f;
-            const float btnH = 44f;
-            const float innerGap = 6f;
-
-            GUI.skin.label.fontSize = 13;
-            GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(
-                new Rect(pad, hintLineY, panelW, hintH),
-                "데모 시작 · 브리핑 없음 · ●○ 미반영\n" +
-                MissionDefinition.BuildSkirmishDemoMenuStatsLine());
-            GUI.color = Color.white;
-
-            float btnY = hintLineY + hintH + innerGap;
-            DrawSkirmishThreeButtonsInRow(pad, btnY, panelW, btnH);
-            return btnY + btnH + 14f;
-        }
-
-        /// <summary>한 줄에 쉬움·보통·어려움 (간격 균등)</summary>
-        private static void DrawSkirmishThreeButtonsInRow(float padX, float y, float totalW, float btnH)
-        {
-            const float gapX = 8f;
-            float btnW = (totalW - gapX * 2f) / 3f;
-            float x0 = padX;
-            float x1 = padX + btnW + gapX;
-            float x2 = padX + (btnW + gapX) * 2f;
-
-            if (ImGuiGameUi.GameMenuButton(
-                    new Rect(x0, y, btnW, btnH),
-                    "쉬움\n생산×" + MissionDefinition.FormatSkirmishThinkMultiplierForButton(SkirmishDifficultyTier.Easy)))
-            {
-                StartSkirmishVsAi(SkirmishDifficultyTier.Easy);
-            }
-
-            if (ImGuiGameUi.GameMenuButton(
-                    new Rect(x1, y, btnW, btnH),
-                    "보통\n생산×" + MissionDefinition.FormatSkirmishThinkMultiplierForButton(SkirmishDifficultyTier.Normal)))
-            {
-                StartSkirmishVsAi(SkirmishDifficultyTier.Normal);
-            }
-
-            if (ImGuiGameUi.GameMenuButton(
-                    new Rect(x2, y, btnW, btnH),
-                    "어려움\n생산×" + MissionDefinition.FormatSkirmishThinkMultiplierForButton(SkirmishDifficultyTier.Hard)))
-            {
-                StartSkirmishVsAi(SkirmishDifficultyTier.Hard);
-            }
-        }
-
-        /// <summary>캠페인 탭에서 카탈로그 없을 때 — 데모 탭 안내</summary>
-        private void DrawCampaignEmptyPanel(float pad, float panelW, float topY)
-        {
-            Rect box = new Rect(pad, topY, panelW, 220f);
-            ImGuiGameUi.DrawPanelFrame(box, ImGuiGameUi.PanelBgLift, ImGuiGameUi.BorderCool, 2f);
-            GUI.skin.label.fontSize = 16;
-            GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(
-                new Rect(box.x + 20f, box.y + 20f, box.width - 40f, 120f),
-                "캠페인 카탈로그가 비어 있습니다.\n" +
-                "Inspector에 CampaignMissionCatalog를 넣거나,\n" +
-                "「← 메인」 후 「데모」에서 한 판 전투를 시작하세요.");
-            GUI.color = Color.white;
+            float t = Mathf.Clamp01((Time.unscaledTime - menuOpenedUnscaled - delay) / 0.34f);
+            t = 1f - Mathf.Pow(1f - t, 3f);
+            rect.x += Mathf.Lerp(fromOffsetX, 0f, t);
+            rect.y += Mathf.Lerp(fromOffsetY, 0f, t);
+            return rect;
         }
 
         private string BuildMissionProgressDotsLine()
@@ -376,9 +452,8 @@ namespace Game.Campaign
                 return string.Empty;
             }
 
-            int missionCount = catalog.Count;
-            string line = "Progress ";
-            for (int i = 0; i < missionCount; i++)
+            string line = "Progress  ";
+            for (int i = 0; i < catalog.Count; i++)
             {
                 MissionDefinition mission = catalog.GetMissionAt(i);
                 if (mission == null)
@@ -391,36 +466,23 @@ namespace Game.Campaign
                 bool hasBonus = !string.IsNullOrEmpty(mission.OptionalBonusObjectiveId);
                 bool bonusDone = CampaignProgressStorage.IsBonusObjectiveCompleted(mission.MissionId);
 
-                if (!hasBonus)
+                if (cleared && hasBonus && bonusDone)
                 {
-                    line += cleared ? "[●] " : "[○] ";
-                }
-                else if (cleared && bonusDone)
-                {
-                    line += "[●★] ";
+                    line += "[C+] ";
                 }
                 else if (cleared)
                 {
-                    line += "[● ] ";
+                    line += "[C] ";
                 }
                 else
                 {
-                    line += "[○] ";
+                    line += "[ ] ";
                 }
             }
 
             return line.TrimEnd();
         }
 
-        private void DrawClearButton(float pad)
-        {
-            if (ImGuiGameUi.GameMenuButton(new Rect(pad, Screen.height - 62f, 260f, 48f), "Reset Campaign Progress"))
-            {
-                CampaignProgressStorage.ClearAllProgress(catalog);
-            }
-        }
-
-        /// <summary>런타임 스커미시 미션 — NewSampleScene · 브리핑 생략 · 해금/완료 저장 없음</summary>
         private static void StartSkirmishVsAi(SkirmishDifficultyTier tier)
         {
             MissionDefinition skirmish = ScriptableObject.CreateInstance<MissionDefinition>();
@@ -429,30 +491,30 @@ namespace Game.Campaign
             PersistentGameCore core = EnsurePersistentCore();
             core.SetActiveMission(skirmish);
             core.PendingMissionOrderIndex = -1;
+
             string loadTag = tier switch
             {
                 SkirmishDifficultyTier.Easy => "Skirmish vs AI (Easy)",
                 SkirmishDifficultyTier.Hard => "Skirmish vs AI (Hard)",
                 _ => "Skirmish vs AI (Normal)"
             };
+
             CampaignSceneLoadUtility.TryLoadSceneByName("NewSampleScene", loadTag);
         }
 
-        /// <summary>동일 스커미시 규칙 + 적 AI 패턴만 변주(2회차 플레이 동기)</summary>
         private static void StartSkirmishVariantAggressive(SkirmishDifficultyTier tier)
         {
             MissionDefinition skirmish = ScriptableObject.CreateInstance<MissionDefinition>();
             skirmish.AssignSkirmishVsAiRuntime(tier);
+
             string suffix = tier switch
             {
                 SkirmishDifficultyTier.Easy => "easy",
                 SkirmishDifficultyTier.Hard => "hard",
                 _ => "normal"
             };
-            skirmish.ApplySkirmishVariantEnemyPattern(
-                "aggressive_push",
-                "skirmish_demo_variant_aggressive_" + suffix,
-                "데모 변주 — 압박 물결 (" + (tier == SkirmishDifficultyTier.Easy ? "쉬움" : tier == SkirmishDifficultyTier.Hard ? "어려움" : "보통") + ")");
+
+            skirmish.ApplySkirmishVariantEnemyPattern("aggressive_push", "skirmish_demo_variant_aggressive_" + suffix, "Aggressive Variant");
 
             PersistentGameCore core = EnsurePersistentCore();
             core.SetActiveMission(skirmish);
@@ -473,10 +535,9 @@ namespace Game.Campaign
             PersistentGameCore core = EnsurePersistentCore();
             core.SetActiveMission(mission);
             core.PendingMissionOrderIndex = orderIndex;
+
             string scene = string.IsNullOrEmpty(mission.GameplaySceneName) ? "NewSampleScene" : mission.GameplaySceneName;
-            CampaignSceneLoadUtility.TryLoadSceneByName(
-                scene,
-                $"Mission: {MissionObjectiveDisplayText.ResolveMissionDisplayName(mission)}");
+            CampaignSceneLoadUtility.TryLoadSceneByName(scene, $"Mission: {MissionObjectiveDisplayText.ResolveMissionDisplayName(mission)}");
         }
 
         private static PersistentGameCore EnsurePersistentCore()
@@ -494,6 +555,11 @@ namespace Game.Campaign
 
             GameObject go = new GameObject("PersistentGameCore");
             return go.AddComponent<PersistentGameCore>();
+        }
+
+        private static string L(string korean, string english)
+        {
+            return GameUserSettings.Language == GameLanguage.Korean ? korean : english;
         }
     }
 }
