@@ -1,7 +1,7 @@
 {
   "project": "3D-Unity",
-  "phase": "MVP combat prototype + short campaign",
-  "primary_goal": "Playable Battle Aces loop with CampaignMenu missions; ground RTS feel before scope expansion.",
+  "phase": "MVP Battle Aces one-match demo (campaign optional)",
+  "primary_goal": "Polish NewSampleScene demo loop: menu Demo tiers, solo-scene fallback, result/restart/main; RTS feel. Campaign missions are maintenance/optional, not the main deliverable.",
   "home_ai_workflow": {
     "read_first": [
       "AGENTS.md",
@@ -40,18 +40,19 @@
     ]
   },
   "current_focus": [
-    "Campaign mission flow and objective clarity",
-    "Battle Aces combat + HUD/UGUI polish",
-    "Playtest and balance in short sessions"
+    "Home playtest: one-match Battle Aces demo (CHAPTER1_SMOKE_CHECKLIST) first",
+    "Optional campaign missions only when touching campaign assets",
+    "Balance: enemy wave, core HP, demo difficulty tiers"
   ],
   "priority_work_queue": {
     "immediate": [
-      "Home Unity playtest: campaign 1→4, console clean",
-      "Tune mission data if too long/short"
+      "Home: DEVLOG 6 + CHAPTER1_SMOKE_CHECKLIST.txt (demo path)",
+      "CAMPAIGN_SMOKE optional block only if editing campaign",
+      "Console clean on CampaignMenu and NewSampleScene"
     ],
     "soon": [
-      "Skirmish mode vs AI (reuse same battle scene)",
-      "Additional mission types or maps"
+      "Tune mission / skirmish data if too long or too short",
+      "Optional: more maps or skirmish variants only if needed"
     ],
     "later": [
       "UGUI expansion beyond objective strip",

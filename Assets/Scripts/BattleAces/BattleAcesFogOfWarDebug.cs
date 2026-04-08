@@ -142,14 +142,15 @@ namespace Game.BattleAces
             }
 
             // 브리핑 중에는 시야를 갱신하지 않음(작전 시작 후 탐색 누적)
-            CampaignBattleFlow flow = CampaignBattleFlow.Instance;
+            BattleMissionFlow flow = BattleMissionFlow.Instance;
             if (flow != null && !flow.IsGameplayStarted)
             {
                 return;
             }
 
             Keyboard kb = Keyboard.current;
-            if (kb != null && kb.f10Key.wasPressedThisFrame)
+            // F10 은 BattleAcesDevelopmentHud(에디터·개발 빌드)와 겹침 → FoW 미리보기는 F11
+            if (kb != null && kb.f11Key.wasPressedThisFrame)
             {
                 showOverlay = !showOverlay;
             }
@@ -341,7 +342,7 @@ namespace Game.BattleAces
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(
                 new Rect(x, y + panelH + 20f, panelW, 44f),
-                $"검=미탐색  회청=탐색만  연두=가시\nF10 · 코어+아군 · 장애물LOS{(useObstacleVisionBlocking ? "ON" : "OFF")} · 공중확대 · {Mathf.Max(1, visionUpdateEveryNFrames)}프레임");
+                $"검=미탐색  회청=탐색만  연두=가시\nF11 토글 · 코어+아군 · 장애물LOS{(useObstacleVisionBlocking ? "ON" : "OFF")} · 공중확대 · {Mathf.Max(1, visionUpdateEveryNFrames)}프레임");
 
             GUI.color = Color.white;
             ImGuiGameUi.EndScaledGui();

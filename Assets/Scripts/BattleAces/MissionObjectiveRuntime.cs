@@ -17,7 +17,7 @@ namespace Game.BattleAces
         private RelicMissionObject relic;
         private MissionCaptureZone captureZone;
         private CombatTarget heresyTarget;
-        private CampaignBattleFlow flow;
+        private BattleMissionFlow flow;
 
         private bool evacReachedEscortCheckpoint;
 
@@ -34,7 +34,7 @@ namespace Game.BattleAces
             RelicMissionObject relicObj,
             MissionCaptureZone capture,
             CombatTarget heresy,
-            CampaignBattleFlow battleFlow)
+            BattleMissionFlow battleFlow)
         {
             mission = def;
             match = m;

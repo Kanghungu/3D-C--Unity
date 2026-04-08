@@ -14,7 +14,7 @@ namespace Game.BattleAces
                 return;
             }
 
-            if (CampaignBattleFlow.Instance != null && CampaignBattleFlow.Instance.IsBriefingBlocking)
+            if (BattleMissionFlow.Instance != null && BattleMissionFlow.Instance.IsBriefingBlocking)
             {
                 return;
             }

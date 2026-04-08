@@ -1,9 +1,10 @@
 // =============================================================================
 // [Scripts ???: Campaign]
-// - DontDestroyOnLoad ? ?? ??∑?? ???∑??? ?? ? ??? ?? ?? ??.
+// - DontDestroyOnLoad ? ?? ??ù?? ???ù??? ?? ? ??? ?? ?? ??.
 // - ?? ??? BattleAces ?, ???? "?? ??? ???"? ??.
 // - PrototypeBootstrapper? ?? ? CampaignMenu ???? ??.
 // =============================================================================
+using System.Collections.Generic;
 using Game.Campaign.Data;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -11,7 +12,7 @@ using UnityEngine.SceneManagement;
 namespace Game.Campaign.Core
 {
     /// <summary>
-    /// ??? ?? ????? ? ??? ?? ? ???? ?? ??∑?? ???? ???.
+    /// ??? ?? ????? ? ??? ?? ? ???? ?? ??ù?? ???? ???.
     /// ??? ??? ?? ??.
     /// </summary>
     public sealed class PersistentGameCore : MonoBehaviour
@@ -36,6 +37,9 @@ namespace Game.Campaign.Core
 
         public DialogueTable DialogueTable => dialogueTable;
         public string CampaignMenuSceneName => campaignMenuSceneName;
+
+        /// <summary>?? ?? ? ?? ?? ?? ù ?? 1?? ??</summary>
+        private static readonly HashSet<string> WarnedMissingDialogueIds = new HashSet<string>();
 
         private void Awake()
         {
@@ -68,10 +72,16 @@ namespace Game.Campaign.Core
                 return null;
             }
 
-            return dialogueTable.TryGetText(dialogueId);
+            string text = dialogueTable.TryGetText(dialogueId);
+            if (string.IsNullOrEmpty(text) && WarnedMissingDialogueIds.Add(dialogueId))
+            {
+                Debug.LogWarning("[PersistentGameCore] Dialogue ?? ? ó ?? ?? ??: " + dialogueId);
+            }
+
+            return text;
         }
 
-        /// <summary>???∑???? ? ?? ?? ?? ??</summary>
+        /// <summary>???ù???? ? ?? ?? ?? ??</summary>
         public static void ReloadActiveScene()
         {
             UnityEngine.SceneManagement.Scene active = SceneManager.GetActiveScene();
@@ -83,6 +93,26 @@ namespace Game.Campaign.Core
             }
 
             SceneManager.LoadScene(path);
+        }
+
+        /// <summary>
+        /// ?? ? ?????? ù ?? ??? ??? ??(DontDestroyOnLoad).
+        /// </summary>
+        public static PersistentGameCore FindOrCreateForBattleScene()
+        {
+            if (Instance != null)
+            {
+                return Instance;
+            }
+
+            PersistentGameCore existing = Object.FindFirstObjectByType<PersistentGameCore>(FindObjectsInactive.Include);
+            if (existing != null)
+            {
+                return existing;
+            }
+
+            GameObject go = new GameObject("PersistentGameCore");
+            return go.AddComponent<PersistentGameCore>();
         }
     }
 }

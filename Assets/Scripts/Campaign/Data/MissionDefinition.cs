@@ -1,4 +1,7 @@
+using Game.BattleAces;
 using Game.Units;
+using System;
+using System.Globalization;
 using UnityEngine;
 
 namespace Game.Campaign.Data
@@ -10,6 +13,17 @@ namespace Game.Campaign.Data
     [CreateAssetMenu(fileName = "Mission", menuName = "Game/Campaign/Mission Definition", order = 1)]
     public sealed class MissionDefinition : ScriptableObject
     {
+        // 스커미시 데모 수치 단일 출처(챕터 1) — 메뉴 표시는 BuildSkirmishDemoMenuStatsLine 등만 사용
+        private const float SkirmishEasyThinkMul = 1.52f;
+        private const float SkirmishNormalThinkMul = 1f;
+        private const float SkirmishHardThinkMul = 0.55f;
+        private const float SkirmishEasyBoostSec = 105f;
+        private const float SkirmishEasyBoostMul = 1.55f;
+        private const float SkirmishNormalBoostSec = 62f;
+        private const float SkirmishNormalBoostMul = 1.36f;
+        private const float SkirmishHardBoostSec = 26f;
+        private const float SkirmishHardBoostMul = 1.08f;
+
         [Header("식별")]
         [SerializeField] private string missionId = "mission_01";
 
@@ -44,7 +58,8 @@ namespace Game.Campaign.Data
         [Header("플레이어 덱 (고정 슬롯, 최대 8)")]
         [SerializeField] private UnitArchetype[] playerDeck = new UnitArchetype[0];
 
-        [Header("적 패턴 (문자열 ID — 적 AI/웨이브 테이블과 연결 예정)")]
+        [Header("적 패턴 (문자열 ID — BattleAcesEnemyBrain.ApplyEnemyPattern)")]
+        [Tooltip("예: default_skirmish, heresy_demo_pace(챕터4 데모 밸런스)")]
         [SerializeField] private string enemyPatternId = "default_skirmish";
 
         [Header("적 AI (Battle Aces)")]
@@ -72,6 +87,13 @@ namespace Game.Campaign.Data
         [Header("보조 목표 (선택 — 실패해도 미션 진행)")]
         [Tooltip("비어 있으면 없음. core_survive_50: 승리 시 아군 코어 50% 이상 / train_variety_3: 서로 다른 병과 3종 이상 생산")]
         [SerializeField] private string optionalBonusObjectiveId;
+
+        [Header("메뉴·모드 (선택)")]
+        [Tooltip("체크 시 브리핑 없이 바로 전투 시작(스커미시 vs AI 등)")]
+        [SerializeField] private bool skipsCampaignBriefing;
+
+        [Tooltip("체크 시 클리어해도 캠페인 해금·완료 도트에 반영하지 않음")]
+        [SerializeField] private bool excludesFromCampaignProgress;
 
         public string MissionId => missionId;
         public string DisplayName => displayName;
@@ -122,6 +144,191 @@ namespace Game.Campaign.Data
 
         /// <summary>보조 목표 ID — 빈 문자열이면 없음</summary>
         public string OptionalBonusObjectiveId => optionalBonusObjectiveId != null ? optionalBonusObjectiveId.Trim() : string.Empty;
+
+        /// <summary>브리핑 카드를 띄우지 않고 전투만</summary>
+        public bool SkipsCampaignBriefing => skipsCampaignBriefing;
+
+        /// <summary>false 이면 승리 시 RegisterMissionWin 등 캠페인 진행 저장</summary>
+        public bool CountsForCampaignProgress => !excludesFromCampaignProgress;
+
+        /// <summary>스커미시 vs AI 계열(메뉴에서 생성한 런타임 미션)</summary>
+        public bool IsSkirmishVsAiMission =>
+            !string.IsNullOrEmpty(missionId) && missionId.StartsWith("skirmish_vs_ai", StringComparison.Ordinal);
+
+        /// <summary>에디터에서 전투 씬만 Play 할 때 부트스트랩이 넣는 한 판 데모(챕터 0 폴백)</summary>
+        public bool IsOneMatchBattleDemo =>
+            string.Equals(missionId, "battle_aces_one_match_demo", StringComparison.Ordinal);
+
+        /// <summary>스커미시·폴백 데모 등 캠페인 진행에 올리지 않는 한 판 모드</summary>
+        public bool IsPracticeStyleOneMatch => IsSkirmishVsAiMission || IsOneMatchBattleDemo;
+
+        /// <summary>스커미시가 아니면 Normal (UI·로그용)</summary>
+        public SkirmishDifficultyTier ActiveSkirmishTier => ResolveSkirmishTierFromMissionId(missionId);
+
+        /// <summary>메뉴「스커미시 vs AI」— NewSampleScene · 브리핑 없음 · 진행 저장 없음 · 기본 덱</summary>
+        public void AssignSkirmishVsAiRuntime()
+        {
+            AssignSkirmishVsAiRuntime(SkirmishDifficultyTier.Normal);
+        }
+
+        /// <summary>난이도별 적 AI 생산 간격 배율·개장 자원 부스트(부트스트랩에서 사용)</summary>
+        public void AssignSkirmishVsAiRuntime(SkirmishDifficultyTier tier)
+        {
+            gameplaySceneName = "NewSampleScene";
+            campaignSortOrder = -1;
+            objectiveKind = MissionObjectiveKind.DestroyEnemyCore;
+            briefingDialogueId = null;
+            victoryDialogueId = null;
+            defeatDialogueId = null;
+            defenseDurationSeconds = 120f;
+            seizeHoldSeconds = 14f;
+            mirroredLayoutVariant = false;
+            airborneCitadelFocus = false;
+            briefingUseCompactFont = false;
+            enemyPatternId = "default_skirmish";
+            enemyBrainThinkIntervalOverride = 0f;
+            playerFactionRules = null;
+            enemyFactionRules = null;
+            optionalBonusObjectiveId = string.Empty;
+            skipsCampaignBriefing = true;
+            excludesFromCampaignProgress = true;
+            playerDeck = new[]
+            {
+                UnitArchetype.Spearman,
+                UnitArchetype.ShieldInfantry,
+                UnitArchetype.Rifleman,
+                UnitArchetype.Artillery,
+                UnitArchetype.Fighter,
+                UnitArchetype.SpecialWarrior,
+                UnitArchetype.RoyalGuard,
+                UnitArchetype.Outrider
+            };
+
+            // 생산 간격 = 기준초 × 배율(클수록 적이 느리게 뽑음)
+            enemyBrainThinkIntervalMultiplier = GetSkirmishEnemyThinkMultiplier(tier);
+            switch (tier)
+            {
+                case SkirmishDifficultyTier.Easy:
+                    missionId = "skirmish_vs_ai_easy";
+                    displayName = "스커미시 vs AI (쉬움)";
+                    break;
+                case SkirmishDifficultyTier.Hard:
+                    missionId = "skirmish_vs_ai_hard";
+                    displayName = "스커미시 vs AI (어려움)";
+                    break;
+                default:
+                    missionId = "skirmish_vs_ai";
+                    displayName = "스커미시 vs AI (보통)";
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 스커미시 런타임 생성 직후 — 같은 맵·덱으로 적 AI 패턴만 바꿔 2번째 플레이 동기 부여.
+        /// </summary>
+        public void ApplySkirmishVariantEnemyPattern(string patternId, string variantMissionId, string variantDisplayName)
+        {
+            enemyPatternId = string.IsNullOrEmpty(patternId) ? "default_skirmish" : patternId;
+            if (!string.IsNullOrEmpty(variantMissionId))
+            {
+                missionId = variantMissionId;
+            }
+
+            if (!string.IsNullOrEmpty(variantDisplayName))
+            {
+                displayName = variantDisplayName;
+            }
+        }
+
+        private static float GetSkirmishEnemyThinkMultiplier(SkirmishDifficultyTier tier)
+        {
+            return tier switch
+            {
+                SkirmishDifficultyTier.Easy => SkirmishEasyThinkMul,
+                SkirmishDifficultyTier.Hard => SkirmishHardThinkMul,
+                _ => SkirmishNormalThinkMul
+            };
+        }
+
+        private static void GetSkirmishOpeningBoostForTier(SkirmishDifficultyTier tier, out float sec, out float mul)
+        {
+            switch (tier)
+            {
+                case SkirmishDifficultyTier.Easy:
+                    sec = SkirmishEasyBoostSec;
+                    mul = SkirmishEasyBoostMul;
+                    break;
+                case SkirmishDifficultyTier.Hard:
+                    sec = SkirmishHardBoostSec;
+                    mul = SkirmishHardBoostMul;
+                    break;
+                default:
+                    sec = SkirmishNormalBoostSec;
+                    mul = SkirmishNormalBoostMul;
+                    break;
+            }
+        }
+
+        /// <summary>데모 메뉴 IMGUI 두 번째 줄 — 상수와 항상 동기화됨</summary>
+        public static string BuildSkirmishDemoMenuStatsLine()
+        {
+            return
+                "수치(보통=1.0): 쉬움 생산×" + SkNum(SkirmishEasyThinkMul) + "·부스트 " + SkNum(SkirmishEasyBoostSec) + "초×" + SkNum(SkirmishEasyBoostMul) +
+                " | 보통 ×" + SkNum(SkirmishNormalThinkMul) + "·" + SkNum(SkirmishNormalBoostSec) + "×" + SkNum(SkirmishNormalBoostMul) +
+                " | 어려움 ×" + SkNum(SkirmishHardThinkMul) + "·" + SkNum(SkirmishHardBoostSec) + "×" + SkNum(SkirmishHardBoostMul);
+        }
+
+        private static string SkNum(float x) => x.ToString("0.##", CultureInfo.InvariantCulture);
+
+        /// <summary>난이도 버튼 부제 — 생산×표기</summary>
+        public static string FormatSkirmishThinkMultiplierForButton(SkirmishDifficultyTier tier)
+        {
+            return GetSkirmishEnemyThinkMultiplier(tier).ToString("0.##", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// ActiveMission 이 없을 때(NewSampleScene 단독 Play 등) — 보통 스커미시와 동일 룰, 표시만 데모용.
+        /// </summary>
+        public void AssignFallbackOneMatchDemoRuntime()
+        {
+            AssignSkirmishVsAiRuntime(SkirmishDifficultyTier.Normal);
+            missionId = "battle_aces_one_match_demo";
+            displayName = "Battle Aces 데모 (한 판)";
+        }
+
+        /// <summary>스커미시·폴백 데모에 개장 수입 부스트 적용</summary>
+        public void ApplySkirmishOpeningIncomeBoostIfNeeded(BattleAcesEconomy economy)
+        {
+            if (economy == null || !IsPracticeStyleOneMatch)
+            {
+                return;
+            }
+
+            SkirmishDifficultyTier tier = ResolveSkirmishTierFromMissionId(missionId);
+            GetSkirmishOpeningBoostForTier(tier, out float sec, out float mul);
+            economy.ActivateOpeningIncomeBoost(sec, mul);
+        }
+
+        /// <summary>미션 ID 접미사로 난이도 판별 — 직렬화된 에셋과 런타임 생성 모두 동일 규칙</summary>
+        private static SkirmishDifficultyTier ResolveSkirmishTierFromMissionId(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return SkirmishDifficultyTier.Normal;
+            }
+
+            if (string.Equals(id, "skirmish_vs_ai_easy", StringComparison.Ordinal))
+            {
+                return SkirmishDifficultyTier.Easy;
+            }
+
+            if (string.Equals(id, "skirmish_vs_ai_hard", StringComparison.Ordinal))
+            {
+                return SkirmishDifficultyTier.Hard;
+            }
+
+            return SkirmishDifficultyTier.Normal;
+        }
 
         /// <summary>코드에서만 쓰는 런타임 데모/테스트 설정(메뉴 없이 씬 단독 실행 시 등)</summary>
         public void AssignRuntimeCampaign(

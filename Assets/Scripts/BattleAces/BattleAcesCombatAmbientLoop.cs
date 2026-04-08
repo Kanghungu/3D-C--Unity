@@ -11,7 +11,7 @@ namespace Game.BattleAces
         private void LateUpdate()
         {
             bool want = false;
-            if (CampaignBattleFlow.Instance != null && CampaignBattleFlow.Instance.IsGameplayStarted)
+            if (BattleMissionFlow.Instance != null && BattleMissionFlow.Instance.IsGameplayStarted)
             {
                 want = true;
                 if (BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController m) && m.IsFinished)

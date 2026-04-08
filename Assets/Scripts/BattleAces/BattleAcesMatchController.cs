@@ -1,5 +1,7 @@
 using System;
 using Game.Audio;
+using Game.Campaign.Core;
+using Game.Campaign.Scene;
 using Game.Units;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -126,10 +128,27 @@ namespace Game.BattleAces
         {
             if (state != MatchState.Playing)
             {
-                if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
+                Keyboard kb = Keyboard.current;
+                if (kb != null)
                 {
-                    Time.timeScale = 1f;
-                    SceneManager.LoadScene(SceneManager.GetActiveScene().path);
+                    if (kb.rKey.wasPressedThisFrame)
+                    {
+                        Time.timeScale = 1f;
+                        SceneManager.LoadScene(SceneManager.GetActiveScene().path);
+                        return;
+                    }
+
+                    // 승패 후 Esc = 결과 화면의 「메인/캠페인 메뉴로」와 동일
+                    if (kb.escapeKey.wasPressedThisFrame)
+                    {
+                        Time.timeScale = 1f;
+                        PersistentGameCore core = PersistentGameCore.Instance;
+                        string menuScene = core != null && !string.IsNullOrEmpty(core.CampaignMenuSceneName)
+                            ? core.CampaignMenuSceneName
+                            : "CampaignMenu";
+                        CampaignSceneLoadUtility.TryLoadSceneByName(menuScene, "승패 후 Esc로 메뉴 복귀");
+                        return;
+                    }
                 }
 
                 return;

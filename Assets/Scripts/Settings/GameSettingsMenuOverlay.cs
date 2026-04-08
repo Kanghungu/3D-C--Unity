@@ -10,10 +10,10 @@ namespace Game.Settings
     public sealed class GameSettingsMenuOverlay : MonoBehaviour
     {
         private const float PanelWidth = 468f;
-        private const float PanelHeightPreferred = 486f;
+        private const float PanelHeightPreferred = 620f;
         private const float PanelLeft = 24f;
         private const float PanelBottomMargin = 16f;
-        private const float ContentHeightApprox = 460f;
+        private const float ContentHeightApprox = 640f;
 
         private bool panelOpen;
 
@@ -149,6 +149,20 @@ namespace Game.Settings
                 }
 
                 y += 32f;
+
+                // --- 그래픽 (데모 2단) ---
+                DrawSectionTitle(ref y, innerPadX, innerW, "그래픽");
+                DrawSectionHint(ref y, innerPadX, innerW, "저사양: 그림자 끔·거리 단축. 균형: 기본값에 가깝게 복구.");
+
+                bool perf = GameUserSettings.GraphicQualityPreset == DemoGraphicQualityPreset.Performance;
+                bool perfNew = GUI.Toggle(new Rect(innerPadX, y, innerW, 24f), perf, "저사양 프리셋 (성능 우선)");
+                if (perfNew != perf)
+                {
+                    GameUserSettings.SetGraphicQualityPreset(
+                        perfNew ? DemoGraphicQualityPreset.Performance : DemoGraphicQualityPreset.Balanced);
+                }
+
+                y += 36f;
                 GUI.Label(new Rect(innerPadX, y, 160f, 22f), "UI 크기 (IMGUI)");
                 float uiSc = GUI.HorizontalSlider(
                     new Rect(sliderLeft, y + 4f, sliderW, 18f),
@@ -161,6 +175,33 @@ namespace Game.Settings
                 }
 
                 y += 40f;
+
+                // --- 접근성 ---
+                DrawSectionTitle(ref y, innerPadX, innerW, "접근성");
+                DrawSectionHint(ref y, innerPadX, innerW, "미니맵 색약 모드 · 브리핑 글자 나오는 속도(자막과 동일 슬라이더).");
+
+                bool cb = GameUserSettings.ColorblindFriendlyMinimap;
+                bool cbNew = GUI.Toggle(new Rect(innerPadX, y, innerW, 24f), cb, "미니맵 색약 친화 (아군 청·적 주황)");
+                if (cbNew != cb)
+                {
+                    GameUserSettings.SetColorblindFriendlyMinimap(cbNew);
+                }
+
+                y += 32f;
+                GUI.skin.label.fontSize = 13;
+                GUI.color = Color.white;
+                GUI.Label(new Rect(innerPadX, y, 200f, 22f), "브리핑·대사 속도 (글자/초)");
+                float dCps = GUI.HorizontalSlider(
+                    new Rect(sliderLeft, y + 4f, sliderW, 18f),
+                    GameUserSettings.DialogueRevealCharsPerSecond,
+                    28f,
+                    280f);
+                if (!Mathf.Approximately(dCps, GameUserSettings.DialogueRevealCharsPerSecond))
+                {
+                    GameUserSettings.SetDialogueRevealCharsPerSecond(dCps);
+                }
+
+                y += 38f;
                 if (GUI.Button(new Rect(innerPadX, y, 168f, 28f), "설정 저장"))
                 {
                     GameUserSettings.Save();

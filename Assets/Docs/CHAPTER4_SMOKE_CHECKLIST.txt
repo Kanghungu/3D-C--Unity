@@ -1,0 +1,29 @@
+챕터 4 — 적 AI·밸런스(한 판 길이) 스모크
+========================================
+**목표**: 미션 4「이단 본거지 파괴」가 **약 8~15분** 전후로 끝나고, 적이 **생산·집결·물결**로 압박은 오되 **막히거나 텅 빈 느낌**이 없는지 본다.
+
+전제: `CHAPTER1`~`CHAPTER3` 스모크 통과 후.
+
+밸런스·AI(코드·에셋 기준)
+-------------------------
+- 미션: `Assets/Campaign/Content/Mission_04_Heresy.asset`
+  - `enemyPatternId` = **heresy_demo_pace** (데모 전용)
+  - 생산 간격: `enemyBrainThinkIntervalOverride` × `enemyBrainThinkIntervalMultiplier`
+  - 거점 HP: `heresyStrongholdMaxHealth` (기본 조정 **900** — 너무 짧/길면 여기만 손보면 됨)
+- 적 두뇌: `BattleAcesEnemyBrain` — 패턴 `heresy_demo_pace` + 강제 물결 타이밍 필드
+- 개장 부스트·수입: `BattleAcesSceneBootstrapper` — `mission_04_heresy` 분기
+
+플레이 체크
+-----------
+[ ] **0~3분**: 적이 가끔 물결로 밀어옴(한참 아무 일 없음 X)
+[ ] **3~10분**: 집결 근처 병력이 쌓이면 공격 이동이 반복됨(너무 촘촘만도, 너무 드물만도 아님)
+[ ] **거점 파괴**까지 도달 가능(불가능한 난이도 X)
+[ ] **승리 후** 대략 **8~15분** 안팎(실력·업그레이드에 따라 편차 OK)
+
+회귀
+----
+[ ] 다른 캠페인 미션(1~3, 5~7) 적 AI가 이상해지지 않았는지 한 판씩 또는 스폿 확인
+
+콘솔: 빨간 Error 없음.
+
+이슈 메모: 실제 플레이 시간(분), 씬명, 콘솔 한 줄.

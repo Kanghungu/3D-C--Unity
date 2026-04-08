@@ -1,0 +1,30 @@
+챕터 7 — 연출·사운드(최소) 스모크
+================================
+**목표**: 타격·생산·승패가 너무 조용하지 않고, 승패 화면에 **통계 한 줄**(시간·자원·격파 등)이 보인다.
+
+사운드(프로시저럴)
+-----------------
+[ ] 아군 유닛 피격 — 짧은 톤(기존)
+[ ] 아군/적 코어 피격 — 아군은 묵직, **적 코어는 구조물 타격 톤**(가볍게 구분)
+[ ] 아군 생산 완료 — 기존 이중 톤
+[ ] **적 생산 완료** — 낮은 짧은 톤(신규)
+[ ] **집결(Alt+지면) 확정** — 짧은 확인음(신규)
+[ ] 유닛 사망·승패 스팅 — 기존
+
+승패 통계
+---------
+[ ] 캠페인/미션 **결과 카드**: 본문 아래 **한 줄** — `플레이 m:ss · 종료 시 자원 N · 생산 최다 … · 적 격파 · 아군 손실`
+[ ] 미션 없는 **스커미시 오버레이**(좌측 HUD): 동일 형식 한 줄(가능 시 `BattleMissionFlow` 시간 사용)
+
+코드 앵커
+---------
+- 통계: `BattleAcesRunStats` — `MarkBattleClockStart`, `BuildFullResultSummaryLine`, `FormatPlayTimeMmSs`
+- 결과 UI: `BattleMissionFlow.DrawResultScreen` · `BattleAcesHudOverlay.DrawSkirmishResultOverlay`
+- 사운드: `ProceduralAudioUtility` — `PlayEnemyProductionComplete`, `PlayRallySetConfirm`
+- 적 생산: `BattleAcesCore.FinishCurrentProduction`
+- 랠리: `PrototypeSelectionController.Commands`
+- 코어 피격: `CoreStructureHitSound`
+
+콘솔: 빨간 Error 없음.
+
+이슈 메모: 씬명, 한 줄.

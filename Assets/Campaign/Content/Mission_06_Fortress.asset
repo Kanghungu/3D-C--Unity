@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Mission_06_Fortress
   m_EditorClassIdentifier: 
   missionId: mission_06_fortress
-  displayName: "6. 이동 요새 시험"
+  displayName: "요새 돌파 — 단일 데모 전장"
   gameplaySceneName: NewSampleScene
   campaignSortOrder: 5
   objectiveKind: 0

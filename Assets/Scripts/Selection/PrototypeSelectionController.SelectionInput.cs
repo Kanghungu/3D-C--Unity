@@ -199,6 +199,46 @@ namespace Game.Selection
             SetSelection(list);
         }
 
+        /// <summary>
+        /// 미니맵 Ctrl+클릭 등 — 월드 XZ 기준 반경 안의 살아 있는 아군만 선택.
+        /// </summary>
+        public void SelectPlayerUnitsNearWorldPoint(Vector3 worldPointXZ, float radiusWorld)
+        {
+            float r = Mathf.Max(0.5f, radiusWorld);
+            float rSq = r * r;
+            List<SelectableUnit> list = new List<SelectableUnit>();
+
+            foreach (SelectableUnit unit in PrototypeRuntimeRegistry.GetSelectableUnits())
+            {
+                if (unit == null || unit.Team != UnitTeam.Player)
+                {
+                    continue;
+                }
+
+                CombatTarget ct = unit.GetComponent<CombatTarget>();
+                if (ct == null || !ct.IsAlive)
+                {
+                    continue;
+                }
+
+                Vector3 p = unit.transform.position;
+                float dx = p.x - worldPointXZ.x;
+                float dz = p.z - worldPointXZ.z;
+                if (dx * dx + dz * dz <= rSq)
+                {
+                    list.Add(unit);
+                }
+            }
+
+            if (list.Count == 0)
+            {
+                ClearSelection();
+                return;
+            }
+
+            SetSelection(list);
+        }
+
         private static bool IsPlayerSelectable(SelectableUnit unit)
         {
             if (unit == null || unit.Team != UnitTeam.Player)

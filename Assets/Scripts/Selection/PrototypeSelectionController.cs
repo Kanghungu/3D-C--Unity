@@ -145,6 +145,7 @@ namespace Game.Selection
 
             HandleControlGroupHotkeys();
             HandleCommandHotkeys();
+            HandleBattleSelectionQualityHotkeys();
 
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {

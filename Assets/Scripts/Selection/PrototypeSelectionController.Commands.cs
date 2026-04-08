@@ -122,6 +122,23 @@ namespace Game.Selection
 
             if (IsRallyModifierPressed())
             {
+                // Battle Aces — 코어 생산 유닛 집결점(프로토타입 거점 랠리와 별도)
+                if (BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController baMatch) &&
+                    baMatch.PlayerCore != null &&
+                    !baMatch.IsFinished)
+                {
+                    if (BattleMissionFlow.Instance != null && BattleMissionFlow.Instance.IsBriefingBlocking)
+                    {
+                        return;
+                    }
+
+                    baMatch.PlayerCore.SetRallyWorldPosition(hit.point);
+                    ShowMoveMarker(hit.point, new Color(0.22f, 0.92f, 0.88f, 0.96f), "Rally");
+                    BattleAcesHudOverlay.PulseRallyPointSetHint();
+                    ProceduralAudioUtility.PlayRallySetConfirm();
+                    return;
+                }
+
                 BaseStructure playerBase = PrototypeRuntimeQuery.FindPlayerBase();
                 List<ProductionStructure> playerProductions = PrototypeRuntimeQuery.FindPlayerProductionStructures();
 
@@ -172,6 +189,7 @@ namespace Game.Selection
                 }
 
                 ShowMoveMarker(hit.point, new Color(1f, 0.45f, 0.25f, 0.9f), "Attack");
+                BattleAcesFirstPlayGuide.NotifyGroundCommandIssued();
                 return;
             }
 
@@ -197,6 +215,7 @@ namespace Game.Selection
                     }
                 }
 
+                BattleAcesFirstPlayGuide.NotifyGroundCommandIssued();
                 return;
             }
 
@@ -209,6 +228,8 @@ namespace Game.Selection
                     selectedUnits[index].MoveTo(formationPoints[index]);
                 }
             }
+
+            BattleAcesFirstPlayGuide.NotifyGroundCommandIssued();
         }
 
         private bool CanAttackTarget(CombatTarget target)
@@ -252,6 +273,8 @@ namespace Game.Selection
                     selectedUnits[index].AttackMoveTo(formationPoints[index]);
                 }
             }
+
+            BattleAcesFirstPlayGuide.NotifyGroundCommandIssued();
         }
 
         private static bool IsRallyModifierPressed()

@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 namespace Game.BattleAces
 {
     /// <summary>
-    /// P 일시정지, Q/W/E 게임 속도. 승패/브리핑 중에는 적용하지 않는다.
+    /// P 일시정지, [ / ] (및 숫자패드 - / +) 로 배속 단계. (카메라 Q/E 회전은 RTS 데모에서 제거됨)
     /// </summary>
     public sealed class RtsTimeControl : MonoBehaviour
     {
@@ -31,11 +31,11 @@ namespace Game.BattleAces
 
             if (paused)
             {
-                return "시간: 일시정지 (P) · Q·W·E 배속";
+                return "시간: 일시정지 (P) · [ ] 배속 · 숫자패드 - +";
             }
 
             float s = CurrentSpeedStep;
-            return $"시간: 배속 {s:0.##}× (P 일시정지 · Q·W·E 단계)";
+            return $"시간: 배속 {s:0.##}× (P 일시정지 · [ 느리게 · ] 빠르게)";
         }
 
         private void Awake()
@@ -72,21 +72,21 @@ namespace Game.BattleAces
                 ApplyTimeScale();
             }
 
-            if (kb.qKey.wasPressedThisFrame)
+            // [ ] 및 숫자패드 ± — 배속 전용
+            bool slower = kb[Key.LeftBracket].wasPressedThisFrame || kb[Key.NumpadMinus].wasPressedThisFrame;
+            bool faster = kb[Key.RightBracket].wasPressedThisFrame || kb[Key.NumpadPlus].wasPressedThisFrame;
+            if (slower || faster)
             {
-                speedIndex = 0;
-                paused = false;
-                ApplyTimeScale();
-            }
-            else if (kb.wKey.wasPressedThisFrame)
-            {
-                speedIndex = 1;
-                paused = false;
-                ApplyTimeScale();
-            }
-            else if (kb.eKey.wasPressedThisFrame)
-            {
-                speedIndex = 2;
+                int max = speedSteps != null && speedSteps.Length > 0 ? speedSteps.Length - 1 : 0;
+                if (slower && !faster)
+                {
+                    speedIndex = Mathf.Max(0, speedIndex - 1);
+                }
+                else if (faster && !slower)
+                {
+                    speedIndex = Mathf.Min(max, speedIndex + 1);
+                }
+
                 paused = false;
                 ApplyTimeScale();
             }

@@ -42,7 +42,7 @@ namespace Game.BattleAces
                 return;
             }
 
-            if (CampaignBattleFlow.Instance != null && CampaignBattleFlow.Instance.IsBriefingBlocking)
+            if (BattleMissionFlow.Instance != null && BattleMissionFlow.Instance.IsBriefingBlocking)
             {
                 visible = false;
                 helpDetailsExpanded = false;
@@ -79,7 +79,7 @@ namespace Game.BattleAces
                 return;
             }
 
-            CampaignBattleFlow flow = CampaignBattleFlow.Instance;
+            BattleMissionFlow flow = BattleMissionFlow.Instance;
             if (flow == null || !flow.IsGameplayStarted)
             {
                 return;
@@ -107,15 +107,21 @@ namespace Game.BattleAces
             float missionExtraH = 0f;
             if (missionForLayout != null)
             {
-                missionExtraH = 120f;
-                string hintPreview = MissionObjectiveDisplayText.GetGameplayHint(missionForLayout.ObjectiveKind);
+                // 상단 바와 같이: 데모 제목 + 목표 + 힌트(긴 미션은 추가 높이)
+                missionExtraH = 148f;
+                string hintPreview = MissionObjectiveDisplayText.GetGameplayHint(missionForLayout);
                 if (!string.IsNullOrEmpty(hintPreview) && hintPreview.Length > 72)
                 {
                     missionExtraH += 56f;
                 }
+
+                if (missionForLayout.AirborneCitadelFocus)
+                {
+                    missionExtraH += 52f;
+                }
             }
 
-            float collapsedCardH = 420f + missionExtraH;
+            float collapsedCardH = 458f + missionExtraH;
             float expandedCardH = 600f + missionExtraH;
             if (missionForLayout != null && expandedCardH < 640f)
             {
@@ -153,24 +159,48 @@ namespace Game.BattleAces
             {
                 GUI.skin.label.fontSize = 14;
                 GUI.color = ImGuiGameUi.VictoryTint;
-                GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, 22f), "이번 작전 목표");
+                GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, 22f), "이번 작전 (상단 바와 동일)");
                 bodyTopY += 22f;
+
+                GUI.skin.label.fontSize = 14;
+                GUI.color = ImGuiGameUi.AccentGold;
+                string barTitle = BattleAcesObjectiveUgui.FormatTopBarDemoTitle(mission);
+                GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, 22f), barTitle);
+                bodyTopY += 24f;
+
                 GUI.skin.label.fontSize = 15;
                 GUI.color = ImGuiGameUi.TextTitle;
                 GUI.Label(
-                    new Rect(card.x + 18f, bodyTopY, card.width - 36f, 26f),
-                    MissionObjectiveDisplayText.GetPrimaryLine(mission.ObjectiveKind));
-                bodyTopY += 28f;
-                string hint = MissionObjectiveDisplayText.GetGameplayHint(mission.ObjectiveKind);
+                    new Rect(card.x + 18f, bodyTopY, card.width - 36f, 24f),
+                    MissionObjectiveDisplayText.GetPrimaryLine(mission));
+                bodyTopY += 26f;
+
+                string hint = MissionObjectiveDisplayText.GetGameplayHint(mission);
                 if (!string.IsNullOrEmpty(hint))
                 {
                     GUIStyle hintStyle = GetOrCreateMissionHintStyle();
                     float hintH = Mathf.Clamp(
                         hintStyle.CalcHeight(new GUIContent(hint), card.width - 36f),
                         28f,
-                        88f);
+                        96f);
                     GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, hintH), hint, hintStyle);
                     bodyTopY += hintH + 6f;
+                }
+
+                // 공중 요새 변주 — 이 데모에선 건물 클릭 선택 없음
+                if (mission.AirborneCitadelFocus)
+                {
+                    GUI.skin.label.fontSize = 13;
+                    GUI.skin.label.wordWrap = true;
+                    GUI.color = ImGuiGameUi.AccentGold;
+                    const string airborneNote =
+                        "공중 요새(공성) 변주: 적 거점을 마우스로 선택하지 않습니다. " +
+                        "덱 1~8 생산 후 부대 선택·우클릭 이동/공격만 사용합니다.";
+                    float airH = GUI.skin.label.CalcHeight(new GUIContent(airborneNote), card.width - 36f);
+                    airH = Mathf.Clamp(airH, 40f, 78f);
+                    GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, airH), airborneNote);
+                    GUI.color = Color.white;
+                    bodyTopY += airH + 8f;
                 }
             }
 
@@ -180,17 +210,19 @@ namespace Game.BattleAces
             GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, 22f), "핵심 요약");
             bodyTopY += 24f;
 
-            const string summaryFiveLines =
-                "• 1~8 덱 생산 · 우클릭 이동/공격\n" +
-                "• P · Q·W·E 일시정지·배속\n" +
-                "• O 설정(음량·UI) · Shift+M 미니맵 · F1 이 창\n" +
-                "• 미니맵 클릭·Shift+박스 선택 · 우하 색 범례\n" +
-                "• T/Y/U 코어 · V 표적 · Space·Home 카메라";
+            // Battle Aces(NewSampleScene)에 실제로 붙어 있는 조작만 — 없는 시스템은 아래 「이 데모에 없음」
+            const string summarySixLines =
+                "• 왼쪽 HUD: 자원·덱 1~8·생산 큐·집결(Alt+지면 우클릭)·T/Y/U 본진 강화\n" +
+                "• 선택: 좌클릭/드래그(아군만) · 우클릭 이동·공격 · Ctrl+A 전체 · Esc 해제\n" +
+                "• 카메라: WASD·화살표·가장자리·휠(회전 없음) · Space/ Home · ,(쉼표) 집결 시야\n" +
+                "• 우하단 전술 지도: 클릭·드래그 · Ctrl+클릭·Shift 드래그 선택 · Shift+M 크기\n" +
+                "• P 일시정지 · [ ]·숫자패드 ± 배속 · O 설정 · V 자동 표적 · H/G/B(유닛 선택 시)\n" +
+                "• F1 이 창 · 승패 화면에서만 R 재시작";
 
             GUIStyle sumStyle = GetOrCreateHelpSummaryStyle();
-            float sumH = sumStyle.CalcHeight(new GUIContent(summaryFiveLines), card.width - 36f);
-            sumH = Mathf.Clamp(sumH, 96f, 152f);
-            GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, sumH), summaryFiveLines, sumStyle);
+            float sumH = sumStyle.CalcHeight(new GUIContent(summarySixLines), card.width - 36f);
+            sumH = Mathf.Clamp(sumH, 120f, 220f);
+            GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, sumH), summarySixLines, sumStyle);
             bodyTopY += sumH + 8f;
 
             // 자세히 토글 — HUD 버튼 스타일
@@ -214,18 +246,29 @@ namespace Game.BattleAces
                 bodyTopY += 48f;
 
                 const string bodyFull =
-                    "P: 일시정지 토글 · Q / W / E: 배속(느림·보통·빠름)\n" +
-                    "우클릭: 선택 유닛 이동 / 적·목표 공격\n" +
-                    "1~8: 덱 슬롯에 맞춰 유닛 생산\n" +
-                    "T / Y / U: 코어 업그레이드(생산·장갑·자원)\n" +
-                    "Space: 교전 중심으로 카메라 · Home: 아군 코어로 카메라\n" +
-                    "미니맵: 클릭 이동 · 드래그 패닝 · Shift+좌 드래그로 아군만 사각 선택 · 우하 색 범례 접기\n" +
-                    "V: 자동 표적 모드 전환 · F1: 이 도움말";
+                    "— Battle Aces 데모에 있는 것만 —\n" +
+                    "P: 일시정지 · [ / ] 또는 숫자패드 - +: 배속 단계\n" +
+                    "O: 설정(볼륨·UI 크기·전체화면 등)\n" +
+                    "좌클릭·드래그: 아군만 선택 · Ctrl+A: 살아 있는 아군 전체 · Esc: 선택 해제\n" +
+                    "우클릭: 이동 / 적·목표 공격\n" +
+                    "Alt+지면 우클릭: 집결(랠리) — 청색 링 · ,(쉼표): 랠리로 카메라\n" +
+                    "1~8: 덱 생산 주문(자원·큐 제한 시 짧은 거절음)\n" +
+                    "T / Y / U: 본진 생산·장갑·자원 강화(왼쪽 HUD 비용 표시)\n" +
+                    "H / G / B: 홀드 / 수비(가까운 아군 거점) / 후퇴 — 유닛 선택 시\n" +
+                    "카메라: WASD·화살표·가장자리 · 휠 줌(키보드 회전 없음 · Ctrl 누른 채 WASD는 카메라 이동 안 함)\n" +
+                    "Space: 교전 쪽 시야 · Home: 아군 코어\n" +
+                    "전술 지도: 클릭·드래그 이동 · Ctrl+클릭 근처 아군 · Shift+드래그 박스 선택 · Shift+M 크기\n" +
+                    "V: 자동 표적(가까운 적 우선) 토글 · F1: 이 창\n" +
+                    "R: 승리/패배 결과 화면에서만 같은 씬 재시작\n" +
+                    "Ctrl+F2~F5: 부대 단축 지정 · F2~F5: 불러오기(더블 탭 시 해당 부대로 카메라)\n" +
+                    "※ F1은 도움말 전용이라 F1 단축 그룹은 쓰이지 않습니다.\n\n" +
+                    "— 이 데모에 없음 —\n" +
+                    "멀티플레이, 기술 트리, 본진 외 건물 건설, 거점/건물 마우스 선택 후 명령, 캠페인 외 맵 편집 등";
 
                 GUIStyle detailStyle = GetOrCreateHelpDetailBodyStyle();
                 const float footerReserve = 50f;
                 float availableForBody = card.yMax - bodyTopY - footerReserve;
-                float bodyRectH = Mathf.Max(0f, Mathf.Min(availableForBody, 320f));
+                float bodyRectH = Mathf.Max(0f, Mathf.Min(availableForBody, 380f));
                 if (bodyRectH >= 36f)
                 {
                     GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, bodyRectH), bodyFull, detailStyle);

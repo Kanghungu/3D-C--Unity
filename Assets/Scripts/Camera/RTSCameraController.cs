@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Game.BattleAces;
 using Game.Selection;
 using Game.Prototype;
 using Game.Settings;
@@ -20,18 +21,15 @@ namespace Game.CameraSystem
         [SerializeField] private float zoomedInMoveMultiplier = 0.85f;
         [SerializeField] private float zoomedOutMoveMultiplier = 2.35f;
 
-        [Header("Rotation")]
-        [SerializeField] private float rotationSpeed = 120f;
-
         [Header("Zoom")]
         [SerializeField] private float minHeight = 3f;
         [SerializeField] private float maxHeight = 820f;
         [SerializeField] private bool zoomTowardCursor = true;
 
-        // ?çÎèÑ Í∏∞Î∞ò Ï§????§ÌÅ¨Î°?= Ï∂©Í≤©?? Îß??ÑÎ†à??ÏßÄ??Í∞êÏá†
+        // ???? ??? ?????????= ???? ????????????????
         private float _zoomVelocity;
 
-        // ?∞ÌÅ¥Î¶??úÎûòÍ∑??®Îãù
+        // ?????????????????
         private bool _rightDragActive;
         private bool _rightDragPanning;
         private Vector2 _rightDragStartScreenPos;
@@ -65,6 +63,32 @@ namespace Game.CameraSystem
             maxHeight = Mathf.Max(maxHeight, longestSide * 0.48f);
         }
 
+        /// <summary>?? ?? ?? ?? ??? XZ ?? ??? ???? ?? ???.</summary>
+        public void SetWorldXZBounds(float minX, float maxX, float minZ, float maxZ)
+        {
+            if (minX > maxX)
+            {
+                (minX, maxX) = (maxX, minX);
+            }
+
+            if (minZ > maxZ)
+            {
+                (minZ, maxZ) = (maxZ, minZ);
+            }
+
+            xBounds = new Vector2(minX, maxX);
+            zBounds = new Vector2(minZ, maxZ);
+            ClampPosition();
+        }
+
+        /// <summary>? ?? ??? ???? ?? ???(?? ??? ??? ??? ? ??).</summary>
+        public void SetHeightClamp(float minGroundHeight, float maxGroundHeight)
+        {
+            minHeight = Mathf.Max(2f, minGroundHeight);
+            maxHeight = Mathf.Max(minHeight + 4f, maxGroundHeight);
+            ClampPosition();
+        }
+
         private void Awake()
         {
             _zoomVelocity = 0f;
@@ -82,7 +106,6 @@ namespace Game.CameraSystem
             HandleQuickFocusHotkeys();
             HandleRightDragPan();
             HandleMovement();
-            HandleRotation();
             HandleZoom();
             ApplyZoomSmooth();
             ClampPosition();
@@ -98,7 +121,7 @@ namespace Game.CameraSystem
 
             if (Mouse.current.rightButton.wasPressedThisFrame)
             {
-                // ?†Îãõ???†ÌÉù???ÅÌÉúÎ©??∞ÌÅ¥Î¶?? ?†Îãõ Î™ÖÎ†π?????úÎûòÍ∑??®Îãù ÎπÑÌôú??
+                // ??????????????????????????? ????? ??????????????????? ???????
                 bool hasSelection = PrototypeSelectionController.Instance != null
                     && PrototypeSelectionController.Instance.SelectedUnits.Count > 0;
                 if (hasSelection)
@@ -133,7 +156,7 @@ namespace Game.CameraSystem
 
             Vector2 currentScreenPos = Mouse.current.position.ReadValue();
 
-            // 6px ?¥ÏÉÅ ?¥Îèô ???úÎûòÍ∑??®Îãù ?úÏûë
+            // 6px ????? ???? ?????????????? ?????
             if (!_rightDragPanning && Vector2.Distance(currentScreenPos, _rightDragStartScreenPos) > 6f)
             {
                 _rightDragPanning = true;
@@ -144,7 +167,7 @@ namespace Game.CameraSystem
                 return;
             }
 
-            // Í∑∏Îùº?¥Îìú ???®Îãù: ?úÎûòÍ∑??úÏûë?êÏù¥ ??ÉÅ Ïª§ÏÑú ?ÑÎûò???§ÎèÑÎ°?Ïπ¥Î©î???¥Îèô
+            // ??????? ???????: ??????????????? ???? ???? ??????????????????????
             Ray currentRay = cam.ScreenPointToRay(new Vector3(currentScreenPos.x, currentScreenPos.y, 0f));
             Plane groundPlane = new(Vector3.up, Vector3.zero);
             if (groundPlane.Raycast(currentRay, out float dist))
@@ -158,13 +181,16 @@ namespace Game.CameraSystem
 
         private void HandleMovement()
         {
-            // ?∞ÌÅ¥Î¶??úÎûòÍ∑??®Îãù Ï§ëÏóê???§Î≥¥???£Ï? ?¥Îèô ?ùÎûµ
+            // ????????????????? ???????????????? ???? ?????
             if (_rightDragPanning)
             {
                 return;
             }
 
             Vector3 inputDirection = Vector3.zero;
+            // Ctrl+A ?? ?? ? ? WASD ??? ??? ?? ?? ??(????????? ???)
+            bool ctrlBlocksWasdPan =
+                Keyboard.current.leftCtrlKey.isPressed || Keyboard.current.rightCtrlKey.isPressed;
 
             if (Keyboard.current.upArrowKey.isPressed)
             {
@@ -184,6 +210,30 @@ namespace Game.CameraSystem
             if (Keyboard.current.leftArrowKey.isPressed)
             {
                 inputDirection += Vector3.left;
+            }
+
+            // WASD ??? ? Q/E ??? ??? ?? ???(1~8 ? ?)? ?? ???
+            if (!ctrlBlocksWasdPan)
+            {
+                if (Keyboard.current.wKey.isPressed)
+                {
+                    inputDirection += Vector3.forward;
+                }
+
+                if (Keyboard.current.sKey.isPressed)
+                {
+                    inputDirection += Vector3.back;
+                }
+
+                if (Keyboard.current.dKey.isPressed)
+                {
+                    inputDirection += Vector3.right;
+                }
+
+                if (Keyboard.current.aKey.isPressed)
+                {
+                    inputDirection += Vector3.left;
+                }
             }
 
             Vector2 mousePosition = Mouse.current.position.ReadValue();
@@ -237,28 +287,6 @@ namespace Game.CameraSystem
             transform.position += movement;
         }
 
-        private void HandleRotation()
-        {
-            float rotationInput = 0f;
-
-            if (Keyboard.current.qKey.isPressed)
-            {
-                rotationInput -= 1f;
-            }
-
-            if (Keyboard.current.eKey.isPressed)
-            {
-                rotationInput += 1f;
-            }
-
-            if (Mathf.Approximately(rotationInput, 0f))
-            {
-                return;
-            }
-
-            transform.Rotate(Vector3.up, rotationInput * rotationSpeed * sensitivityMul * Time.deltaTime, Space.World);
-        }
-
         private void HandleZoom()
         {
             float scrollDelta = Mouse.current.scroll.ReadValue().y;
@@ -267,7 +295,7 @@ namespace Game.CameraSystem
                 return;
             }
 
-            // ?ÑÏû¨ ?íÏù¥ ÎπÑÎ? Ï∂©Í≤©?????íÏùÑ?òÎ°ù Îπ†Î•¥Í≤? ??ùÑ?òÎ°ù ?¨ÏÑ∏?òÍ≤å
+            // ????? ??? ???? ????????????? ???? ??????? ?????????
             float impulse = Mathf.Max(20f, transform.position.y * 1.8f);
             _zoomVelocity -= Mathf.Sign(scrollDelta) * impulse;
         }
@@ -284,7 +312,7 @@ namespace Game.CameraSystem
             pos.y += _zoomVelocity * Time.deltaTime;
             pos.y = Mathf.Clamp(pos.y, minHeight, maxHeight);
 
-            // Í≤ΩÍ≥Ñ???øÏúºÎ©??çÎèÑ ?úÍ±∞
+            // ???????????????? ???
             if (pos.y <= minHeight || pos.y >= maxHeight)
             {
                 _zoomVelocity = 0f;
@@ -293,10 +321,10 @@ namespace Game.CameraSystem
             float deltaY = pos.y - prevY;
             transform.position = pos;
 
-            // ÏßÄ??Í∞êÏá† ????0.25Ï¥??àÏóê ?çÎèÑÍ∞Ä Í±∞Ïùò 0?ºÎ°ú
+            // ???????? ????0.25??????? ?????? ??? 0????
             _zoomVelocity *= Mathf.Pow(0.003f, Time.deltaTime);
 
-            // Ïª§ÏÑú Î∞©Ìñ• ?¥Îèô
+            // ???? ???? ????
             if (!zoomTowardCursor || Mathf.Approximately(deltaY, 0f))
             {
                 return;
@@ -316,7 +344,7 @@ namespace Game.CameraSystem
                 return;
             }
 
-            // Ïª§ÏÑú ?ÑÎûò ÏßÄ?êÏù¥ ?îÎ©¥??Í≥†Ï†ï?òÎèÑÎ°?Ïπ¥Î©î??XZ Î≥¥Ï†ï
+            // ???? ????? ????? ???????????????????XZ ???
             // newCamXZ = cursorXZ + (oldCamXZ - cursorXZ) * (newY / oldY)
             Vector3 cursorGround = ray.GetPoint(enter);
             Vector3 camToCursor = transform.position - cursorGround;
@@ -378,7 +406,7 @@ namespace Game.CameraSystem
             ClampPosition();
         }
 
-        /// <summary>ÎØ∏ÎãàÎß??úÎûòÍ∑??????îÎìú XZ ?âÎ©¥ ?¥Îèô?âÎßå??Ïπ¥Î©î???¥Îèô</summary>
+        /// <summary>??? ??? ? ? ?? XZ ?? ??? ???? ??.</summary>
         public void PanWorldDeltaXZ(Vector3 deltaWorldXZ)
         {
             deltaWorldXZ.y = 0f;
@@ -394,12 +422,25 @@ namespace Game.CameraSystem
                 if (playerBase != null && playerBase.IsAlive)
                 {
                     CenterViewOnWorldPoint(playerBase.transform.position);
+                    return;
+                }
+
+                // Battle Aces(NewSampleScene) ? ??? BaseStructure? ???? ?? ???? ???
+                if (BattleAcesCore.TryFindAliveCore(UnitTeam.Player, out BattleAcesCore baPlayerCore))
+                {
+                    CenterViewOnWorldPoint(baPlayerCore.transform.position);
                 }
 
                 return;
             }
 
             if (!Keyboard.current.spaceKey.wasPressedThisFrame)
+            {
+                return;
+            }
+
+            // ????? Space ? ?? ??? ? ??? ???? ??? ?? ?
+            if (BattleMissionFlow.Instance != null && BattleMissionFlow.Instance.IsBriefingBlocking)
             {
                 return;
             }
@@ -485,6 +526,23 @@ namespace Game.CameraSystem
             if (playerBase != null && enemyBase != null)
             {
                 return Vector3.Lerp(playerBase.transform.position, enemyBase.transform.position, 0.38f);
+            }
+
+            // ????? ??? ?? ?(Battle Aces) ? ? ? ?? ????? ?? ??
+            if (BattleAcesCore.TryFindAliveCore(UnitTeam.Player, out BattleAcesCore baPlayer)
+                && BattleAcesCore.TryFindAliveCore(UnitTeam.Enemy, out BattleAcesCore baEnemy))
+            {
+                return Vector3.Lerp(baPlayer.transform.position, baEnemy.transform.position, 0.38f);
+            }
+
+            if (BattleAcesCore.TryFindAliveCore(UnitTeam.Player, out BattleAcesCore baPOnly))
+            {
+                return baPOnly.transform.position;
+            }
+
+            if (BattleAcesCore.TryFindAliveCore(UnitTeam.Enemy, out BattleAcesCore baEOnly))
+            {
+                return baEOnly.transform.position;
             }
 
             return transform.position;

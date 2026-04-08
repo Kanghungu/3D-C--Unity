@@ -34,28 +34,14 @@ namespace Game.BattleAces
                 return;
             }
 
-            const float h = 52f;
-            float w = Mathf.Min(480f, Screen.width - 24f);
+            const float h = 54f;
+            float w = Mathf.Min(400f, Screen.width - 24f);
             float x = (Screen.width - w) * 0.5f;
-            float bottomY = Screen.height - h - 18f;
-
-            if (database != null &&
-                playerCore.TryGetNextProductionPreview(out UnitArchetype nextArch, out float secLeft))
-            {
-                UnitDefinition nextDef = database.GetDefinition(nextArch);
-                string unitName = nextDef != null ? nextDef.DisplayName : nextArch.ToString();
-                string prodLine = secLeft > 0.05f
-                    ? $"다음 유닛: {unitName}  ({secLeft:0.0}초)"
-                    : $"다음 유닛: {unitName}  (대기)";
-
-                GUI.skin.label.fontSize = 14;
-                GUI.color = ImGuiGameUi.AccentGold;
-                GUI.Label(new Rect(x, bottomY - 22f, w, 20f), prodLine);
-                GUI.color = Color.white;
-            }
+            float bottomY = Screen.height - h - 14f;
+            // 생산·큐 요약은 BattleAcesHudOverlay 왼쪽 패널에만 표시(한 화면 중복 방지)
 
             Rect r = new Rect(x, bottomY, w, h);
-            ImGuiGameUi.DrawPanelFrame(r, ImGuiGameUi.PanelBgDeep, ImGuiGameUi.BorderCool, 1.5f);
+            ImGuiGameUi.DrawHudCardWithLeftStripe(r, ImGuiGameUi.PanelBgHud, ImGuiGameUi.BorderCool, ImGuiGameUi.HudStripeTactical, 3f);
 
             PrototypeSelectionController sel = PrototypeSelectionController.Instance;
             if (sel != null && sel.SelectedUnits.Count == 1)
@@ -76,11 +62,17 @@ namespace Game.BattleAces
                 ? $"아군 코어  {h.CurrentHealth:0} / {h.MaxHealth:0}"
                 : "아군 코어 —";
 
-            GUI.skin.label.fontSize = 15;
+            GUI.skin.label.fontSize = 11;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(new Rect(r.x + 10f, r.y + 6f, r.width - 20f, 20f), "유닛을 선택하면 상세 스탯이 표시됩니다.");
+            GUI.Label(new Rect(r.x + 10f, r.y + 4f, r.width - 20f, 15f), "유닛 선택 시 상세 표시");
+            GUI.skin.label.fontSize = 14;
             GUI.color = ImGuiGameUi.TextTitle;
-            GUI.Label(new Rect(r.x + 10f, r.y + 26f, r.width - 20f, 22f), hpLine);
+            GUI.Label(new Rect(r.x + 10f, r.y + 20f, r.width - 20f, 20f), hpLine);
+            GUI.skin.label.fontSize = 10;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(
+                new Rect(r.x + 10f, r.y + 38f, r.width - 20f, 14f),
+                "상단 목표 바 · 우하단 지도 · 조작은 F1");
             GUI.color = Color.white;
         }
 
@@ -95,18 +87,24 @@ namespace Game.BattleAces
             UnitHealth uh = unit.GetComponent<UnitHealth>();
             int cost = BattleAcesEconomy.GetTrainCost(def);
 
-            GUI.skin.label.fontSize = 15;
+            GUI.skin.label.fontSize = 14;
             GUI.color = ImGuiGameUi.AccentGold;
             string title = def != null ? def.DisplayName : unit.Archetype.ToString();
-            GUI.Label(new Rect(r.x + 10f, r.y + 6f, r.width - 20f, 22f), title);
+            GUI.Label(new Rect(r.x + 10f, r.y + 4f, r.width - 20f, 20f), title);
 
+            GUI.skin.label.fontSize = 12;
             GUI.color = ImGuiGameUi.TextTitle;
-            string hp = uh != null ? $"체력  {uh.CurrentHealth:0} / {uh.MaxHealth:0}" : "체력 —";
+            string hp = uh != null ? $"HP {uh.CurrentHealth:0}/{uh.MaxHealth:0}" : "HP —";
             string infoLine = economy != null
-                ? $"{hp}   ·   재훈련 비용(참고)  {cost}   ·   자원  {economy.PlayerCredits:0}"
-                : $"{hp}   ·   재훈련 비용(참고)  {cost}";
+                ? $"{hp}  ·  재훈련 {cost}  ·  크레딧 {economy.PlayerCredits:0}"
+                : $"{hp}  ·  재훈련 {cost}";
 
-            GUI.Label(new Rect(r.x + 10f, r.y + 26f, r.width - 20f, 22f), infoLine);
+            GUI.Label(new Rect(r.x + 10f, r.y + 20f, r.width - 20f, 20f), infoLine);
+            GUI.skin.label.fontSize = 10;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(
+                new Rect(r.x + 10f, r.y + 38f, r.width - 20f, 14f),
+                "우클릭 명령 · 생산/자원은 왼쪽 HUD · F1 전체 조작");
             GUI.color = Color.white;
         }
     }

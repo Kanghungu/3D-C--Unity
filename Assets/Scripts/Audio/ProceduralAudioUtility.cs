@@ -35,6 +35,8 @@ namespace Game.Audio
 
         private static bool warnedResultStingMixerParam;
 
+        private static bool warnedResultStingPlayFailed;
+
         /// <summary>
         /// BattleAces_Main.mixer + 그룹 Volume Expose 후 호출 — GameUserSettings 슬라이더와 연결.
         /// </summary>
@@ -277,11 +279,29 @@ namespace Game.Audio
             PlayClip(BuildTone(200f, 0.055f, 0.04f), 0.2f);
         }
 
+        /// <summary>미니맵 클릭 시야 이동 — 짧은 확인음(링 피드백과 짝)</summary>
+        public static void PlayUiMinimapPing()
+        {
+            PlayClip(BuildTone(780f, 0.05f, 0.035f), 0.22f);
+        }
+
         /// <summary>생산 완료(아군 유닛 스폰)</summary>
         public static void PlayProductionComplete()
         {
             PlayClip(BuildTone(520f, 0.05f, 0.04f), 0.28f);
             PlayClip(BuildTone(880f, 0.04f, 0.03f), 0.2f);
+        }
+
+        /// <summary>적 생산 완료 — 아군보다 낮고 짧게(전장이 텅 빈 느낌 방지)</summary>
+        public static void PlayEnemyProductionComplete()
+        {
+            PlayClip(BuildTone(340f, 0.045f, 0.035f), 0.14f);
+        }
+
+        /// <summary>집결(랠리) 지점 확정 — 짧은 확인음</summary>
+        public static void PlayRallySetConfirm()
+        {
+            PlayClip(BuildTone(720f, 0.055f, 0.04f), 0.24f);
         }
 
         /// <summary>목표 임박·갱신 알림</summary>
@@ -304,17 +324,36 @@ namespace Game.Audio
             AudioClip clip = BuildTone(f, 0.22f, 0.18f);
             const float vol = 0.5f;
 
-            if (resultStingMixerGroup != null)
+            try
             {
-                EnsureResultStingSource();
-                resultStingSource.outputAudioMixerGroup = resultStingMixerGroup;
-                PushMixerVolumesFromUserSettings();
-                float shot = UseMixerExposedResultStingVolume ? Mathf.Clamp01(GameUserSettings.MasterVolume01) : EffectiveVolume(vol);
-                resultStingSource.PlayOneShot(clip, shot);
-                return;
-            }
+                if (resultStingMixerGroup != null)
+                {
+                    EnsureResultStingSource();
+                    if (resultStingSource == null)
+                    {
+                        PlayClip(clip, vol);
+                        return;
+                    }
 
-            PlayClip(clip, vol);
+                    resultStingSource.outputAudioMixerGroup = resultStingMixerGroup;
+                    PushMixerVolumesFromUserSettings();
+                    float shot = UseMixerExposedResultStingVolume
+                        ? Mathf.Clamp01(GameUserSettings.MasterVolume01)
+                        : EffectiveVolume(vol);
+                    resultStingSource.PlayOneShot(clip, shot);
+                    return;
+                }
+
+                PlayClip(clip, vol);
+            }
+            catch (System.Exception e)
+            {
+                if (!warnedResultStingPlayFailed)
+                {
+                    warnedResultStingPlayFailed = true;
+                    Debug.LogWarning("[ProceduralAudio] 승패 스팅 재생 실패 — 무시: " + e.Message);
+                }
+            }
         }
 
         /// <summary>유닛 피격 — 병종별 주파수 살짝 분리(스팸 방지는 호출 측에서)</summary>

@@ -28,15 +28,21 @@ namespace Game.UI
             }
         }
 
-        // --- 팔레트(SF 교단 작전 HUD) ---
-        public static readonly Color DimFullscreen = new Color(0.02f, 0.03f, 0.06f, 0.88f);
-        public static readonly Color PanelBgDeep = new Color(0.07f, 0.09f, 0.13f, 0.94f);
-        public static readonly Color PanelBgLift = new Color(0.1f, 0.12f, 0.16f, 0.96f);
-        public static readonly Color BorderCool = new Color(0.38f, 0.48f, 0.58f, 0.9f);
-        public static readonly Color BorderAccent = new Color(0.72f, 0.62f, 0.28f, 0.95f);
-        public static readonly Color AccentGold = new Color(0.96f, 0.86f, 0.42f, 1f);
-        public static readonly Color TextTitle = new Color(0.93f, 0.95f, 0.98f, 1f);
-        public static readonly Color TextMuted = new Color(0.65f, 0.72f, 0.8f, 1f);
+        // --- 팔레트 — 실제 RTS에 가까운 어두운 전술 HUD(저채도 네이비·앰버 포인트) ---
+        public static readonly Color DimFullscreen = new Color(0.012f, 0.014f, 0.022f, 0.88f);
+        public static readonly Color PanelBgDeep = new Color(0.038f, 0.042f, 0.052f, 0.96f);
+        public static readonly Color PanelBgLift = new Color(0.065f, 0.07f, 0.082f, 0.96f);
+        public static readonly Color PanelBgHud = new Color(0.022f, 0.025f, 0.034f, 0.93f);
+        public static readonly Color PanelBgHudCard = new Color(0.05f, 0.054f, 0.064f, 0.9f);
+        public static readonly Color BorderCool = new Color(0.2f, 0.22f, 0.28f, 0.72f);
+        public static readonly Color BorderAccent = new Color(0.72f, 0.58f, 0.28f, 0.88f);
+        public static readonly Color AccentGold = new Color(0.9f, 0.74f, 0.4f, 1f);
+        public static readonly Color AccentCyan = new Color(0.48f, 0.78f, 0.82f, 1f);
+        /// <summary>HUD 카드 왼쪽 세로 강조 — 과한 네온 대신 올리브-틸 전술 느낌</summary>
+        public static readonly Color HudStripeTactical = new Color(0.4f, 0.58f, 0.52f, 0.9f);
+        public static readonly Color TextTitle = new Color(0.9f, 0.92f, 0.94f, 1f);
+        public static readonly Color TextMuted = new Color(0.52f, 0.58f, 0.66f, 1f);
+        public static readonly Color ResourceHighlight = new Color(0.98f, 0.92f, 0.78f, 1f);
         public static readonly Color VictoryTint = new Color(0.45f, 0.9f, 0.55f, 1f);
         public static readonly Color DefeatTint = new Color(0.95f, 0.45f, 0.42f, 1f);
 
@@ -90,6 +96,21 @@ namespace Game.UI
         {
             DrawFilledRect(new Rect(0f, 0f, Screen.width, height), bg);
             DrawFilledRect(new Rect(0f, height - 3f, Screen.width, 3f), accentLine);
+        }
+
+        /// <summary>HUD 카드 왼쪽 세로 강조(전술 콘솔 느낌)</summary>
+        public static void DrawHudCardWithLeftStripe(Rect r, Color fill, Color border, Color stripe, float stripeW = 3f)
+        {
+            DrawPanelFrame(r, fill, border, 1f);
+            float sw = Mathf.Clamp(stripeW, 2f, 8f);
+            DrawFilledRect(new Rect(r.x, r.y, sw, r.height), stripe);
+        }
+
+        /// <summary>섹션 구분 가로선</summary>
+        public static void DrawHorizontalRule(Rect rowRect, Color c, float thickness = 1f)
+        {
+            float t = Mathf.Max(0.5f, thickness);
+            DrawFilledRect(new Rect(rowRect.x, rowRect.y, rowRect.width, t), c);
         }
 
         /// <summary>호버·비활성 처리된 메뉴 버튼 — 진짜 게임 메뉴 느낌.</summary>

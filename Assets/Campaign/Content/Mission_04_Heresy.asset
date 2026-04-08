@@ -31,12 +31,12 @@ MonoBehaviour:
   - 1
   - 5
   - 2
-  enemyPatternId: heresy_breach
-  enemyBrainThinkIntervalOverride: 14
-  enemyBrainThinkIntervalMultiplier: 0.84
+  enemyPatternId: heresy_demo_pace
+  enemyBrainThinkIntervalOverride: 12.5
+  enemyBrainThinkIntervalMultiplier: 0.9
   playerFactionRules: {fileID: 0}
   enemyFactionRules: {fileID: 0}
   defenseDurationSeconds: 120
   seizeHoldSeconds: 12
   relicMaxHealth: 500
-  heresyStrongholdMaxHealth: 1000
+  heresyStrongholdMaxHealth: 900

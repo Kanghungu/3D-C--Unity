@@ -30,7 +30,17 @@ namespace Game.BattleAces
 
         private void OnDamaged(float amount)
         {
-            ProceduralAudioUtility.PlayCoreHit(Mathf.Clamp01(amount / 140f));
+            float i01 = Mathf.Clamp01(amount / 140f);
+            // 적 코어는 아군보다 가벼운 타격음(구분·연출 최소)
+            if (combatTarget != null && combatTarget.Team == UnitTeam.Enemy)
+            {
+                ProceduralAudioUtility.PlayStructureHit(i01);
+            }
+            else
+            {
+                ProceduralAudioUtility.PlayCoreHit(i01);
+            }
+
             if (BattleAcesMatchController.Instance != null &&
                 amount > 0f &&
                 combatTarget != null &&

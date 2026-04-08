@@ -22,8 +22,10 @@ function Show-Section {
     Get-Content $Path -Encoding utf8 | Select-Object -First $Head
 }
 
-Show-Section -Path "README.md" -Head 35
-Show-Section -Path "DEVLOG.md" -Head 45
+Show-Section -Path "README.md" -Head 40
+Show-Section -Path "DEVLOG.md" -Head 55
+Show-Section -Path "Assets/Docs/CHAPTER1_SMOKE_CHECKLIST.txt" -Head 22
+Show-Section -Path "Docs/CampaignManual.md" -Head 22
 
 if (Test-Path "task_brief.json") {
     $taskBrief = Get-Content "task_brief.json" -Encoding utf8 | ConvertFrom-Json

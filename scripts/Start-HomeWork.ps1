@@ -20,7 +20,10 @@ $coreDocs = @(
     "AGENTS.md",
     "README.md",
     "DEVLOG.md",
-    "task_brief.json"
+    "task_brief.json",
+    "Docs/CampaignManual.md",
+    "Assets/Docs/CHAPTER1_SMOKE_CHECKLIST.txt",
+    "Assets/Docs/CAMPAIGN_SMOKE_CHECKLIST.txt"
 )
 
 foreach ($doc in $coreDocs) {

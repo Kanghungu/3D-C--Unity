@@ -2,6 +2,7 @@
 using Game.Campaign;
 using Game.Campaign.Core;
 using Game.Campaign.Data;
+using Game.Settings;
 using Game.UI;
 using Game.Units;
 using UnityEngine;
@@ -10,7 +11,11 @@ using UnityEngine.SceneManagement;
 
 namespace Game.BattleAces
 {
-    public sealed class CampaignBattleFlow : MonoBehaviour
+    /// <summary>
+    /// 전투 씬 안에서 미션 브리핑·승패 결과·진행 저장 훅.
+    /// 캠페인에서 들어오든 데모 단독 Play든 동일 컴포넌트(파일명만 미션 중심으로 정리).
+    /// </summary>
+    public sealed class BattleMissionFlow : MonoBehaviour
     {
         /// <summary>승패 카드 공통 안내 — CampaignDialogue_KR 의 result_campaign_next_hint 와 동일 키</summary>
         private const string ResultCampaignNextHintDialogueId = "result_campaign_next_hint";
@@ -39,11 +44,25 @@ namespace Game.BattleAces
         private GUIStyle resultNextStepHintStyle;
         private GUISkin resultNextStepHintStyleSkin;
 
+        /// <summary>브리핑 타이핑 효과 — 접근성 설정 초당 글자 수</summary>
+        private string briefingRevealSourceText;
+        private float briefingRevealStartUnscaled;
+
         public bool IsGameplayStarted => gameplayStarted;
         public float GameplayStartTime => gameplayStartTime;
+
+        /// <summary>작전 시작 시각(unscaled) — 데모 첫 30초 안내 등</summary>
+        public float GameplayStartUnscaledTime => gameplayStartUnscaledTime;
+
         public bool IsBriefingBlocking => mission != null && briefingActive;
 
-        public static CampaignBattleFlow Instance { get; private set; }
+        /// <summary>승패 결과 카드가 떠 있는 동안(일시정지 도움말 등과 배타)</summary>
+        public bool IsShowingBattleResult => showResultOverlay && match != null && match.IsFinished;
+
+        /// <summary>직전 매치 종료 시 기록된 플레이 길이(초, unscaled) — HUD 스커미시 오버레이 등</summary>
+        public float LastMatchPlaySecondsUnscaled => resultPlaySeconds;
+
+        public static BattleMissionFlow Instance { get; private set; }
 
         private void OnEnable()
         {
@@ -78,7 +97,8 @@ namespace Game.BattleAces
                 Time.timeScale = 0f;
             }
 
-            briefingActive = mission != null;
+            briefingActive = mission != null && !mission.SkipsCampaignBriefing;
+            briefingRevealSourceText = null;
             if (!briefingActive)
             {
                 StartGameplayClock();
@@ -125,6 +145,10 @@ namespace Game.BattleAces
             gameplayStarted = true;
             gameplayStartTime = Time.time;
             gameplayStartUnscaledTime = Time.unscaledTime;
+            if (runStatsRef != null)
+            {
+                runStatsRef.MarkBattleClockStart();
+            }
             RtsTimeControl rtc = RtsTimeControl.Instance;
             if (rtc != null)
             {
@@ -167,6 +191,11 @@ namespace Game.BattleAces
             }
 
             if (st != BattleAcesMatchController.MatchState.Victory || mission == null)
+            {
+                return;
+            }
+
+            if (!mission.CountsForCampaignProgress)
             {
                 return;
             }
@@ -214,8 +243,13 @@ namespace Game.BattleAces
 
             if (string.IsNullOrEmpty(text))
             {
-                text = $"작전명: {mission.DisplayName}\n\n작전 목표: {MissionObjectiveDisplayText.GetPrimaryLine(mission.ObjectiveKind)}\n\n전열을 정비하고 적 진영 목표를 돌파하십시오.";
+                text =
+                    $"작전명: {MissionObjectiveDisplayText.ResolveMissionDisplayName(mission)}\n\n" +
+                    $"작전 목표: {MissionObjectiveDisplayText.GetPrimaryLine(mission)}\n\n" +
+                    "전열을 정비하고 적 진영 목표를 돌파하십시오.";
             }
+
+            string textToDraw = BuildBriefingVisibleText(text);
 
             float cardW = Mathf.Min(760f, Screen.width - 48f);
             // 매우 낮은 해상도(640×480 근처): 상단 바·카드 겹침 스팟 체크
@@ -235,7 +269,7 @@ namespace Game.BattleAces
             int prevLabelFont = GUI.skin.label.fontSize;
             GUI.skin.label.fontSize = bodyFont;
             GUI.color = ImGuiGameUi.TextTitle;
-            GUI.Label(new Rect(card.x + 20f, card.y + 16f, card.width - 40f, card.height - 56f), text);
+            GUI.Label(new Rect(card.x + 20f, card.y + 16f, card.width - 40f, card.height - 56f), textToDraw);
             GUI.color = Color.white;
 
             GUI.skin.label.fontSize = 15;
@@ -249,6 +283,26 @@ namespace Game.BattleAces
             ImGuiGameUi.EndScaledGui();
         }
 
+        /// <summary>설정의 초당 글자 수로 브리핑 본문을 점진 표시(자막 속도와 동일 슬라이더)</summary>
+        private string BuildBriefingVisibleText(string fullText)
+        {
+            if (string.IsNullOrEmpty(fullText))
+            {
+                return fullText;
+            }
+
+            if (briefingRevealSourceText != fullText)
+            {
+                briefingRevealSourceText = fullText;
+                briefingRevealStartUnscaled = Time.unscaledTime;
+            }
+
+            float cps = GameUserSettings.DialogueRevealCharsPerSecond;
+            int visible = Mathf.FloorToInt((Time.unscaledTime - briefingRevealStartUnscaled) * cps);
+            visible = Mathf.Clamp(visible, 0, fullText.Length);
+            return fullText.Substring(0, visible);
+        }
+
         private void DrawResultScreen(PersistentGameCore core)
         {
             ImGuiGameUi.BeginScaledGui();
@@ -259,6 +313,10 @@ namespace Game.BattleAces
                 ImGuiGameUi.EndScaledGui();
                 return;
             }
+
+            bool skirmishPractice = !mission.CountsForCampaignProgress;
+            // 에디터에서 전투 씬만 연 폴백 데모 — 문구를 스커미시(메뉴 데모)와 구분
+            bool isFallbackOneMatchDemo = mission.IsOneMatchBattleDemo;
 
             bool won = match.State == BattleAcesMatchController.MatchState.Victory;
             string did = won ? mission.EffectiveVictoryDialogueId : mission.EffectiveDefeatDialogueId;
@@ -271,7 +329,27 @@ namespace Game.BattleAces
 
             if (string.IsNullOrEmpty(body))
             {
-                body = won ? "적 목표를 무너뜨렸습니다. 다음 진격 준비를 시작하십시오." : "전선이 붕괴되었습니다. 병력을 재정비한 뒤 다시 시도하십시오.";
+                if (skirmishPractice)
+                {
+                    if (isFallbackOneMatchDemo)
+                    {
+                        body = won
+                            ? "Battle Aces 한 판 데모 승리. 본진·덱·적 AI 루프를 익히기에 적합합니다."
+                            : "데모 패배. 생산·집결(Alt+우클릭)을 조정해 R 또는 아래 버튼으로 같은 데모를 다시 시작하십시오.";
+                    }
+                    else
+                    {
+                        body = won
+                            ? "연습 전투 승리. 본진·덱·적 물결 AI를 익히기에 적합합니다."
+                            : "연습 전투 패배. 생산·집결(Alt+우클릭)·무대를 바꿔 다시 도전하십시오.";
+                    }
+                }
+                else
+                {
+                    body = won
+                        ? "적 목표를 무너뜨렸습니다. 다음 진격 준비를 시작하십시오."
+                        : "전선이 붕괴되었습니다. 병력을 재정비한 뒤 다시 시도하십시오.";
+                }
             }
 
             float cardW = Mathf.Min(700f, Screen.width - 40f);
@@ -300,16 +378,40 @@ namespace Game.BattleAces
 
             GUI.skin.label.fontSize = 17;
             GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(new Rect(card.x + padX, y, innerW, 30f), "R 키 — 같은 미션 즉시 재시작 (아래 버튼과 동일)");
-            y += 34f;
+            string rKeyLine = isFallbackOneMatchDemo
+                ? "R 키 — 같은 데모 즉시 재시작 (아래 왼쪽 버튼과 동일)"
+                : skirmishPractice
+                    ? "R 키 — 같은 스커미시 즉시 재시작 (아래 왼쪽 버튼과 동일)"
+                    : "R 키 — 같은 미션 즉시 재시작 (아래 왼쪽 버튼과 동일)";
+            GUI.Label(new Rect(card.x + padX, y, innerW, 30f), rKeyLine);
+            y += 30f;
 
-            string nextCampaignLine = core != null
-                ? core.TryGetDialogue(ResultCampaignNextHintDialogueId)
-                : null;
-            if (string.IsNullOrEmpty(nextCampaignLine))
+            GUI.skin.label.fontSize = 15;
+            GUI.color = ImGuiGameUi.TextMuted;
+            string escLine = skirmishPractice
+                ? "Esc 키 — 메인 메뉴로 (아래 오른쪽 「메인 메뉴로」와 동일)"
+                : "Esc 키 — 캠페인 메뉴로 (아래 오른쪽 「캠페인 메뉴로」와 동일)";
+            GUI.Label(new Rect(card.x + padX, y, innerW, 26f), escLine);
+            GUI.color = Color.white;
+            y += 30f;
+
+            string nextCampaignLine;
+            if (skirmishPractice)
             {
-                nextCampaignLine =
-                    "캠페인 진행은 메뉴에서 다음 미션을 고르십시오. 아래 「캠페인 메뉴로」로 돌아갑니다.";
+                nextCampaignLine = isFallbackOneMatchDemo
+                    ? "한 판 데모입니다. 캠페인 ●○ 진행은 바뀌지 않습니다. 「메인 메뉴로」에서 캠페인·데모를 다시 고르십시오."
+                    : "연습 전투입니다. 캠페인 ●○ 진행은 바뀌지 않습니다. 메인에서 캠페인 또는 데모를 다시 고르십시오.";
+            }
+            else
+            {
+                nextCampaignLine = core != null
+                    ? core.TryGetDialogue(ResultCampaignNextHintDialogueId)
+                    : null;
+                if (string.IsNullOrEmpty(nextCampaignLine))
+                {
+                    nextCampaignLine =
+                        "캠페인 진행은 메뉴에서 다음 미션을 고르십시오. 아래 「캠페인 메뉴로」로 돌아갑니다.";
+                }
             }
 
             GUIStyle nextStepStyle = GetOrCreateResultNextStepHintStyle();
@@ -343,7 +445,7 @@ namespace Game.BattleAces
             float footerBlock = veryLowRes ? 196f : 208f;
             if (runStatsRef != null || (mission != null && !string.IsNullOrEmpty(mission.OptionalBonusObjectiveId)))
             {
-                footerBlock += 48f;
+                footerBlock += 36f;
             }
             float bodyH = Mathf.Clamp(card.yMax - y - footerBlock, 40f, 900f);
             GUIStyle bodyStyle = GetOrCreateResultBodyLabelStyle();
@@ -352,18 +454,13 @@ namespace Game.BattleAces
             float afterBody = y + bodyH + 10f;
             GUI.skin.label.fontSize = 14;
             GUI.color = ImGuiGameUi.TextMuted;
-            string statsLine =
-                $"플레이 시간 {resultPlaySeconds:0.0}초  ·  종료 시 자원 {resultPlayerCredits}";
-            GUI.Label(new Rect(card.x + padX, afterBody, innerW, 30f), statsLine);
+            // 통계 한 줄 — RunStats(생산·격파·손실) + 플레이 시간 mm:ss
+            string statsOneLine = runStatsRef != null
+                ? runStatsRef.BuildFullResultSummaryLine(resultPlaySeconds, resultPlayerCredits)
+                : $"플레이 {BattleAcesRunStats.FormatPlayTimeMmSs(resultPlaySeconds)} · 종료 시 자원 {resultPlayerCredits}";
+            GUI.Label(new Rect(card.x + padX, afterBody, innerW, 36f), statsOneLine);
 
-            float extraY = afterBody + 30f;
-            string combatLine = BuildCombatStatsSummaryLine();
-            if (!string.IsNullOrEmpty(combatLine))
-            {
-                GUI.skin.label.fontSize = 13;
-                GUI.Label(new Rect(card.x + padX, extraY, innerW, 24f), combatLine);
-                extraY += 26f;
-            }
+            float extraY = afterBody + 34f;
 
             if (mission != null && !string.IsNullOrEmpty(mission.OptionalBonusObjectiveId))
             {
@@ -392,17 +489,23 @@ namespace Game.BattleAces
             Rect retry = new Rect(card.x + 24f, btnY, btnW - 8f, 48f);
             Rect menu = new Rect(card.x + 32f + btnW, btnY, btnW - 8f, 48f);
 
-            if (ImGuiGameUi.GameMenuButton(retry, "같은 미션 재시작"))
+            string retryLabel = isFallbackOneMatchDemo
+                ? "같은 데모 재시작"
+                : skirmishPractice
+                    ? "같은 스커미시 재시작"
+                    : "같은 미션 재시작";
+            if (ImGuiGameUi.GameMenuButton(retry, retryLabel))
             {
                 Time.timeScale = 1f;
                 SceneManager.LoadScene(SceneManager.GetActiveScene().path);
             }
 
-            if (ImGuiGameUi.GameMenuButton(menu, "캠페인 메뉴로"))
+            string menuButtonLabel = skirmishPractice ? "메인 메뉴로" : "캠페인 메뉴로";
+            if (ImGuiGameUi.GameMenuButton(menu, menuButtonLabel))
             {
                 Time.timeScale = 1f;
                 string menuScene = core != null ? core.CampaignMenuSceneName : "CampaignMenu";
-                CampaignSceneLoadUtility.TryLoadSceneByName(menuScene, "캠페인 결과 화면에서 메뉴 복귀");
+                CampaignSceneLoadUtility.TryLoadSceneByName(menuScene, "결과 화면에서 메뉴 복귀");
             }
 
             ImGuiGameUi.EndScaledGui();
@@ -427,9 +530,14 @@ namespace Game.BattleAces
             BattleAcesMatchController.MatchEndReason reason)
         {
             string baseId = GetDefeatRetryHintDialogueId(reason);
-            if (core == null || string.IsNullOrEmpty(baseId))
+            if (string.IsNullOrEmpty(baseId))
             {
                 return null;
+            }
+
+            if (core == null)
+            {
+                return GetBuiltInDefeatRetryHint(reason);
             }
 
             string suffix = MissionDialogueHintIds.TryGetShortMissionSuffix(missionDef);
@@ -443,41 +551,28 @@ namespace Game.BattleAces
                 }
             }
 
-            return core.TryGetDialogue(baseId);
-        }
-
-        private string BuildCombatStatsSummaryLine()
-        {
-            if (runStatsRef == null)
+            string fromTable = core.TryGetDialogue(baseId);
+            if (!string.IsNullOrEmpty(fromTable))
             {
-                return null;
+                return fromTable;
             }
 
-            int kills = runStatsRef.TotalEnemyUnitsKilled;
-            int losses = runStatsRef.TotalPlayerUnitsLost;
-            if (!runStatsRef.TryGetMostProducedArchetype(out UnitArchetype arch, out int n) || n <= 0)
-            {
-                return $"적 격파 {kills} · 아군 손실 {losses}";
-            }
-
-            return $"생산 최다 {FormatArchetypeShortKo(arch)}({n}) · 적 격파 {kills} · 아군 손실 {losses}";
+            return GetBuiltInDefeatRetryHint(reason);
         }
 
-        private static string FormatArchetypeShortKo(UnitArchetype archetype)
+        /// <summary>대사 테이블에 힌트 키가 없을 때 한 줄 폴백</summary>
+        private static string GetBuiltInDefeatRetryHint(BattleAcesMatchController.MatchEndReason reason)
         {
-            return archetype switch
+            return reason switch
             {
-                UnitArchetype.Spearman => "창",
-                UnitArchetype.ShieldInfantry => "방패",
-                UnitArchetype.Rifleman => "소총",
-                UnitArchetype.Artillery => "포",
-                UnitArchetype.Fighter => "전투기",
-                UnitArchetype.SpecialWarrior => "특전",
-                UnitArchetype.RoyalGuard => "근위",
-                UnitArchetype.Outrider => "기동",
-                UnitArchetype.MobileFortress => "요새",
-                UnitArchetype.AirborneCitadel => "공성",
-                _ => archetype.ToString()
+                BattleAcesMatchController.MatchEndReason.DefeatPlayerCoreDestroyed =>
+                    "재도전: 생산(1~8)·집결(Alt+우클릭)·자원·강화(T/Y/U)로 본진 방어를 보강해 보세요.",
+                BattleAcesMatchController.MatchEndReason.DefeatRelicOrKeyObjectiveLost =>
+                    "재도전: 목표 유물·거점을 먼저 확보하고 분산을 줄이세요.",
+                BattleAcesMatchController.MatchEndReason.DefeatMissionFailed =>
+                    "재도전: 미션 목표(상단·F1)를 확인한 뒤 병력 운용을 바꿔 보세요.",
+                _ =>
+                    "재도전: 자원·생산·집결을 정비한 뒤 R 또는 아래 버튼으로 다시 시도하세요."
             };
         }
 
@@ -554,7 +649,7 @@ namespace Game.BattleAces
             GUI.color = ImGuiGameUi.AccentGold;
             GUI.Label(
                 new Rect(22f, 14f, Screen.width - 44f, 36f),
-                $"작전 목표 · {MissionObjectiveDisplayText.GetPrimaryLine(m.ObjectiveKind)}");
+                $"작전 목표 · {MissionObjectiveDisplayText.GetPrimaryLine(m)}");
             GUI.skin.label.fontSize = prevSize;
             GUI.color = Color.white;
         }

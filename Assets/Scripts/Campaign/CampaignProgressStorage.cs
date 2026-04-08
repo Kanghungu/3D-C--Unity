@@ -5,11 +5,12 @@ using UnityEngine;
 namespace Game.Campaign
 {
     /// <summary>
-    /// 캠페인 진행 — 어디까지 해금됐는지만 저장(완전 세이브 아님).
+    /// 캠페인 진행 — 해금·미션 클리어·마지막 시작 미션 순번만 저장(전투 중간 세이브 없음).
     /// </summary>
     public static class CampaignProgressStorage
     {
         private const string KeyHighestUnlockedIndex = "campaign_highest_unlocked_mission_index";
+        private const string KeyLastCampaignMissionOrder = "campaign_last_played_mission_order_index";
         private const string KeyCompletedPrefix = "campaign_completed_";
 
         /// <summary>보조 목표 달성(선택) — 미션 클리어와 별도</summary>
@@ -21,6 +22,61 @@ namespace Game.Campaign
         public static int GetHighestUnlockedMissionIndex()
         {
             return PlayerPrefs.GetInt(KeyHighestUnlockedIndex, 0);
+        }
+
+        /// <summary>마지막으로 캠페인에서 시작한 미션 순번(이어하기 힌트용)</summary>
+        public static void SaveLastCampaignMissionOrderIndex(int orderIndex)
+        {
+            if (orderIndex < 0)
+            {
+                return;
+            }
+
+            try
+            {
+                PlayerPrefs.SetInt(KeyLastCampaignMissionOrder, orderIndex);
+                PlayerPrefs.Save();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[Campaign] 마지막 미션 순번 저장 실패(무시 가능): " + e.Message);
+            }
+        }
+
+        public static int GetLastCampaignMissionOrderIndex()
+        {
+            return PlayerPrefs.GetInt(KeyLastCampaignMissionOrder, -1);
+        }
+
+        /// <summary>다음에 플레이하기 좋은 미션 인덱스 — 미완료 중 가장 앞, 전부 클리어면 0</summary>
+        public static int GetSuggestedContinueMissionOrderIndex(CampaignMissionCatalog catalog)
+        {
+            if (catalog == null || catalog.Count == 0)
+            {
+                return -1;
+            }
+
+            int unlocked = GetHighestUnlockedMissionIndex();
+            for (int i = 0; i < catalog.Count; i++)
+            {
+                if (i > unlocked)
+                {
+                    break;
+                }
+
+                MissionDefinition m = catalog.GetMissionAt(i);
+                if (m == null || string.IsNullOrEmpty(m.MissionId))
+                {
+                    continue;
+                }
+
+                if (!IsMissionCompleted(m.MissionId))
+                {
+                    return i;
+                }
+            }
+
+            return 0;
         }
 
         /// <summary>캠페인에서 첫 전투 진입 시 F1 도움말을 자동으로 띄울지(아직 한 번도 완료 안 했으면 true)</summary>
@@ -106,7 +162,6 @@ namespace Game.Campaign
 
             if (missionOrderIndex < 0)
             {
-                Debug.LogWarning("[Campaign] missionOrderIndex 가 음수입니다. 진행 저장을 건너뜁니다.");
                 return;
             }
 
@@ -118,6 +173,7 @@ namespace Game.Campaign
         public static void ClearAllProgress(CampaignMissionCatalog catalog = null)
         {
             PlayerPrefs.DeleteKey(KeyHighestUnlockedIndex);
+            PlayerPrefs.DeleteKey(KeyLastCampaignMissionOrder);
             PlayerPrefs.DeleteKey(KeyCampaignF1IntroDone);
             if (catalog != null)
             {

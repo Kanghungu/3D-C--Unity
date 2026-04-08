@@ -11,6 +11,7 @@ using Game.Campaign.Data;
 using Game.Campaign.Scene;
 using Game.Prototype;
 using Game.Selection;
+using Game.Settings;
 using Game.Units;
 using System.Collections.Generic;
 using UnityEngine;
@@ -68,10 +69,26 @@ namespace Game.BattleAces
                 ? PersistentGameCore.Instance.ActiveMission
                 : null;
 
+            // 챕터 0: 메뉴 없이 NewSampleScene만 Play 해도 한 판 루프(브리핑·결과·R·메인)가 성립하도록 폴백 미션 주입
+            if (mission == null)
+            {
+                PersistentGameCore coreForDemo = PersistentGameCore.FindOrCreateForBattleScene();
+                mission = ScriptableObject.CreateInstance<MissionDefinition>();
+                mission.AssignFallbackOneMatchDemoRuntime();
+                coreForDemo.SetActiveMission(mission);
+                coreForDemo.PendingMissionOrderIndex = -1;
+                Debug.Log("[BattleAces] ActiveMission 없음 → Battle Aces 한 판 데모(폴백) 런타임 미션을 설정했습니다.");
+            }
+
             Vector3 pPos = playerCorePosition;
             Vector3 ePos = enemyCorePosition;
             Vector3 rally = playerRallyPoint;
-            if (mission != null && mission.MirroredLayoutVariant)
+            // 챕터6 번들: 미러 여부도 에셋이 아니라 번들 단일 소스
+            bool mirrorX = mission != null &&
+                           (DemoChapter6SingleMatchBundle.Matches(mission)
+                               ? DemoChapter6SingleMatchBundle.MirroredLayoutVariant
+                               : mission.MirroredLayoutVariant);
+            if (mirrorX)
             {
                 pPos.x *= -1f;
                 ePos.x *= -1f;
@@ -98,16 +115,31 @@ namespace Game.BattleAces
             BattleAcesEconomy economy = systems.AddComponent<BattleAcesEconomy>();
             BattleAcesRunStats runStats = systems.AddComponent<BattleAcesRunStats>();
             ApplyMissionIncomeTuning(economy, mission);
+            mission?.ApplySkirmishOpeningIncomeBoostIfNeeded(economy);
+            // 캠페인 첫 스커미시 — 메뉴 스커미시와 별도 ID이므로 동일 톤의 개장 부스트 유지
             if (mission != null && mission.MissionId == "mission_01_skirmish")
             {
                 economy.ActivateOpeningIncomeBoost(60f, 1.35f);
+            }
+
+            // 챕터 4 데모 — 초반 병력 형성이 늦으면 거점 공성이 지루해지므로 짧은 개장 부스트
+            if (mission != null && mission.MissionId == "mission_04_heresy")
+            {
+                economy.ActivateOpeningIncomeBoost(48f, 1.18f);
             }
             BattleAcesMatchController match = systems.AddComponent<BattleAcesMatchController>();
             BattleAcesHudOverlay hud = systems.AddComponent<BattleAcesHudOverlay>();
             systems.AddComponent<PrototypeSelectionController>();
             BattleAcesEnemyBrain enemyBrain = systems.AddComponent<BattleAcesEnemyBrain>();
 
-            UnitArchetype[] deck = ApplyAirborneCitadelDeckVariant(mission, BuildDeckArray(mission));
+            UnitArchetype[] deckBase = DemoChapter6SingleMatchBundle.Matches(mission)
+                ? DemoChapter6SingleMatchBundle.GetPlayerDeckEightCopy()
+                : BuildDeckArray(mission);
+            bool airborneCitadelFocus = mission != null &&
+                                        (DemoChapter6SingleMatchBundle.Matches(mission)
+                                            ? DemoChapter6SingleMatchBundle.AirborneCitadelFocus
+                                            : mission.AirborneCitadelFocus);
+            UnitArchetype[] deck = ApplyAirborneCitadelDeckVariant(airborneCitadelFocus, deckBase);
 
             float playerHpMul = mission != null && mission.PlayerFactionRules != null
                 ? mission.PlayerFactionRules.UnitMaxHealthMultiplier
@@ -149,8 +181,7 @@ namespace Game.BattleAces
                 database,
                 economy,
                 unitsRoot,
-                rally,
-                enemyCore.transform);
+                rally);
 
             enemyCore.Initialize(
                 UnitTeam.Enemy,
@@ -158,23 +189,22 @@ namespace Game.BattleAces
                 database,
                 economy,
                 unitsRoot,
-                ePos + new Vector3(0f, 0f, -6f),
-                playerCore.transform);
+                ePos + new Vector3(0f, 0f, -6f));
 
             enemyCore.gameObject.AddComponent<CoreStructureHitSound>();
 
             match.BindCores(playerCore, enemyCore);
 
-            CampaignBattleFlow campaignFlow = null;
+            BattleMissionFlow missionFlow = null;
             if (mission != null)
             {
-                campaignFlow = systems.AddComponent<CampaignBattleFlow>();
-                campaignFlow.Initialize(mission, match, economy, runStats);
+                missionFlow = systems.AddComponent<BattleMissionFlow>();
+                missionFlow.Initialize(mission, match, economy, runStats);
             }
 
             BattleAcesObjectiveUgui objectiveUgui = systems.AddComponent<BattleAcesObjectiveUgui>();
-            objectiveUgui.Initialize(mission, campaignFlow);
-            hud.Bind(economy, playerCore, match, mission, campaignFlow, objectiveUgui);
+            objectiveUgui.Initialize(mission, missionFlow);
+            hud.Bind(economy, playerCore, match, mission, missionFlow, objectiveUgui);
             enemyBrain.Bind(enemyCore, match);
 
             float thinkBase = 18.25f;
@@ -183,21 +213,28 @@ namespace Game.BattleAces
                 thinkBase *= Mathf.Clamp(mission.EnemyFactionRules.ProductionDurationMultiplier, 0.5f, 2f);
             }
 
-            if (mission != null && mission.EnemyBrainThinkIntervalOverride > 0f)
-            {
-                thinkBase = mission.EnemyBrainThinkIntervalOverride;
-            }
-
-            if (mission != null)
-            {
-                thinkBase *= mission.EnemyBrainThinkIntervalMultiplier;
-            }
-
+            float thinkIntervalMul = mission != null ? mission.EnemyBrainThinkIntervalMultiplier : 1f;
+            float thinkOverride = mission != null ? mission.EnemyBrainThinkIntervalOverride : 0f;
             string enemyPatternId = mission != null ? mission.EnemyPatternId : "default_skirmish";
-            if (mission != null && mission.AirborneCitadelFocus)
+
+            if (DemoChapter6SingleMatchBundle.Matches(mission))
             {
+                thinkIntervalMul = DemoChapter6SingleMatchBundle.EnemyBrainThinkIntervalMultiplier;
+                thinkOverride = DemoChapter6SingleMatchBundle.EnemyBrainThinkIntervalOverride;
+                enemyPatternId = DemoChapter6SingleMatchBundle.EnemyPatternId;
+            }
+            else if (mission != null && mission.AirborneCitadelFocus)
+            {
+                // 공중 변주 미션: 기본은 공성 패턴(챕터6은 번들에서 fortress_break 고정)
                 enemyPatternId = "airborne_siege";
             }
+
+            if (thinkOverride > 0f)
+            {
+                thinkBase = thinkOverride;
+            }
+
+            thinkBase *= thinkIntervalMul;
 
             enemyBrain.ApplyEnemyPattern(enemyPatternId, thinkBase);
 
@@ -236,11 +273,17 @@ namespace Game.BattleAces
 
             systems.AddComponent<BattleAcesStoryBanner>();
             systems.AddComponent<BattleAcesCombatAudio>();
+            systems.AddComponent<BattleAcesVictoryPresentation>();
             systems.AddComponent<BattleAcesInGameHelp>();
+            BattleAcesFirstPlayGuide firstPlayGuide = systems.AddComponent<BattleAcesFirstPlayGuide>();
+            firstPlayGuide.Initialize(mission, missionFlow, match, runStats);
+            systems.AddComponent<BattleAcesPauseOverlay>();
+            systems.AddComponent<GameSettingsMenuOverlay>();
             systems.AddComponent<BattleAcesCombatAmbientLoop>();
             systems.AddComponent<BattleAcesMixerParameterSync>();
             systems.AddComponent<BattleAcesScreenFlashHud>();
             systems.AddComponent<BattleAcesInputToggles>();
+            systems.AddComponent<BattleAcesQolHotkeys>();
             BattleAcesSelectionInfoHud selectionInfo = systems.AddComponent<BattleAcesSelectionInfoHud>();
             selectionInfo.Bind(playerCore, economy, database);
 
@@ -271,10 +314,58 @@ namespace Game.BattleAces
 
                 AddMissionMarkersToMinimap(minimap, relic, capture, heresy, rally, ePos);
                 MissionObjectiveRuntime mor = systems.AddComponent<MissionObjectiveRuntime>();
-                mor.Initialize(mission, match, playerCore, relic, capture, heresy, campaignFlow);
+                mor.Initialize(mission, match, playerCore, relic, capture, heresy, missionFlow);
 
-                BattleAcesMissionStorySpawner.SpawnForMission(mission, structuresRoot, pPos, ePos);
+                // 챕터6: 필드 중간 대사 트리거 박스 생략(번들). 다른 미션은 기존과 동일.
+                bool spawnFieldStory =
+                    !DemoChapter6SingleMatchBundle.Matches(mission) ||
+                    DemoChapter6SingleMatchBundle.SpawnStoryFieldTriggers;
+                if (spawnFieldStory)
+                {
+                    BattleAcesMissionStorySpawner.SpawnForMission(mission, structuresRoot, pPos, ePos);
+                }
             }
+
+            // 챕터2 데모: 카메라가 기본 ±1600 바운드로 허공까지 밀리지 않도록 지면에 맞춤
+            ApplyRtsCameraToBattleArena(ResolveBattleGroundObject());
+        }
+
+        /// <summary>지면 Renderer 기준으로 RTS 카메라 XZ·줌 상한 설정(지면이 없으면 groundScale 폴백).</summary>
+        private void ApplyRtsCameraToBattleArena(GameObject groundPlane)
+        {
+            Camera cam = Camera.main;
+            if (cam == null)
+            {
+                return;
+            }
+
+            RTSCameraController rts = cam.GetComponent<RTSCameraController>();
+            if (rts == null)
+            {
+                return;
+            }
+
+            const float paddingWorld = 38f;
+            if (groundPlane != null && groundPlane.TryGetComponent(out Renderer groundRenderer))
+            {
+                Bounds b = groundRenderer.bounds;
+                rts.SetWorldXZBounds(
+                    b.min.x - paddingWorld,
+                    b.max.x + paddingWorld,
+                    b.min.z - paddingWorld,
+                    b.max.z + paddingWorld);
+                float longest = Mathf.Max(b.size.x, b.size.z);
+                rts.SetHeightClamp(4f, Mathf.Clamp(longest * 0.52f, 52f, 240f));
+                return;
+            }
+
+            float halfExtent = 5f * Mathf.Max(groundScale.x, groundScale.z);
+            rts.SetWorldXZBounds(
+                -halfExtent - paddingWorld,
+                halfExtent + paddingWorld,
+                -halfExtent - paddingWorld,
+                halfExtent + paddingWorld);
+            rts.SetHeightClamp(4f, Mathf.Max(halfExtent * 1.05f, 96f));
         }
 
         private void ApplyResultStingMixerRouting()
@@ -630,8 +721,9 @@ namespace Game.BattleAces
                     enemyMul = 1.032f;
                     break;
                 case "mission_04_heresy":
-                    playerMul = 1.032f;
-                    enemyMul = 1.05f;
+                    // 목표 플레이 8~15분 — 적 압박은 유지하되 수입 격차가 과하면 초반이 과도하게 빡빡해짐
+                    playerMul = 1.048f;
+                    enemyMul = 1.038f;
                     break;
                 case "mission_05_stub":
                     playerMul = 1.045f;
@@ -705,9 +797,9 @@ namespace Game.BattleAces
         }
 
         /// <summary>誘몄뀡 ?듭뀡 ???대룞 ?붿깉瑜?怨듭쨷 ?붿깉濡?諛붽씀怨?怨듭꽦 ?щ’??媛뺤“</summary>
-        private static UnitArchetype[] ApplyAirborneCitadelDeckVariant(MissionDefinition mission, UnitArchetype[] deck)
+        private static UnitArchetype[] ApplyAirborneCitadelDeckVariant(bool airborneCitadelFocus, UnitArchetype[] deck)
         {
-            if (mission == null || !mission.AirborneCitadelFocus || deck == null || deck.Length != 8)
+            if (!airborneCitadelFocus || deck == null || deck.Length != 8)
             {
                 return deck;
             }
@@ -798,7 +890,8 @@ namespace Game.BattleAces
                 renderer.material.color = color;
             }
 
-            float baseHp = team == UnitTeam.Player ? 3000f : 2050f;
+            // 본진이 너무 빨리 무너지지 않도록 기본 체력 상향(팩션 배율은 그대로 곱함)
+            float baseHp = team == UnitTeam.Player ? 5200f : 4800f;
             float maxHp = baseHp * Mathf.Max(0.25f, maxHpMultiplier);
             UnitHealth health = go.AddComponent<UnitHealth>();
             health.Configure(maxHp, true, new Vector3(0f, 2.4f, 0f));

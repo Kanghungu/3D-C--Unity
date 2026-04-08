@@ -10,8 +10,9 @@
 ## 2. 현재 단계
 - 현재 단계는 완성작이 아니라 MVP/전투 프로토타입이다.
 - 목표는 "짧게라도 직접 조작하고 전투가 성립하는 빌드"를 만드는 것이다.
-- **진행 방향(우선): 스토리 미션** — 씬·`MissionDefinition`·대사·승패 목표로 짧은 캠페인 흐름을 쌓는다. (`CampaignMenu` → `NewSampleScene` 등)
-- 구형 샘플 전장(`SampleScene` + `PrototypeBootstrapper`)은 참고·실험용으로 두되, 새 기능은 **Battle Aces + Campaign** 쪽에 붙이는 것을 기본으로 한다.
+- **진행 방향(우선): Battle Aces 한 판짜리 데모** — `NewSampleScene`에서 코어·덱·자원·**생산 큐·랠리(Alt+지면 우클릭)·본진 T/Y/U**·승패·적 AI·HUD가 **데모 품질**로 읽히게 만드는 것. 메뉴의 **데모**(난이도)·전투 씬 단독 Play(폴백 미션)·결과·재시작·메인 복귀까지 한 루프가 본전이다.
+- **캠페인**(미션 카탈로그·브리핑·●○ 진행)은 **유지·회귀용·옵션 콘텐츠**로 두고, 새 기능은 **플레이 데모에 직접 필요할 때** Battle Aces에 붙인다. 캠페인 전용 확장은 데모가 굳은 뒤.
+- 구형 샘플 전장(`SampleScene` + `PrototypeBootstrapper`)은 참고·실험용으로 두되, 신규 기능은 **Battle Aces 우선**(메뉴·로드는 `Campaign/` 인프라를 써도 됨).
 - 멀티플레이, 대규모 콘텐츠, 장기 운영 구조는 지금 범위에 포함하지 않는다.
 
 ## 3. 우선순위 기능
@@ -54,10 +55,10 @@
 
 ### 6.1 `Assets/Scripts` 하위 폴더 역할 (한 줄)
 - **`Audio/`** — 외부 WAV 없이 쓰는 짧은 프로시저럴 효과음 등.
-- **`BattleAces/`** — `NewSampleScene`용 단일 코어 RTS(경제·매치·IMGUI HUD·**UGUI 상단 목표** `BattleAcesObjectiveUgui`·미니맵·미션 런타임 목표).
+- **`BattleAces/`** — `NewSampleScene`용 단일 코어 RTS(경제·매치·IMGUI HUD·**UGUI 상단 목표** `BattleAcesObjectiveUgui`·미니맵·미션 런타임 목표·`BattleAcesQolHotkeys` 등 편의 입력).
 - **`Camera/`** — RTS 카메라 이동·회전·줌(`RTSCameraController`).
 - **`UI/`** — IMGUI 공용 팔레트·패널·버튼(`ImGuiGameUi`) — Battle Aces·캠페인 메뉴/브리핑/결과 톤 통일(UGUI 전까지).
-- **`Campaign/`** — 스토리 미션 데이터(ScriptableObject)·메뉴·진행 저장·`CampaignSceneLoadUtility`(빌드 씬 검증 후 로드)·씬 마커(유물·점령 등).
+- **`Campaign/`** — 메뉴(`CampaignMenu`)·씬 로드·(옵션) 스토리 미션 데이터·진행 저장 — **지금은 데모 진입·복귀에 쓰고**, 미션 늘리기는 우선순위 아님.
 - **`Editor/`** — 캠페인 자산 생성·빌드 씬 등록 등 에디터 전용 메뉴.
 - **`Prototype/`** — `SampleScene` 계열 런타임 생성·구형 전장·`PrototypeGameDatabase` 등 공용 프로토타입 인프라.
 - **`Selection/`** — 유닛 선택·드래그·명령 입력(`PrototypeSelectionController`).
@@ -67,7 +68,7 @@
 ### 6.2 레이어 경계 (Prototype / Battle Aces / Campaign)
 - **`Prototype`** — 과거 대형 전장 프로토타입. `PrototypeBootstrapper`가 씬을 통째로 깎아 쓴다. 여기서만 쓰는 연출·거점 로직이 섞일 수 있다.
 - **`BattleAces`** — “짧은 전투 데모”의 기준 루프. 코어·덱·자원·승패·(옵션) 미션 목표 런타임. `Prototype`의 DB/팩토리를 **가져다 쓰지만** 부트스트랩은 `BattleAcesSceneBootstrapper`가 담당.
-- **`Campaign`** — 메뉴·`MissionDefinition`·대사·해금·브리핑/결과 UI 흐름. 전투 규칙 자체는 Battle Aces에 두고, Campaign은 “어떤 미션을 싣는지”만 정한다.
+- **`Campaign`** — 메뉴·`MissionDefinition`·대사·해금·브리핑/결과 UI 흐름. 전투 규칙은 Battle Aces. **개발 초점은 “한 판 데모를 싣는지”**이고, 긴 캠페인 콘텐츠는 후순위.
 - **의존 방향**: `Campaign` → `BattleAces`·`Prototype`(데이터) 는 자연스럽다. 반대로 `PrototypeBootstrapper`가 Campaign을 직접 알 필요는 없다.
 - **삭제된 실험**: 과거 함대 실험(`Assets/Scripts/Fleet`, `FleetExperimentScene`)은 MVP 범위 축소로 제거되었다. 재도입은 목표 정한 뒤 별도 검토.
 - 클래스명, 파일명, MonoBehaviour명은 일치시킨다.

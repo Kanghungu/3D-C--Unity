@@ -2,6 +2,22 @@
 {
     public static class MissionObjectiveDisplayText
     {
+        /// <summary>캠페인 메뉴·상단 바 — 번들 미션이면 번들 표시명</summary>
+        public static string ResolveMissionDisplayName(MissionDefinition mission)
+        {
+            if (mission == null)
+            {
+                return string.Empty;
+            }
+
+            if (DemoChapter6SingleMatchBundle.Matches(mission))
+            {
+                return DemoChapter6SingleMatchBundle.DisplayName;
+            }
+
+            return mission.DisplayName ?? string.Empty;
+        }
+
         public static string GetPrimaryLine(MissionObjectiveKind kind)
         {
             return kind switch
@@ -28,13 +44,44 @@
                 MissionObjectiveKind.EscortRelic =>
                     "성유물을 목표 구역까지.\n성유물이 파괴되면 패배.",
                 MissionObjectiveKind.SeizeRelicOrNode =>
-                    "보라 구역을 일정 시간 유지.\n구역 안 병력을 유지하십시오.",
+                    "보라 구역을 일정 시간 유지.\n아군이 안에 있을 때만 진행되며, 머무는 동안 소량 회복됩니다.",
                 MissionObjectiveKind.DestroyHeresyStronghold =>
                     "분홍 건물 = 이단 본거지(코어와 별개).\n본거지 격파 필요. 아군 코어 먼저 무너지면 패배.",
                 MissionObjectiveKind.RecoverRelicAndEvacuate =>
                     "성유물 확보 후 철수 구역까지.\n성유물 손실 시 패배.",
                 _ => string.Empty
             };
+        }
+
+        /// <summary>미션 에셋 + 데모 번들(챕터6 등) 우선</summary>
+        public static string GetPrimaryLine(MissionDefinition mission)
+        {
+            if (mission == null)
+            {
+                return string.Empty;
+            }
+
+            if (DemoChapter6SingleMatchBundle.Matches(mission))
+            {
+                return DemoChapter6SingleMatchBundle.ObjectivePrimaryLine;
+            }
+
+            return GetPrimaryLine(mission.ObjectiveKind);
+        }
+
+        public static string GetGameplayHint(MissionDefinition mission)
+        {
+            if (mission == null)
+            {
+                return string.Empty;
+            }
+
+            if (DemoChapter6SingleMatchBundle.Matches(mission))
+            {
+                return DemoChapter6SingleMatchBundle.ObjectiveHint;
+            }
+
+            return GetGameplayHint(mission.ObjectiveKind);
         }
 
         public static string GetShortLabelForMenu(MissionObjectiveKind kind)
@@ -49,6 +96,21 @@
                 MissionObjectiveKind.RecoverRelicAndEvacuate => "회수 후 철수",
                 _ => kind.ToString()
             };
+        }
+
+        public static string GetShortLabelForMenu(MissionDefinition mission)
+        {
+            if (mission == null)
+            {
+                return string.Empty;
+            }
+
+            if (DemoChapter6SingleMatchBundle.Matches(mission))
+            {
+                return "요새 돌파";
+            }
+
+            return GetShortLabelForMenu(mission.ObjectiveKind);
         }
     }
 }
