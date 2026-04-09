@@ -171,7 +171,7 @@ namespace Game.BattleAces
 
         private static void TryWarmDirectionalLight()
         {
-            Light[] lights = Object.FindObjectsByType<Light>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            Light[] lights = Object.FindObjectsByType<Light>(FindObjectsInactive.Exclude);
             for (int i = 0; i < lights.Length; i++)
             {
                 Light light = lights[i];

@@ -1,82 +1,111 @@
 #if UNITY_EDITOR
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace Game.Editor
 {
     /// <summary>
-    /// 빌드 시 Shader Stripping 으로 <c>Hidden/BattleAcesDemoStageTone</c> 이 빠지면
-    /// Built-in 에서 데모 비네팅 머티리얼이 핑크가 될 수 있음 — Always Included 에 등록.
+    /// Keeps the built-in demo stage tone shader in Graphics Settings for build-time stripping safety.
+    /// Uses the serialized GraphicsSettings asset so it works on newer Unity versions too.
     /// </summary>
     public static class BattleAcesDemoStageShaderBuildMenu
     {
         private const string ShaderName = "Hidden/BattleAcesDemoStageTone";
+        private const string GraphicsSettingsAssetPath = "ProjectSettings/GraphicsSettings.asset";
+        private const string AlwaysIncludedShadersPropertyName = "m_AlwaysIncludedShaders";
 
         [MenuItem("Tools/Battle Aces/Graphics/Always Include Demo Stage Tone Shader", priority = 200)]
         public static void RegisterDemoStageToneShader()
         {
-            Shader s = Shader.Find(ShaderName);
-            if (s == null)
+            Shader shader = Shader.Find(ShaderName);
+            if (shader == null)
             {
-                Debug.LogError("[BattleAces] 쉐이더를 찾을 수 없습니다. 에셋 경로: Assets/Shaders/BattleAcesDemoStageTone.shader — " + ShaderName);
+                Debug.LogError("[BattleAces] Demo stage tone shader was not found: " + ShaderName);
                 return;
             }
 
-            Shader[] existing = GraphicsSettings.alwaysIncludedShaders;
-            var list = new List<Shader>();
-            if (existing != null)
+            if (!TryGetAlwaysIncludedShadersProperty(out SerializedObject graphicsSettingsObject, out SerializedProperty shadersProperty))
             {
-                for (int i = 0; i < existing.Length; i++)
-                {
-                    if (existing[i] != null)
-                    {
-                        list.Add(existing[i]);
-                    }
-                }
-            }
-
-            if (list.Contains(s))
-            {
-                Debug.Log("[BattleAces] 이미 Always Included Shaders 에 포함됨: " + ShaderName);
                 return;
             }
 
-            list.Add(s);
-            GraphicsSettings.alwaysIncludedShaders = list.ToArray();
-            Debug.Log("[BattleAces] Always Included Shaders 에 추가함(저장됨): " + ShaderName);
+            if (ContainsShader(shadersProperty, shader))
+            {
+                Debug.Log("[BattleAces] Shader is already registered in Always Included Shaders: " + ShaderName);
+                return;
+            }
+
+            int newIndex = shadersProperty.arraySize;
+            shadersProperty.InsertArrayElementAtIndex(newIndex);
+            SerializedProperty newElement = shadersProperty.GetArrayElementAtIndex(newIndex);
+            newElement.objectReferenceValue = shader;
+            graphicsSettingsObject.ApplyModifiedProperties();
+            AssetDatabase.SaveAssets();
+
+            Debug.Log("[BattleAces] Added shader to Always Included Shaders: " + ShaderName);
         }
 
-        [MenuItem("Tools/Battle Aces/Graphics/Log Demo Stage Tone Shader — Included?", priority = 201)]
+        [MenuItem("Tools/Battle Aces/Graphics/Log Demo Stage Tone Shader Included?", priority = 201)]
         public static void LogDemoStageToneShaderIncluded()
         {
-            Shader s = Shader.Find(ShaderName);
-            if (s == null)
+            Shader shader = Shader.Find(ShaderName);
+            if (shader == null)
             {
-                Debug.LogError("[BattleAces] Shader.Find 실패: " + ShaderName);
+                Debug.LogError("[BattleAces] Shader.Find failed: " + ShaderName);
                 return;
             }
 
-            Shader[] arr = GraphicsSettings.alwaysIncludedShaders;
-            if (arr == null)
+            if (!TryGetAlwaysIncludedShadersProperty(out _, out SerializedProperty shadersProperty))
             {
-                Debug.LogWarning("[BattleAces] alwaysIncludedShaders 가 null 입니다.");
                 return;
             }
 
-            for (int i = 0; i < arr.Length; i++)
+            if (ContainsShader(shadersProperty, shader))
             {
-                if (arr[i] == s)
-                {
-                    Debug.Log("[BattleAces] OK — Always Included 에 등록되어 있습니다: " + ShaderName);
-                    return;
-                }
+                Debug.Log("[BattleAces] Shader is registered in Always Included Shaders: " + ShaderName);
+                return;
             }
 
             Debug.LogWarning(
-                "[BattleAces] Always Included 에 없습니다. 빌드 스트리핑 시 연출이 빠질 수 있음 — " +
-                "메뉴 「Always Include Demo Stage Tone Shader」 실행을 권장합니다.");
+                "[BattleAces] Shader is not in Always Included Shaders. " +
+                "If the build strips it, run Tools/Battle Aces/Graphics/Always Include Demo Stage Tone Shader.");
+        }
+
+        private static bool TryGetAlwaysIncludedShadersProperty(out SerializedObject graphicsSettingsObject, out SerializedProperty shadersProperty)
+        {
+            graphicsSettingsObject = null;
+            shadersProperty = null;
+
+            Object[] graphicsSettingsAssets = AssetDatabase.LoadAllAssetsAtPath(GraphicsSettingsAssetPath);
+            if (graphicsSettingsAssets == null || graphicsSettingsAssets.Length == 0)
+            {
+                Debug.LogError("[BattleAces] Could not load ProjectSettings/GraphicsSettings.asset.");
+                return false;
+            }
+
+            graphicsSettingsObject = new SerializedObject(graphicsSettingsAssets[0]);
+            shadersProperty = graphicsSettingsObject.FindProperty(AlwaysIncludedShadersPropertyName);
+            if (shadersProperty == null || !shadersProperty.isArray)
+            {
+                Debug.LogError("[BattleAces] Could not find Always Included Shaders on GraphicsSettings.asset.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool ContainsShader(SerializedProperty shadersProperty, Shader shader)
+        {
+            for (int i = 0; i < shadersProperty.arraySize; i++)
+            {
+                SerializedProperty element = shadersProperty.GetArrayElementAtIndex(i);
+                if (element.objectReferenceValue == shader)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
