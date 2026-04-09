@@ -1,8 +1,8 @@
 // =============================================================================
-// [Scripts ?덉씠?? Battle Aces]
-// - NewSampleScene ?꾩슜 ???⑥씪 肄붿뼱 RTS ?꾪닾 猷⑦봽(?먯썝쨌?앹궛쨌?뱁뙣쨌誘몃땲留?.
-// - Campaign???좏깮??MissionDefinition???덉쑝硫??굿룸ぉ?쑣룻뙥??諛곗쑉???쎌뼱 ?곸슜?쒕떎.
-// - PrototypeBootstrapper? 蹂꾧컻 ???꾩옣 ?앹꽦? ???대옒?ㅺ? ?대떦?쒕떎.
+// [Scripts 레이어: Battle Aces]
+// - NewSampleScene 전용 단일 코어 RTS 데모 루프(자원·생산·승패·미니맵).
+// - Campaign에서 선택한 MissionDefinition이 있으면 전장·덱·적 패턴에 반영.
+// - PrototypeBootstrapper는 구형 대형 전장 생성·DB를 담당(역할 분리).
 // =============================================================================
 using Game.Audio;
 using Game.CameraSystem;
@@ -21,7 +21,8 @@ using UnityEngine.Audio;
 namespace Game.BattleAces
 {
     /// <summary>
-    /// NewSampleScene 吏꾩엯: ?⑥씪 肄붿뼱횞2, ??8?щ’, ?먮룞 ?먯썝, 誘몄뀡(?좏깮 ??PersistentGameCore).
+    /// NewSampleScene 진입: 단일 코어 RTS 부트(지면·덱·경제·미션).
+    /// 대기 연출은 <see cref="BattleAcesDemoStagePresentation"/> — 메뉴로 돌아갈 때는 <see cref="BattleAcesWorldPresentation"/> 가 RenderSettings/카메라를 복구.
     /// </summary>
     public class BattleAcesSceneBootstrapper : MonoBehaviour
     {
@@ -31,7 +32,7 @@ namespace Game.BattleAces
         [SerializeField] private Color groundTint = new(0.22f, 0.24f, 0.28f);
         [SerializeField] private string groundObjectName = "Battle Arena Ground";
 
-        /// <summary>GameObject.Find 諛섎났 ?몄텧 以꾩씠湲???遺?몄뒪?몃옪 1?뚯꽦 罹먯떆</summary>
+        /// <summary>GameObject.Find 반복 호출 줄이기 — 지면 루트 캐시</summary>
         private GameObject cachedBattleGround;
 
         [Header("Spawns")]
@@ -39,20 +40,20 @@ namespace Game.BattleAces
         [SerializeField] private Vector3 enemyCorePosition = new(34f, 1.6f, 28f);
         [SerializeField] private Vector3 playerRallyPoint = new(-22f, 1f, -18f);
 
-        [Header("Audio (?뮤룻뙣 ?ㅽ똿)")]
-        [Tooltip("Game/Audio/Create BattleAces_Main.mixer 濡?留뚮뱺 誘뱀꽌 ??Master ?꾨옒 ResultSting 沅뚯옣")]
+        [Header("Audio (믹서 선택)")]
+        [Tooltip("BattleAces 메인 AudioMixer 에셋 — Master 아래 ResultSting 그룹 권장")]
         [SerializeField] private AudioMixer battleAcesAudioMixer;
 
-        [Tooltip("誘뱀꽌 ??洹몃９ ?대쫫 ??ResultSting ???놁쑝硫?Master 濡??대갚")]
+        [Tooltip("승패 스팅 출력 그룹 이름 — 없으면 Master 로 폴백")]
         [SerializeField] private string resultStingGroupName = "ResultSting";
 
-        [Tooltip("誘뱀꽌 ?먯뀑 ?놁씠 洹몃９留?吏곸젒 ?ｌ쓣 ???덉쑝硫?AudioMixer ?좊떦蹂대떎 ?곗꽑)")]
+        [Tooltip("믹서 에셋 없이 그룹만 직접 넣을 때 — AudioMixerGroup 슬롯에 할당")]
         [SerializeField] private AudioMixerGroup resultStingMixerGroup;
 
-        [Tooltip("?꾪닾 ?곕퉬?명듃 ??媛숈? 誘뱀꽌?먯꽌 BattleAmbient ?먯떇 洹몃９??留뚮뱾怨??대쫫 留욎땄")]
+        [Tooltip("전투 앰비언트 루프용 그룹 이름(믹서 내)")]
         [SerializeField] private string battleAmbientGroupName = "BattleAmbient";
 
-        [Tooltip("Audio Mixer ?먯꽌 洹몃９ Volume ??Expose ???뚮씪誘명꽣 ?대쫫(?ㅼ젙 O ?⑤꼸怨??곌껐)")]
+        [Tooltip("Mixer 에서 그룹 Volume → Expose 한 파라미터 이름(O 설정과 동일)")]
         [SerializeField] private string exposedBattleAmbientVolume = "BattleAmbientVol";
 
         [SerializeField] private string exposedResultStingVolume = "ResultStingVol";
@@ -80,9 +81,21 @@ namespace Game.BattleAces
                 Debug.Log("[BattleAces] ActiveMission 없음 → Battle Aces 한 판 데모(폴백) 런타임 미션을 설정했습니다.");
             }
 
+            Vector3 arenaScale = groundScale;
             Vector3 pPos = playerCorePosition;
             Vector3 ePos = enemyCorePosition;
             Vector3 rally = playerRallyPoint;
+            BattleArenaLayoutBootstrap.ApplySpawnAndScale(
+                mission,
+                groundScale,
+                playerCorePosition,
+                enemyCorePosition,
+                playerRallyPoint,
+                out arenaScale,
+                out pPos,
+                out ePos,
+                out rally);
+
             // 챕터6 번들: 미러 여부도 에셋이 아니라 번들 단일 소스
             bool mirrorX = mission != null &&
                            (DemoChapter6SingleMatchBundle.Matches(mission)
@@ -101,13 +114,16 @@ namespace Game.BattleAces
 
             if (createArenaOnPlay)
             {
-                SetupMinimalArena();
+                SetupMinimalArena(arenaScale);
             }
 
             GameObject ground = ResolveBattleGroundObject();
+            BattleArenaLayoutKind layoutKind = BattleArenaLayoutBootstrap.ResolveLayoutKind(mission);
+            BattleArenaLayoutBootstrap.SpawnLayoutObstacles(structuresRoot, layoutKind, mirrorX);
+            BattleAcesDemoStagePresentation.Apply(ground, arenaScale, structuresRoot, layoutKind, mirrorX);
             if (ground != null)
             {
-                BakeNavMeshAroundGround(ground.transform.position, groundScale);
+                BakeNavMeshAroundGround(ground.transform.position, arenaScale);
             }
 
             systems.AddComponent<RtsTimeControl>();
@@ -116,6 +132,7 @@ namespace Game.BattleAces
             BattleAcesRunStats runStats = systems.AddComponent<BattleAcesRunStats>();
             ApplyMissionIncomeTuning(economy, mission);
             mission?.ApplySkirmishOpeningIncomeBoostIfNeeded(economy);
+            BattleAcesClassicDuelArenaTuning.ApplyEconomyForLayout(economy, layoutKind, mission);
             // 캠페인 첫 스커미시 — 메뉴 스커미시와 별도 ID이므로 동일 톤의 개장 부스트 유지
             if (mission != null && mission.MissionId == "mission_01_skirmish")
             {
@@ -130,6 +147,7 @@ namespace Game.BattleAces
             BattleAcesMatchController match = systems.AddComponent<BattleAcesMatchController>();
             BattleAcesHudOverlay hud = systems.AddComponent<BattleAcesHudOverlay>();
             systems.AddComponent<PrototypeSelectionController>();
+            systems.AddComponent<PlayerAbilityController>();
             BattleAcesEnemyBrain enemyBrain = systems.AddComponent<BattleAcesEnemyBrain>();
 
             UnitArchetype[] deckBase = DemoChapter6SingleMatchBundle.Matches(mission)
@@ -152,7 +170,7 @@ namespace Game.BattleAces
                 "Player Core",
                 pPos,
                 UnitTeam.Player,
-                new Color(0.55f, 0.72f, 0.95f),
+                new Color(0.42f, 0.66f, 0.98f),
                 structuresRoot,
                 playerHpMul);
             playerCore.gameObject.AddComponent<CoreStructureHitSound>();
@@ -161,7 +179,7 @@ namespace Game.BattleAces
                 "Enemy Core",
                 ePos,
                 UnitTeam.Enemy,
-                new Color(0.95f, 0.42f, 0.38f),
+                new Color(0.98f, 0.34f, 0.26f),
                 structuresRoot,
                 enemyHpMul);
 
@@ -238,9 +256,10 @@ namespace Game.BattleAces
             thinkBase *= thinkIntervalMul;
 
             enemyBrain.ApplyEnemyPattern(enemyPatternId, thinkBase);
+            BattleAcesClassicDuelArenaTuning.ApplyEnemyBrainForLayout(enemyBrain, layoutKind, mirrorX);
 
-            float halfX = groundScale.x * 5f;
-            float halfZ = groundScale.z * 5f;
+            float halfX = arenaScale.x * 5f;
+            float halfZ = arenaScale.z * 5f;
             BattleAcesMinimap minimap = systems.AddComponent<BattleAcesMinimap>();
             Vector2 fogWorldMin = new Vector2(-halfX, -halfZ);
             Vector2 fogWorldMax = new Vector2(halfX, halfZ);
@@ -327,11 +346,11 @@ namespace Game.BattleAces
             }
 
             // 챕터2 데모: 카메라가 기본 ±1600 바운드로 허공까지 밀리지 않도록 지면에 맞춤
-            ApplyRtsCameraToBattleArena(ResolveBattleGroundObject());
+            ApplyRtsCameraToBattleArena(ResolveBattleGroundObject(), arenaScale);
         }
 
         /// <summary>지면 Renderer 기준으로 RTS 카메라 XZ·줌 상한 설정(지면이 없으면 groundScale 폴백).</summary>
-        private void ApplyRtsCameraToBattleArena(GameObject groundPlane)
+        private void ApplyRtsCameraToBattleArena(GameObject groundPlane, Vector3 planeScaleFallback)
         {
             Camera cam = Camera.main;
             if (cam == null)
@@ -359,7 +378,7 @@ namespace Game.BattleAces
                 return;
             }
 
-            float halfExtent = 5f * Mathf.Max(groundScale.x, groundScale.z);
+            float halfExtent = 5f * Mathf.Max(planeScaleFallback.x, planeScaleFallback.z);
             rts.SetWorldXZBounds(
                 -halfExtent - paddingWorld,
                 halfExtent + paddingWorld,
@@ -394,7 +413,7 @@ namespace Game.BattleAces
             else
             {
                 Debug.LogWarning(
-                    "[BattleAcesSceneBootstrapper] AudioMixer ??'" + resultStingGroupName + "' ?먮뒗 Master 洹몃９???놁뒿?덈떎.");
+                    "[BattleAcesSceneBootstrapper] AudioMixer 에 '" + resultStingGroupName + "' 또는 Master 그룹이 없습니다.");
             }
         }
 
@@ -527,7 +546,7 @@ namespace Game.BattleAces
             Vector3 pos = new Vector3(0f, 2.5f, 2f);
             Vector3 boxSize = new Vector3(18f, 6f, 18f);
 
-            // 誘몄뀡 5 ???숈씪 ?먮졊 紐⑺몴?대굹 援ъ뿭쨌?μ븷臾?諛곗튂留?蹂二??ㅽ뀅怨?泥닿컧 遺꾨━)
+            // 미션 5 스텁 — 점령 목표는 같고 구역·대사만 변주(에셋과 스폰 위치 분리)
             if (mission != null && mission.MissionId == "mission_05_stub")
             {
                 pos = new Vector3(-7f, 2.5f, 15f);
@@ -548,7 +567,7 @@ namespace Game.BattleAces
             return cap;
         }
 
-        /// <summary>誘몄뀡 5 ?꾩슜 ???먮졊 援ъ뿭 二쇰? ?μ븷臾??꾨줈?좎슜 ?꾨━誘명떚釉?.</summary>
+        /// <summary>미션 5 점령 구역 시각화 — 단순 실린더 링</summary>
         private static void CreateCaptureZoneVisual(Transform parent, Vector3 boxSize)
         {
             GameObject ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -691,10 +710,10 @@ namespace Game.BattleAces
             return ct;
         }
 
-        /// <summary>罹좏럹??誘몄뀡蹂꾨줈 ?먯썝 怨≪꽑留??댁쭩 議곗젙(A 諛몃윴???⑥뒪).</summary>
+        /// <summary>미션 ID별 플레이어·적 수입 배율(곱셈). ClassicDuel 은 이후 <see cref="BattleAcesClassicDuelArenaTuning"/> 가 추가 보정.</summary>
         /// <remarks>
-        /// DEVLOG 짠I 쨌 誘몄뀡 3~6 ???먯뵫 ?뚮젅?????レ옄留?硫붾え???ш린??誘몄꽭 議곗젙?섎㈃ ??
-        /// ?? mission_03 ??playerMul +0.01 / mission_04 ??enemyMul -0.02 ??媛먭컖쨌?ы쁽 湲곗?).
+        /// 캠페인 3~6화 등은 플레이 타임·압박감에 맞춰 미세 조정.
+        /// 예: mission_03 player 약간↑, mission_04 enemy 약간↑ 등 DEVLOG 기준 반영.
         /// </remarks>
         private static void ApplyMissionIncomeTuning(BattleAcesEconomy economy, MissionDefinition mission)
         {
@@ -737,6 +756,13 @@ namespace Game.BattleAces
                     playerMul = 1.048f;
                     enemyMul = 1.038f;
                     break;
+                case "skirmish_vs_ai":
+                case "skirmish_vs_ai_easy":
+                case "skirmish_vs_ai_hard":
+                    // 메뉴 스커미시 — missionId 미매칭 시 경제가 기본 곡선만 쓰여 한 판이 짧아지기 쉬움
+                    playerMul = 1.08f;
+                    enemyMul = 0.96f;
+                    break;
                 default:
                     return;
             }
@@ -766,7 +792,7 @@ namespace Game.BattleAces
             return eight;
         }
 
-        /// <summary>NewSampleScene 硫붿씤 移대찓?쇱뿉 RTS 議곗옉???놁쑝硫?遺숈씤??誘몃땲留??대┃ ?대룞??.</summary>
+        /// <summary>메인 카메라에 RTS 컨트롤러가 없으면 추가 — 미니맵 클릭 이동 등</summary>
         private static void EnsureRtsCameraControllerOnMainCamera()
         {
             Camera cam = Camera.main;
@@ -796,7 +822,7 @@ namespace Game.BattleAces
             };
         }
 
-        /// <summary>誘몄뀡 ?듭뀡 ???대룞 ?붿깉瑜?怨듭쨷 ?붿깉濡?諛붽씀怨?怨듭꽦 ?щ’??媛뺤“</summary>
+        /// <summary>공중 요새 미션 — 덱 슬롯 일부를 공성 병과 위주로 치환</summary>
         private static UnitArchetype[] ApplyAirborneCitadelDeckVariant(bool airborneCitadelFocus, UnitArchetype[] deck)
         {
             if (!airborneCitadelFocus || deck == null || deck.Length != 8)
@@ -828,10 +854,12 @@ namespace Game.BattleAces
             return cachedBattleGround;
         }
 
-        private void SetupMinimalArena()
+        private void SetupMinimalArena(Vector3 planeScale)
         {
             if (ResolveBattleGroundObject() != null)
             {
+                GameObject existing = ResolveBattleGroundObject();
+                existing.transform.localScale = planeScale;
                 return;
             }
 
@@ -839,7 +867,7 @@ namespace Game.BattleAces
             ground.name = groundObjectName;
             cachedBattleGround = ground;
             ground.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
-            ground.transform.localScale = groundScale;
+            ground.transform.localScale = planeScale;
 
             Renderer renderer = ground.GetComponent<Renderer>();
             if (renderer != null)
@@ -847,8 +875,7 @@ namespace Game.BattleAces
                 renderer.material.color = groundTint;
             }
 
-            RenderSettings.ambientSkyColor = new Color(0.18f, 0.2f, 0.24f);
-            RenderSettings.fog = false;
+            // 대기·안개·지면 그라데이션은 BattleAcesDemoStagePresentation.Apply 에서 통일 적용
         }
 
         private static void BakeNavMeshAroundGround(Vector3 groundCenter, Vector3 planeScale)
@@ -881,14 +908,12 @@ namespace Game.BattleAces
             GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = objectName;
             go.transform.SetPositionAndRotation(position, Quaternion.identity);
-            go.transform.localScale = new Vector3(5.6f, 3.2f, 5.6f);
+            go.transform.localScale = team == UnitTeam.Player
+                ? new Vector3(5.9f, 3.38f, 5.9f)
+                : new Vector3(5.42f, 3.06f, 5.42f);
             go.transform.SetParent(parent);
 
-            Renderer renderer = go.GetComponent<Renderer>();
-            if (renderer != null)
-            {
-                renderer.material.color = color;
-            }
+            BattleAcesCommandCoreVisuals.ApplyToCore(go, team, color);
 
             // 본진이 너무 빨리 무너지지 않도록 기본 체력 상향(팩션 배율은 그대로 곱함)
             float baseHp = team == UnitTeam.Player ? 5200f : 4800f;

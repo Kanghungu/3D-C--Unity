@@ -62,7 +62,8 @@ namespace Game.Units
 
             // 버프/디버프에 따른 속도 반영
             float speedMult = abilityState != null ? abilityState.GetMoveSpeedMultiplier() : 1f;
-            navMeshAgent.speed = moveSpeed * speedMult;
+            float passiveSpeedMult = roleController != null ? roleController.GetPassiveMoveSpeedMultiplier() : 1f;
+            navMeshAgent.speed = moveSpeed * speedMult * passiveSpeedMult;
 
             // 도착 판정
             if (!navMeshAgent.pathPending && navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance)
@@ -105,7 +106,8 @@ namespace Game.Units
             }
 
             float speedMult = abilityState != null ? abilityState.GetMoveSpeedMultiplier() : 1f;
-            float effectiveSpeed = moveSpeed * speedMult;
+            float passiveSpeedMult = roleController != null ? roleController.GetPassiveMoveSpeedMultiplier() : 1f;
+            float effectiveSpeed = moveSpeed * speedMult * passiveSpeedMult;
             Vector3 dir = toDest.normalized;
 
             Quaternion targetRot = Quaternion.LookRotation(dir, Vector3.up);
@@ -174,18 +176,70 @@ namespace Game.Units
             }
 
             bool isFlying = selectableUnit.Definition != null && selectableUnit.Definition.IsFlying;
+            UnitArchetype archetype = selectableUnit.Archetype;
+            PrimitiveType effectPrimitive = isFlying ? PrimitiveType.Sphere : PrimitiveType.Cylinder;
+            string effectName = isFlying ? "Move Wake" : "Move Dust";
             Color effectColor = selectableUnit.Team == UnitTeam.Player
                 ? (isFlying ? new Color(0.3f, 0.86f, 1f) : new Color(0.78f, 0.72f, 0.54f))
                 : (isFlying ? new Color(1f, 0.48f, 0.22f) : new Color(0.72f, 0.46f, 0.28f));
-
-            GameObject effectObject = GameObject.CreatePrimitive(isFlying ? PrimitiveType.Sphere : PrimitiveType.Cylinder);
-            effectObject.name = isFlying ? "Move Wake" : "Move Dust";
-            effectObject.transform.position = transform.position
-                + (isFlying ? new Vector3(0f, selectableUnit.Definition.HoverHeight * 0.45f, 0f) : new Vector3(0f, -0.38f, 0f))
-                - moveDirection.normalized * (isFlying ? 0.34f : 0.2f);
-            effectObject.transform.localScale = isFlying
+            Vector3 spawnOffset = isFlying
+                ? new Vector3(0f, selectableUnit.Definition.HoverHeight * 0.45f, 0f)
+                : new Vector3(0f, -0.38f, 0f);
+            float backOffset = isFlying ? 0.34f : 0.2f;
+            Vector3 effectScale = isFlying
                 ? Vector3.one * Mathf.Lerp(0.12f, 0.22f, Mathf.Clamp01(effectiveMoveSpeed / 12f))
                 : new Vector3(0.18f, 0.05f, 0.18f);
+            float duration = isFlying ? 0.34f : 0.48f;
+            Vector3 endScale = isFlying ? Vector3.one * 0.42f : new Vector3(0.42f, 0.03f, 0.42f);
+            Vector3 drift = isFlying ? -moveDirection.normalized * 1.1f : new Vector3(0f, 0.28f, 0f);
+
+            switch (archetype)
+            {
+                case UnitArchetype.SpecialWarrior:
+                    effectPrimitive = PrimitiveType.Cube;
+                    effectName = "Phase Wake";
+                    effectColor = selectableUnit.Team == UnitTeam.Player
+                        ? new Color(0.38f, 0.94f, 1f)
+                        : new Color(1f, 0.62f, 0.28f);
+                    spawnOffset = new Vector3(0f, -0.16f, 0f);
+                    backOffset = 0.3f;
+                    effectScale = new Vector3(0.12f, 0.12f, 0.26f);
+                    duration = 0.28f;
+                    endScale = new Vector3(0.04f, 0.04f, 0.5f);
+                    drift = -moveDirection.normalized * 1.6f + new Vector3(0f, 0.24f, 0f);
+                    break;
+                case UnitArchetype.RoyalGuard:
+                    effectPrimitive = PrimitiveType.Cylinder;
+                    effectName = "Guard Sigil";
+                    effectColor = selectableUnit.Team == UnitTeam.Player
+                        ? new Color(0.82f, 0.92f, 1f)
+                        : new Color(1f, 0.76f, 0.34f);
+                    spawnOffset = new Vector3(0f, -0.3f, 0f);
+                    backOffset = 0f;
+                    effectScale = new Vector3(0.24f, 0.04f, 0.24f);
+                    duration = 0.42f;
+                    endScale = new Vector3(0.46f, 0.02f, 0.46f);
+                    drift = new Vector3(0f, 0.1f, 0f);
+                    break;
+                case UnitArchetype.Outrider:
+                    effectPrimitive = PrimitiveType.Sphere;
+                    effectName = "Hover Wake";
+                    effectColor = selectableUnit.Team == UnitTeam.Player
+                        ? new Color(0.32f, 0.92f, 1f)
+                        : new Color(1f, 0.58f, 0.26f);
+                    spawnOffset = new Vector3(0f, 0.08f, 0f);
+                    backOffset = 0.42f;
+                    effectScale = Vector3.one * Mathf.Lerp(0.12f, 0.2f, Mathf.Clamp01(effectiveMoveSpeed / 10f));
+                    duration = 0.3f;
+                    endScale = Vector3.one * 0.26f;
+                    drift = -moveDirection.normalized * 1.45f;
+                    break;
+            }
+
+            GameObject effectObject = GameObject.CreatePrimitive(effectPrimitive);
+            effectObject.name = effectName;
+            effectObject.transform.position = transform.position + spawnOffset - moveDirection.normalized * backOffset;
+            effectObject.transform.localScale = effectScale;
 
             Collider effectCollider = effectObject.GetComponent<Collider>();
             if (effectCollider != null) effectCollider.enabled = false;
@@ -194,10 +248,7 @@ namespace Game.Units
             if (rendererComponent != null) rendererComponent.material.color = effectColor;
 
             TimedWorldEffect effect = effectObject.AddComponent<TimedWorldEffect>();
-            effect.Configure(
-                isFlying ? 0.34f : 0.48f,
-                isFlying ? Vector3.one * 0.42f : new Vector3(0.42f, 0.03f, 0.42f),
-                isFlying ? -moveDirection.normalized * 1.1f : new Vector3(0f, 0.28f, 0f));
+            effect.Configure(duration, endScale, drift);
         }
     }
 }

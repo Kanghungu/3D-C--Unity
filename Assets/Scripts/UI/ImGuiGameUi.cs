@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.BattleAces;
 using Game.Settings;
 using UnityEngine;
 
@@ -30,15 +31,45 @@ namespace Game.UI
         public static readonly Color PanelBgHud = new Color(0.022f, 0.025f, 0.034f, 0.93f);
         public static readonly Color PanelBgHudCard = new Color(0.05f, 0.054f, 0.064f, 0.9f);
         public static readonly Color BorderCool = new Color(0.2f, 0.22f, 0.28f, 0.72f);
-        public static readonly Color BorderAccent = new Color(0.72f, 0.58f, 0.28f, 0.88f);
+        /// <summary>보조 테두리 — 금색 힌트에 적 앰버 살짝 섞어 아트 규율 유지</summary>
+        public static readonly Color BorderAccent = Color.Lerp(
+            new Color(0.72f, 0.58f, 0.28f, 0.88f),
+            BattleAcesArtDirection.EnemyEmber,
+            0.22f);
         public static readonly Color AccentGold = new Color(0.9f, 0.74f, 0.4f, 1f);
-        public static readonly Color AccentCyan = new Color(0.48f, 0.78f, 0.82f, 1f);
-        public static readonly Color HudStripeTactical = new Color(0.4f, 0.58f, 0.52f, 0.9f);
+
+        /// <summary>IMGUI 강조선 — <see cref="BattleAcesArtDirection.PointTeal"/> 과 동일 계열(의식 티얼 단일 악센트)</summary>
+        public static readonly Color AccentCyan = BattleAcesArtDirection.PointTeal;
+        public static readonly Color HudStripeTactical = Color.Lerp(
+            new Color(0.4f, 0.58f, 0.52f, 0.9f),
+            BattleAcesArtDirection.PointTeal,
+            0.18f);
         public static readonly Color TextTitle = new Color(0.9f, 0.92f, 0.94f, 1f);
         public static readonly Color TextMuted = new Color(0.52f, 0.58f, 0.66f, 1f);
         public static readonly Color ResourceHighlight = new Color(0.98f, 0.92f, 0.78f, 1f);
-        public static readonly Color VictoryTint = new Color(0.45f, 0.9f, 0.55f, 1f);
-        public static readonly Color DefeatTint = new Color(0.95f, 0.45f, 0.42f, 1f);
+
+        /// <summary>
+        /// C축 — 좌측 패널 자원 스트립(<c>BattleAcesHudOverlay.DrawEconomyStrip</c>)만 사용.
+        /// 표: 요소 | 위치(패널 내) | 팔레트 | 역할
+        /// 보유 크레딧 숫자 | strip 좌측 큰 영역 | <see cref="ResourceHighlight"/> | 1차 시선(27pt)
+        /// 초당 수입 | strip 중간 우측 상단 | <see cref="TextMuted"/> | 2차(11pt)
+        /// 적 추정 자원 | strip 중간 우측 하단 | <see cref="TextMuted"/> | 2차(11pt)
+        /// 스트립 배경 | <see cref="DrawPanelFrame"/> fill | <see cref="EconomyStripPanelBg"/> | 숫자 대비
+        /// 스트립 테두리 | 프레임 border | <see cref="EconomyStripBorder"/> | 패널 구분
+        /// </summary>
+        public static readonly Color EconomyStripPanelBg = new Color(0.075f, 0.082f, 0.095f, 0.94f);
+
+        public static readonly Color EconomyStripBorder = new Color(0.2f, 0.23f, 0.3f, 0.7f);
+
+        public static readonly Color VictoryTint = Color.Lerp(
+            new Color(0.45f, 0.9f, 0.55f, 1f),
+            BattleAcesArtDirection.PointTeal,
+            0.28f);
+
+        public static readonly Color DefeatTint = Color.Lerp(
+            new Color(0.95f, 0.45f, 0.42f, 1f),
+            BattleAcesArtDirection.EnemyEmber,
+            0.25f);
 
         private static readonly Stack<Matrix4x4> GuiMatrixStack = new Stack<Matrix4x4>(4);
 

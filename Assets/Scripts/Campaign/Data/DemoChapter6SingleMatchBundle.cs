@@ -18,8 +18,8 @@ namespace Game.Campaign.Data
         public const string ObjectivePrimaryLine = "공중 요새 압박 하에 적 코어 격파";
 
         public const string ObjectiveHint =
-            "붉은 표식 = 적 코어.\n" +
-            "이 한 판 덱·요새 슬롯은 아래 번들 고정. 건물 클릭 선택은 없습니다.";
+            "적대 표식 = 적 코어.\n" +
+            "이 작전의 덱·공중 요새 변주는 번들 고정. 건물을 마우스로 선택하는 기능은 없습니다.";
 
         public const string EnemyPatternId = "fortress_break";
 

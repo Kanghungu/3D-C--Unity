@@ -186,7 +186,8 @@ namespace Game.Units
             UpdateEngagementVisuals();
             UpdateOrderAnchorVisuals();
 
-            if (distance > attackRange)
+            float effectiveAttackRange = attackRange + (roleController != null ? roleController.GetPassiveAttackRangeBonus() : 0f);
+            if (distance > effectiveAttackRange)
             {
                 mover.SetDestination(pursuitDestination);
                 return;
@@ -374,6 +375,7 @@ namespace Game.Units
             }
 
             float damageMultiplier = abilityState != null ? abilityState.GetAttackDamageMultiplier() : 1f;
+            damageMultiplier *= roleController != null ? roleController.GetPassiveAttackDamageMultiplier() : 1f;
             float resolvedDamage = CombatTriangleRules.ResolveDamage(GetArchetype(), target, attackDamage * damageMultiplier, false);
             target.Health.ApplyDamage(resolvedDamage);
             SpawnImpactEffect(target.transform.position + Vector3.up * 0.6f, impactEffectScale, GetAttackColor());
@@ -387,6 +389,7 @@ namespace Game.Units
             }
 
             float damageMultiplier = abilityState != null ? abilityState.GetAttackDamageMultiplier() : 1f;
+            damageMultiplier *= roleController != null ? roleController.GetPassiveAttackDamageMultiplier() : 1f;
             float distance = Vector3.Distance(transform.position, target.transform.position);
             int burstCount = roleController != null ? roleController.GetProjectileBurstCount(distance) : 1;
 

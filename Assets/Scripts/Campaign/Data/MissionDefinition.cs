@@ -33,6 +33,10 @@ namespace Game.Campaign.Data
         [Tooltip("Build Settings 에 등록된 씬 이름(확장자 없음). 예: NewSampleScene")]
         [SerializeField] private string gameplaySceneName = "NewSampleScene";
 
+        [Header("전장 레이아웃 (Battle Aces)")]
+        [Tooltip("Classic=기본 평지. CrossroadsSpirit=투혼식 중앙 십자·모서리 본진. NarrowMidChoke=중앙 좁은 길. 스커미시는 난이도별로 런타임에서 덮어씀.")]
+        [SerializeField] private BattleArenaLayoutKind arenaLayoutKind = BattleArenaLayoutKind.ClassicDuel;
+
         [Tooltip("미션 선택 화면 정렬(낮을수록 먼저)")]
         [SerializeField] private int campaignSortOrder;
 
@@ -59,7 +63,7 @@ namespace Game.Campaign.Data
         [SerializeField] private UnitArchetype[] playerDeck = new UnitArchetype[0];
 
         [Header("적 패턴 (문자열 ID — BattleAcesEnemyBrain.ApplyEnemyPattern)")]
-        [Tooltip("예: default_skirmish, heresy_demo_pace(챕터4 데모 밸런스)")]
+        [Tooltip("예: default_skirmish, aggressive_push. 스커미시 vs AI는 난이도에 따라 런타임에서 덮어씀(쉬움=defensive_turtle, 어려움=aggressive_push).")]
         [SerializeField] private string enemyPatternId = "default_skirmish";
 
         [Header("적 AI (Battle Aces)")]
@@ -98,6 +102,10 @@ namespace Game.Campaign.Data
         public string MissionId => missionId;
         public string DisplayName => displayName;
         public string GameplaySceneName => gameplaySceneName;
+
+        /// <summary>전장 프리셋 — NewSampleScene 부트스트랩이 지면·코어·장애물에 반영</summary>
+        public BattleArenaLayoutKind ArenaLayoutKind => arenaLayoutKind;
+
         public int CampaignSortOrder => campaignSortOrder;
         public MissionObjectiveKind ObjectiveKind => objectiveKind;
         public bool MirroredLayoutVariant => mirroredLayoutVariant;
@@ -171,8 +179,25 @@ namespace Game.Campaign.Data
             AssignSkirmishVsAiRuntime(SkirmishDifficultyTier.Normal);
         }
 
-        /// <summary>난이도별 적 AI 생산 간격 배율·개장 자원 부스트(부트스트랩에서 사용)</summary>
+        /// <summary>스커미시 기본 맵(난이도만 넘길 때) — 쉬움=십자·보통=평지·어려움=초크</summary>
+        public static BattleArenaLayoutKind GetDefaultSkirmishArenaLayoutForTier(SkirmishDifficultyTier tier)
+        {
+            return tier switch
+            {
+                SkirmishDifficultyTier.Easy => BattleArenaLayoutKind.CrossroadsSpirit,
+                SkirmishDifficultyTier.Hard => BattleArenaLayoutKind.NarrowMidChoke,
+                _ => BattleArenaLayoutKind.ClassicDuel
+            };
+        }
+
+        /// <summary>난이도별 적 AI 생산 간격 배율·개장 자원 부스트(부트스트랩에서 사용). 맵은 난이도 기본값.</summary>
         public void AssignSkirmishVsAiRuntime(SkirmishDifficultyTier tier)
+        {
+            AssignSkirmishVsAiRuntime(tier, GetDefaultSkirmishArenaLayoutForTier(tier));
+        }
+
+        /// <summary>데모 메뉴에서 고른 전장 레이아웃을 그대로 씀.</summary>
+        public void AssignSkirmishVsAiRuntime(SkirmishDifficultyTier tier, BattleArenaLayoutKind arenaLayout)
         {
             gameplaySceneName = "NewSampleScene";
             campaignSortOrder = -1;
@@ -185,7 +210,13 @@ namespace Game.Campaign.Data
             mirroredLayoutVariant = false;
             airborneCitadelFocus = false;
             briefingUseCompactFont = false;
-            enemyPatternId = "default_skirmish";
+            // 난이도별로 같은 맵에서도 체감이 갈리게 — 생산 배율 외에 집결·물결 AI만 분기
+            enemyPatternId = tier switch
+            {
+                SkirmishDifficultyTier.Easy => "defensive_turtle",
+                SkirmishDifficultyTier.Hard => "aggressive_push",
+                _ => "default_skirmish"
+            };
             enemyBrainThinkIntervalOverride = 0f;
             playerFactionRules = null;
             enemyFactionRules = null;
@@ -206,6 +237,7 @@ namespace Game.Campaign.Data
 
             // 생산 간격 = 기준초 × 배율(클수록 적이 느리게 뽑음)
             enemyBrainThinkIntervalMultiplier = GetSkirmishEnemyThinkMultiplier(tier);
+            arenaLayoutKind = arenaLayout;
             switch (tier)
             {
                 case SkirmishDifficultyTier.Easy:
@@ -275,7 +307,8 @@ namespace Game.Campaign.Data
             return
                 "수치(보통=1.0): 쉬움 생산×" + SkNum(SkirmishEasyThinkMul) + "·부스트 " + SkNum(SkirmishEasyBoostSec) + "초×" + SkNum(SkirmishEasyBoostMul) +
                 " | 보통 ×" + SkNum(SkirmishNormalThinkMul) + "·" + SkNum(SkirmishNormalBoostSec) + "×" + SkNum(SkirmishNormalBoostMul) +
-                " | 어려움 ×" + SkNum(SkirmishHardThinkMul) + "·" + SkNum(SkirmishHardBoostSec) + "×" + SkNum(SkirmishHardBoostMul);
+                " | 어려움 ×" + SkNum(SkirmishHardThinkMul) + "·" + SkNum(SkirmishHardBoostSec) + "×" + SkNum(SkirmishHardBoostMul) +
+                " ·적 패턴: 쉬움=느긋한 집결 / 보통=기본 / 어려움=압박 물결";
         }
 
         private static string SkNum(float x) => x.ToString("0.##", CultureInfo.InvariantCulture);

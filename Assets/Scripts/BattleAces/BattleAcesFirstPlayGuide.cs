@@ -91,7 +91,8 @@ namespace Game.BattleAces
             ImGuiGameUi.BeginScaledGui();
 
             const float panelW = 268f;
-            float panelH = 168f;
+            // 부제가 한 줄 늘어나 체크 항목 시작 위치만 살짝 아래로
+            float panelH = 182f;
             Rect r = new Rect(Screen.width - panelW - 18f, 124f, panelW, panelH);
             ImGuiGameUi.DrawPanelFrame(r, ImGuiGameUi.PanelBgHud, ImGuiGameUi.BorderCool, 2f);
 
@@ -102,25 +103,25 @@ namespace Game.BattleAces
             bool okRally = notifiedRally;
 
             GUI.skin.label.fontSize = 13;
-            GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(new Rect(r.x + 10f, r.y + 8f, r.width - 20f, 22f), "첫 작전 체크리스트");
+            GUI.color = ImGuiGameUi.AccentCyan;
+            GUI.Label(new Rect(r.x + 10f, r.y + 8f, r.width - 20f, 22f), DemoPresentationCopy.FirstPlayChecklistTitle);
             GUI.skin.label.fontSize = 11;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(new Rect(r.x + 10f, r.y + 28f, r.width - 20f, 36f), "F1·상단 목표와 겹치지 않게 최소만 표시합니다.");
+            GUI.Label(new Rect(r.x + 10f, r.y + 28f, r.width - 20f, 48f), DemoPresentationCopy.FirstPlayChecklistSubtitle);
             GUI.color = Color.white;
 
-            float ly = r.y + 62f;
-            DrawCheckLine(new Rect(r.x + 12f, ly, r.width - 24f, 20f), okProd, "유닛 생산 (키 1~8)");
+            float ly = r.y + 76f;
+            DrawCheckLine(new Rect(r.x + 12f, ly, r.width - 24f, 20f), okProd, DemoPresentationCopy.FirstPlayCheckProd);
             ly += 22f;
-            DrawCheckLine(new Rect(r.x + 12f, ly, r.width - 24f, 20f), okMove, "지면 이동 (우클릭)");
+            DrawCheckLine(new Rect(r.x + 12f, ly, r.width - 24f, 20f), okMove, DemoPresentationCopy.FirstPlayCheckMove);
             ly += 22f;
-            DrawCheckLine(new Rect(r.x + 12f, ly, r.width - 24f, 20f), okMm, "전술 지도 클릭 (시야)");
+            DrawCheckLine(new Rect(r.x + 12f, ly, r.width - 24f, 20f), okMm, DemoPresentationCopy.FirstPlayCheckMinimap);
             ly += 22f;
-            DrawCheckLine(new Rect(r.x + 12f, ly, r.width - 24f, 20f), okRally, "집결 (Alt+우클릭)");
+            DrawCheckLine(new Rect(r.x + 12f, ly, r.width - 24f, 20f), okRally, DemoPresentationCopy.FirstPlayCheckRally);
 
             Rect hideBtn = new Rect(r.x + 10f, r.yMax - 34f, r.width - 20f, 26f);
             GUI.skin.label.fontSize = 12;
-            if (GUI.Button(hideBtn, "다시 안 보기"))
+            if (GUI.Button(hideBtn, DemoPresentationCopy.FirstPlayChecklistHideButton))
             {
                 PlayerPrefs.SetInt(PrefsChecklistHidden, 1);
                 PlayerPrefs.Save();
@@ -132,7 +133,7 @@ namespace Game.BattleAces
         private static void DrawCheckLine(Rect lineRect, bool done, string label)
         {
             string mark = done ? "[✓]" : "[  ]";
-            GUI.color = done ? new Color(0.45f, 0.95f, 0.55f, 1f) : ImGuiGameUi.TextMuted;
+            GUI.color = done ? ImGuiGameUi.AccentCyan : ImGuiGameUi.TextMuted;
             GUI.Label(lineRect, $"{mark} {label}");
             GUI.color = Color.white;
         }

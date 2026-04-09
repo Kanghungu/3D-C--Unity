@@ -832,6 +832,24 @@ namespace Game.Prototype
 
         private static string BuildArchetypeTag(UnitArchetype archetype)
         {
+            if (Game.Settings.GameUserSettings.Language == Game.Settings.GameLanguage.Korean)
+            {
+                return archetype switch
+                {
+                    UnitArchetype.Spearman => "[창]",
+                    UnitArchetype.ShieldInfantry => "[방]",
+                    UnitArchetype.Rifleman => "[총]",
+                    UnitArchetype.SpecialWarrior => "[특]",
+                    UnitArchetype.RoyalGuard => "[근]",
+                    UnitArchetype.Artillery => "[포]",
+                    UnitArchetype.Fighter => "[공]",
+                    UnitArchetype.MobileFortress => "[요]",
+                    UnitArchetype.AirborneCitadel => "[성]",
+                    UnitArchetype.Outrider => "[호]",
+                    _ => "[유닛]"
+                };
+            }
+
             return archetype switch
             {
                 UnitArchetype.Spearman => "[Spear]",
@@ -843,6 +861,7 @@ namespace Game.Prototype
                 UnitArchetype.Fighter => "[Air]",
                 UnitArchetype.MobileFortress => "[Fort]",
                 UnitArchetype.AirborneCitadel => "[Sky]",
+                UnitArchetype.Outrider => "[Hover]",
                 _ => "[Unit]"
             };
         }

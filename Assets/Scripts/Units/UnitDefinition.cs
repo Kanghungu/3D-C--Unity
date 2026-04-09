@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+using Game.Settings;
+using UnityEngine;
 
 namespace Game.Units
 {
@@ -29,7 +30,7 @@ namespace Game.Units
         [SerializeField] private Color enemyColor = new(0.9f, 0.35f, 0.35f);
 
         public UnitArchetype Archetype => archetype;
-        public string DisplayName => displayName;
+        public string DisplayName => ResolveDisplayName(archetype, displayName);
         public PrimitiveType PrimitiveType => primitiveType;
         public Vector3 Scale => scale;
         public float MaxHealth => maxHealth;
@@ -50,6 +51,30 @@ namespace Game.Units
         public float HoverHeight => hoverHeight;
         public Color PlayerColor => playerColor;
         public Color EnemyColor => enemyColor;
+
+        public static string ResolveDisplayName(UnitArchetype archetype, string englishName = null)
+        {
+            string fallback = string.IsNullOrWhiteSpace(englishName) ? archetype.ToString() : englishName;
+            if (GameUserSettings.Language != GameLanguage.Korean)
+            {
+                return fallback;
+            }
+
+            return archetype switch
+            {
+                UnitArchetype.Spearman => "창병",
+                UnitArchetype.ShieldInfantry => "방패병",
+                UnitArchetype.Rifleman => "소총병",
+                UnitArchetype.Fighter => "전투기",
+                UnitArchetype.SpecialWarrior => "특수전사",
+                UnitArchetype.RoyalGuard => "근위대",
+                UnitArchetype.Artillery => "포병",
+                UnitArchetype.MobileFortress => "기동 요새",
+                UnitArchetype.AirborneCitadel => "공중 성채",
+                UnitArchetype.Outrider => "호버 기병",
+                _ => fallback
+            };
+        }
 
         public void Configure(
             UnitArchetype assignedArchetype,

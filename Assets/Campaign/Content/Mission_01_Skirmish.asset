@@ -15,9 +15,12 @@ MonoBehaviour:
   missionId: mission_01_skirmish
   displayName: "1. 성스러운 스커미시 - 이단 코어 섬멸"
   gameplaySceneName: NewSampleScene
+  arenaLayoutKind: 1
   campaignSortOrder: 0
   objectiveKind: 0
   mirroredLayoutVariant: 0
+  airborneCitadelFocus: 0
+  briefingUseCompactFont: 0
   briefingDialogueId: m01_brief
   victoryDialogueId: m01_win
   defeatDialogueId: m01_lose
@@ -39,3 +42,4 @@ MonoBehaviour:
   seizeHoldSeconds: 14
   relicMaxHealth: 480
   heresyStrongholdMaxHealth: 1200
+  optionalBonusObjectiveId: ""

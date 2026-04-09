@@ -76,7 +76,16 @@ namespace Game.BattleAces
                 IsKorean ? "유닛 선택 시 상세 정보 표시" : "Detailed unit info appears when one unit is selected");
 
             GUI.skin.label.fontSize = 16;
-            GUI.color = ImGuiGameUi.TextTitle;
+            if (health != null)
+            {
+                BattleAcesReadability.CoreHpBand band = BattleAcesReadability.GetPlayerCoreBand(health.Normalized);
+                GUI.color = BattleAcesReadability.GetPlayerCoreHudHpColor(band);
+            }
+            else
+            {
+                GUI.color = ImGuiGameUi.TextTitle;
+            }
+
             GUI.Label(new Rect(panel.x + 12f, panel.y + 24f, panel.width - 24f, 22f), hpLine);
 
             GUI.skin.label.fontSize = 11;
@@ -99,7 +108,9 @@ namespace Game.BattleAces
             UnitDefinition definition = database.GetDefinition(unit.Archetype);
             UnitHealth health = unit.GetComponent<UnitHealth>();
             int cost = definition != null ? BattleAcesEconomy.GetTrainCost(definition) : 0;
-            string title = definition != null ? definition.DisplayName : unit.Archetype.ToString();
+            string title = definition != null
+                ? definition.DisplayName
+                : UnitDefinition.ResolveDisplayName(unit.Archetype);
             string hpText = health != null
                 ? $"HP {health.CurrentHealth:0}/{health.MaxHealth:0}"
                 : "HP --";

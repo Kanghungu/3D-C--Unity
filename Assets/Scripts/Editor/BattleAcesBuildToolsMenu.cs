@@ -59,7 +59,8 @@ namespace Game.Editor
         {
             return
                 "# Windows 빌드 스모크 기록\r\n\r\n" +
-                "Player.log 에서 `[DemoBoot]` 검색 — 동일 빌드 비교용.\r\n\r\n" +
+                "Player.log 에서 `[DemoBoot]` 검색 — 동일 빌드 비교용(devBuild·editor·gfxPreset 포함).\r\n" +
+                "개발 빌드: F10 진단 HUD, F11 FoW 격자(`BattleAcesFogOfWarDebug`).\r\n\r\n" +
                 "| 날짜 | PlayerSettings 버전 | 짧은 메모 | 결과 | 비고 |\r\n" +
                 "|------|----------------------|-----------|------|------|\r\n";
         }

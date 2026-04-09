@@ -5,6 +5,7 @@
 - 플랫폼은 Windows PC를 기준으로 개발한다.
 - 장기 목표는 Steam 출시지만, 현재는 출시 준비보다 전투 프로토타입 완성이 우선이다.
 - 게임 방향은 우주 문명 간 종교 전쟁 분위기의 싱글플레이 RTS다.
+- **아트 한 줄(SF·차가운 금속·티얼 포인트)**: 코드 `BattleAcesArtDirection.OneLinerKorean`, 문서 `Assets/Docs/BATTLE_ACES_ART_DIRECTION.md`.
 - 이 프로젝트는 1인 개발 프로젝트라는 전제를 유지한다.
 
 ## 2. 현재 단계

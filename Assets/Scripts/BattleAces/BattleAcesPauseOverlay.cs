@@ -1,3 +1,4 @@
+using Game.Settings;
 using Game.UI;
 using UnityEngine;
 
@@ -30,26 +31,24 @@ namespace Game.BattleAces
             ImGuiGameUi.BeginScaledGui();
 
             float w = Mathf.Min(420f, Screen.width - 40f);
-            float panelH = Mathf.Min(260f, Screen.height * 0.38f);
+            float panelH = Mathf.Min(300f, Screen.height * 0.42f);
             Rect box = new Rect((Screen.width - w) * 0.5f, Screen.height * 0.34f, w, panelH);
             ImGuiGameUi.DrawPanelFrame(box, ImGuiGameUi.PanelBgLift, ImGuiGameUi.HudStripeTactical, 2f);
 
             GUI.skin.label.fontSize = 15;
             GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(new Rect(box.x + 16f, box.y + 12f, box.width - 32f, 26f), "일시정지 (P로 재개)");
+            GUI.Label(new Rect(box.x + 16f, box.y + 12f, box.width - 32f, 26f), DemoPresentationCopy.PausePanelTitleKo);
             GUI.skin.label.fontSize = 12;
             GUI.color = ImGuiGameUi.TextTitle;
-            // 결과 카드와 동일 순서: R → Esc → 전투 중 조작
-            string body =
-                DemoPresentationCopy.BuildPauseAndResultInputBlockKo() + "\n\n" +
-                "전투 조작\n" +
-                "· 이동: 지면 우클릭   · 공격: 적 우클릭\n" +
-                "· 집결: Alt + 우클릭   · 전술 지도: 우하단 클릭/드래그\n" +
-                "· 시간: [ ] 배속   · 도움: F1   · 설정: O"
+            // 결과 카드와 동일 순서: 입력(R/Esc) → 전투 조작(문구는 DemoPresentationCopy)
+            string body = DemoPresentationCopy.BuildPauseAndResultInputBlockKo() + "\n\n" +
+                          DemoPresentationCopy.PauseBattleControlsBody + "\n\n" +
+                          DemoPresentationCopy.PauseControlsFixedKeysNotice;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                + "\n· 진단 패널: F10 (에디터·개발 빌드만)"
+            body += GameUserSettings.Language == GameLanguage.Korean
+                ? "\n· 진단 패널: F10 · FoW 격자 미리보기: F11 (에디터·개발 빌드만)"
+                : "\n· Diagnostics: F10 · FoW overlay: F11 (editor / dev builds only)";
 #endif
-                ;
             GUI.Label(new Rect(box.x + 16f, box.y + 40f, box.width - 32f, panelH - 48f), body);
             GUI.color = Color.white;
 

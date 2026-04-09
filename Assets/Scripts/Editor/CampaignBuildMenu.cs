@@ -13,19 +13,14 @@ namespace Game.EditorTools
         private const string MenuRegister = "Game/Campaign/Register Campaign Scenes In Build";
         private const string MenuVerify = "Game/Campaign/Verify Chapter 1 Build Scenes";
 
-        private static readonly string[] RequiredScenes =
-        {
-            "Assets/Scenes/CampaignMenu.unity",
-            "Assets/Scenes/NewSampleScene.unity"
-        };
-
         [MenuItem(MenuRegister)]
         private static void RegisterScenes()
         {
+            string[] required = CampaignChapter1BuildPaths.RequiredScenes;
             EditorBuildSettings.scenes = new[]
             {
-                new EditorBuildSettingsScene(RequiredScenes[0], true),
-                new EditorBuildSettingsScene(RequiredScenes[1], true),
+                new EditorBuildSettingsScene(required[0], true),
+                new EditorBuildSettingsScene(required[1], true),
             };
 
             Debug.Log("[CampaignBuildMenu] Build Settings 에 CampaignMenu, NewSampleScene 이 등록되었습니다.");
@@ -36,7 +31,7 @@ namespace Game.EditorTools
         private static void VerifyBuildScenes()
         {
             bool allOk = true;
-            foreach (string path in RequiredScenes)
+            foreach (string path in CampaignChapter1BuildPaths.RequiredScenes)
             {
                 if (string.IsNullOrEmpty(path) || !File.Exists(path))
                 {
@@ -54,9 +49,10 @@ namespace Game.EditorTools
             }
             else
             {
-                for (int i = 0; i < RequiredScenes.Length; i++)
+                string[] chapter1 = CampaignChapter1BuildPaths.RequiredScenes;
+                for (int i = 0; i < chapter1.Length; i++)
                 {
-                    string required = RequiredScenes[i];
+                    string required = chapter1[i];
                     bool foundEnabled = false;
                     for (int s = 0; s < scenes.Length; s++)
                     {

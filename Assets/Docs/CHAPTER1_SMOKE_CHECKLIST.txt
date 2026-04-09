@@ -9,7 +9,7 @@
 1) 에디터 준비
    [ ] Unity 프로젝트 열기
    [ ] Console Clear
-   [ ] (선택) 메뉴 Game/Campaign/Verify Chapter 1 Build Scenes — 로그로 씬 목록 확인
+   [ ] (선택) Game/Campaign/Verify Chapter 1 Build Scenes **또는** Tools/프로젝트/챕터1 씬 (CampaignBuildMenu 와 동일) — 동일 경로 목록 확인
 
 2) CampaignMenu 한 패스 (진입·메뉴 — 챕터 1 마무리)
    [ ] Play → 메인에 **데모 (본전)** 이 **캠페인** 보다 위에 있음
@@ -28,6 +28,7 @@
 4) 빌드 한 번 (가능할 때)
    [ ] File → Build Settings — CampaignMenu, NewSampleScene 포함·체크됨 (없으면 Game/Campaign/Register Campaign Scenes In Build)
    [ ] Windows 빌드 후 실행 파일로 2) 의 **데모 한 판**만 재현
+   [ ] Player.log 에서 **`[DemoBoot]`** 한 줄 확인 (버전·씬·devBuild·gfxPreset 등 — 동일 빌드 비교용)
    [ ] **빨간 에러** 없음 (플레이 중 크래시 없음)
 
 콘솔 기준 (챕터 1)
@@ -49,5 +50,12 @@
   · 쉬움 ×1.52 | 보통 ×1.0 | 어려움 ×0.55
 - 개장 자원 부스트(초 × 배율)
   · 쉬움 105×1.55 | 보통 62×1.36 | 어려움 26×1.08
+
+입력·진단 (코드와 동기화 — 회귀 시 참고)
+------------------------------------------
+- **P** 일시정지, **`[` / `]`** · 숫자패드 **- / +** 배속 — `RtsTimeControl`
+- **F1** 도움말, 일시정지 패널 문구 — `DemoPresentationCopy` (`PauseBattleControlsBody`)
+- **개발 빌드·에디터**: **F10** 진단 HUD, **F11** FoW 격자 미리보기 (`BattleAcesFogOfWarDebug` — F10 과 분리)
+- 설정 **O** → 그래픽 **Performance**(저사양): FoW 시야 갱신이 **최소 2프레임에 1회** (`GetEffectiveVisionUpdateInterval`)
 
 이슈 메모: 씬명, 순서 번호, 콘솔 한 줄, 스크린샷(선택).

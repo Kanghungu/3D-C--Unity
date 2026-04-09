@@ -8,14 +8,14 @@ using UnityEngine;
 namespace Game.Units
 {
     /// <summary>
-    /// Minimal health container for prototype combat.
+    /// Prototype combat health: damage feedback, death debris, optional IMGUI bar.
     /// </summary>
     public class UnitHealth : MonoBehaviour
     {
-        /// <summary>?†Îãõ ?¨Îßù ??Î∞úÏÉù ??(?¨Îßù???Ä, Î≥ëÏ¢Ö)</summary>
+        /// <summary>Fires once per death (team, archetype) for stats / mission bonuses.</summary>
         public static event Action<UnitTeam, UnitArchetype> OnUnitDied;
 
-        /// <summary>?ºÌï¥ ?ÅÏö© ÏßÅÌõÑ ???§Ï†ú ?ÅÏö© ?ºÌï¥???∞Ï∂ú¬∑?¨Ïö¥?úÏö©)</summary>
+        /// <summary>Invoked for each positive damage hit.</summary>
         public event Action<float> Damaged;
 
         [SerializeField] private float maxHealth = 35f;
@@ -30,7 +30,14 @@ namespace Game.Units
         private float lastDamageTime = -99f;
         private float nextHitSoundUnscaledTime;
 
+        /// <summary>Cached albedo colors before hit flash (parallel to cachedRenderers).</summary>
+        private Color[] hitFlashBaseColors = System.Array.Empty<Color>();
+        private bool hitFlashColorsReady;
+        private float hitFlashUntilUnscaled = -999f;
+        private const float HitFlashDurationUnscaled = 0.08f;
+
         private UnitAbilityState abilityState;
+        private AdvancedUnitRoleController roleController;
         private CombatTarget combatTarget;
         private SelectableUnit selectableUnit;
         private Renderer[] cachedRenderers;
@@ -43,13 +50,15 @@ namespace Game.Units
         private void Awake()
         {
             abilityState = GetComponent<UnitAbilityState>();
+            roleController = GetComponent<AdvancedUnitRoleController>();
             combatTarget = GetComponent<CombatTarget>();
             selectableUnit = GetComponent<SelectableUnit>();
             cachedRenderers = GetComponentsInChildren<Renderer>(true);
             currentHealth = maxHealth;
             displayedDamageNormalized = 1f;
+            CaptureHitFlashBaseColors();
 
-            // Íµ¨Ìòï 3D Ï≤¥Î†•Î∞??§Î∏å?ùÌä∏ ?úÍ±∞
+            // Remove legacy world-space 3D bar if present; we draw IMGUI bar only.
             Transform oldBar = transform.Find("Health Bar");
             if (oldBar != null) Destroy(oldBar.gameObject);
         }
@@ -60,13 +69,16 @@ namespace Game.Units
             if (displayedDamageNormalized <= normalized)
             {
                 displayedDamageNormalized = normalized;
-                return;
+            }
+            else
+            {
+                displayedDamageNormalized = Mathf.MoveTowards(
+                    displayedDamageNormalized,
+                    normalized,
+                    Time.deltaTime * (0.45f + (1f - normalized) * 1.8f));
             }
 
-            displayedDamageNormalized = Mathf.MoveTowards(
-                displayedDamageNormalized,
-                normalized,
-                Time.deltaTime * (0.45f + (1f - normalized) * 1.8f));
+            ApplyHitFlashToRenderers();
         }
 
         private void OnGUI()
@@ -92,7 +104,7 @@ namespace Game.Units
                 return;
             }
 
-            // Ïπ¥Î©î???íÏù¥Í∞Ä ?ºÏ†ï ?¥ÏÉÅ?¥Î©¥ Ï≤¥Î†•Î∞??®Í?
+            // Hide bar when camera is very high (unreadable clutter).
             if (cam.transform.position.y > 45f)
             {
                 ImGuiGameUi.EndScaledGui();
@@ -116,20 +128,20 @@ namespace Game.Units
             bool isEnemy = combatTarget != null && combatTarget.Team == UnitTeam.Enemy;
             bool selected = selectableUnit != null && selectableUnit.IsSelected;
 
-            // ?åÎëêÎ¶?
+            // Frame highlights selection in gold.
             Color frameColor = selected
                 ? new Color(1f, 0.92f, 0.2f)
                 : new Color(0.05f, 0.05f, 0.05f);
             DrawRect(new Rect(x - border, y - border, barW + border * 2f, barH + border * 2f), frameColor);
 
-            // Î∞∞Í≤Ω
+            // Background track.
             DrawRect(new Rect(x, y, barW, barH), new Color(0.1f, 0.1f, 0.12f));
 
-            // ?ºÌï¥ ?îÏÉÅ
+            // Trailing damage segment.
             float dmgW = barW * Mathf.Max(0.01f, displayedDamageNormalized);
             DrawRect(new Rect(x, y, dmgW, barH), new Color(0.58f, 0.18f, 0.06f));
 
-            // Ï≤¥Î†• Ï±ÑÏ?
+            // Current HP fill.
             float normalized = Normalized;
             float hpW = barW * Mathf.Max(0.01f, normalized);
             Color fillColor = normalized <= 0.35f
@@ -177,6 +189,11 @@ namespace Game.Units
                 damage = abilityState.ModifyIncomingDamage(damage);
             }
 
+            if (roleController != null)
+            {
+                damage = roleController.ModifyIncomingDamage(damage);
+            }
+
             float previousNormalized = Normalized;
             currentHealth -= damage;
             currentHealth = Mathf.Max(0f, currentHealth);
@@ -188,6 +205,7 @@ namespace Game.Units
                 Damaged?.Invoke(damage);
                 TryPlayHitFeedback(damage);
                 TryNotifyPlayerHitFlash(damage);
+                TryBeginHitFlashForUnit();
             }
 
             if (currentHealth <= 0f)
@@ -218,7 +236,7 @@ namespace Game.Units
             displayedDamageNormalized = 1f;
         }
 
-        /// <summary>ÏΩîÏñ¥ ?ÖÍ∑∏?àÏù¥??????ÏµúÎ? Ï≤¥Î†• Ï¶ùÍ?Î∂ÑÎßå???ÑÏû¨ Ï≤¥Î†•??Ï¶ùÍ?</summary>
+        /// <summary>Add max HP and current HP by the same delta.</summary>
         public void AddMaxHealthBonus(float deltaMax)
         {
             if (deltaMax <= 0f || !IsAlive)
@@ -241,7 +259,7 @@ namespace Game.Units
             return cachedCamera;
         }
 
-        /// <summary>?†ÌÉù Í∞Ä???†ÎãõÎß?Í∞ÄÎ≤ºÏö¥ ?ºÍ≤©??ÏΩîÏñ¥¬∑Íµ¨Ï°∞Î¨??úÏô∏, ÏßßÏ? Ïø®Îã§??.</summary>
+        /// <summary>Light hit sound + Battle Aces combat juice (cooldown).</summary>
         private void TryPlayHitFeedback(float damageAmount)
         {
             if (selectableUnit == null || combatTarget == null || damageAmount <= 0f)
@@ -254,16 +272,29 @@ namespace Game.Units
                 return;
             }
 
-            nextHitSoundUnscaledTime = Time.unscaledTime + 0.085f;
+            nextHitSoundUnscaledTime = Time.unscaledTime + BattleAcesFeedbackTiming.UnitHitSoundCooldownUnscaled;
             float norm = damageAmount / Mathf.Max(1f, maxHealth);
             UnitArchetype arch = selectableUnit != null ? selectableUnit.Archetype : UnitArchetype.Spearman;
             ProceduralAudioUtility.PlayUnitHitLight(Mathf.Clamp01(norm * 3.5f), arch);
+
+            // Juice only during an active BA match (command core skips this path).
+            if (BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController baHit) && !baHit.IsFinished)
+            {
+                float damageNorm01 = Mathf.Clamp01(norm);
+                BattleAcesCombatJuice.NotifyUnitHit(transform.position, damageNorm01, combatTarget.Team);
+            }
         }
 
-        /// <summary>?ÑÍµ∞ ÏΩîÏñ¥¬∑?†Îãõ ?ºÍ≤© ???îÎ©¥ ?åÎûò???§Ïª§ÎØ∏Ïãú ??ÎπÑÏ∫†?òÏù∏?Ä ?§ÌÇµ).</summary>
+        /// <summary>Full-screen flash for player-owned units (not command core).</summary>
         private void TryNotifyPlayerHitFlash(float damageAmount)
         {
             if (combatTarget == null || combatTarget.Team != UnitTeam.Player || damageAmount <= 0f)
+            {
+                return;
+            }
+
+            // Command core uses CoreStructureHitSound + top HUD instead.
+            if (GetComponent<BattleAcesCore>() != null)
             {
                 return;
             }
@@ -277,10 +308,89 @@ namespace Game.Units
             BattleAcesPlayerHitFlash.NotifyPlayerDamage(Mathf.Clamp01(norm * 2.2f));
         }
 
+        private void CaptureHitFlashBaseColors()
+        {
+            if (cachedRenderers == null || cachedRenderers.Length == 0)
+            {
+                return;
+            }
+
+            hitFlashBaseColors = new Color[cachedRenderers.Length];
+            for (int i = 0; i < cachedRenderers.Length; i++)
+            {
+                Renderer r = cachedRenderers[i];
+                hitFlashBaseColors[i] = r != null ? r.material.color : Color.white;
+            }
+
+            hitFlashColorsReady = true;
+        }
+
+        private void TryBeginHitFlashForUnit()
+        {
+            if (GetComponent<BattleAcesCore>() != null || selectableUnit == null)
+            {
+                return;
+            }
+
+            if (!hitFlashColorsReady)
+            {
+                CaptureHitFlashBaseColors();
+            }
+
+            hitFlashUntilUnscaled = Time.unscaledTime + HitFlashDurationUnscaled;
+        }
+
+        private void ApplyHitFlashToRenderers()
+        {
+            if (!hitFlashColorsReady || cachedRenderers == null || hitFlashBaseColors == null)
+            {
+                return;
+            }
+
+            float now = Time.unscaledTime;
+            if (now >= hitFlashUntilUnscaled)
+            {
+                for (int i = 0; i < cachedRenderers.Length; i++)
+                {
+                    Renderer r = cachedRenderers[i];
+                    if (r == null || i >= hitFlashBaseColors.Length)
+                    {
+                        continue;
+                    }
+
+                    r.material.color = hitFlashBaseColors[i];
+                }
+
+                return;
+            }
+
+            float k = Mathf.Clamp01((hitFlashUntilUnscaled - now) / HitFlashDurationUnscaled);
+            for (int i = 0; i < cachedRenderers.Length; i++)
+            {
+                Renderer r = cachedRenderers[i];
+                if (r == null || i >= hitFlashBaseColors.Length)
+                {
+                    continue;
+                }
+
+                Color baseC = hitFlashBaseColors[i];
+                r.material.color = Color.Lerp(baseC, Color.white, k * 0.48f);
+            }
+        }
+
         private void Die()
         {
             UnitTeam team = combatTarget != null ? combatTarget.Team : UnitTeam.Player;
             UnitArchetype archetype = selectableUnit != null ? selectableUnit.Archetype : UnitArchetype.Spearman;
+
+            // Death juice for regular units only (core uses other flow).
+            if (GetComponent<BattleAcesCore>() == null &&
+                BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController baDie) &&
+                !baDie.IsFinished)
+            {
+                BattleAcesCombatJuice.NotifyUnitDeath(transform.position, team);
+            }
+
             OnUnitDied?.Invoke(team, archetype);
             SpawnDeathRemains();
             Destroy(gameObject);

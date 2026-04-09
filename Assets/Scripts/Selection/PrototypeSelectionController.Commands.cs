@@ -189,6 +189,7 @@ namespace Game.Selection
                 }
 
                 ShowMoveMarker(hit.point, new Color(1f, 0.45f, 0.25f, 0.9f), "Attack");
+                BattleAcesCombatJuice.NotifyAttackOrder(hit.point);
                 BattleAcesFirstPlayGuide.NotifyGroundCommandIssued();
                 return;
             }
@@ -215,6 +216,7 @@ namespace Game.Selection
                     }
                 }
 
+                BattleAcesCombatJuice.NotifyAttackMoveOrder(targetPoint);
                 BattleAcesFirstPlayGuide.NotifyGroundCommandIssued();
                 return;
             }
@@ -229,6 +231,7 @@ namespace Game.Selection
                 }
             }
 
+            BattleAcesCombatJuice.NotifyAttackMoveOrder(targetPoint);
             BattleAcesFirstPlayGuide.NotifyGroundCommandIssued();
         }
 

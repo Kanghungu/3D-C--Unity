@@ -55,7 +55,7 @@ namespace Game.Prototype
             unitDefinitions.Add(CreateDefinition(UnitArchetype.Artillery, "Siege Engine", PrimitiveType.Cylinder, new Vector3(1.34f, 0.95f, 1.34f), 56f, 4.5f, 0.18f, 12.4f, 22f, 1.6f, 15f, 6.4f, true, 14f, 3.4f, 2.8f, 1.25f, 0, false, 1f, new Color(0.74f, 0.72f, 0.8f), new Color(0.96f, 0.42f, 0.3f)));
             unitDefinitions.Add(CreateDefinition(UnitArchetype.MobileFortress, "Moving Bastion", PrimitiveType.Cube, new Vector3(2.2f, 1.6f, 2.8f), 420f, 3.8f, 0.3f, 15.5f, 28f, 1.2f, 18f, 18f, true, 22f, 1.2f, 1.4f, 1.4f, 1, false, 1f, new Color(0.72f, 0.8f, 0.86f), new Color(0.86f, 0.42f, 0.3f)));
             unitDefinitions.Add(CreateDefinition(UnitArchetype.AirborneCitadel, "Sky Citadel", PrimitiveType.Cube, new Vector3(2.6f, 1.8f, 2.6f), 360f, 4.6f, 0.3f, 18f, 16f, 0.9f, 22f, 22f, true, 24f, 0.6f, 0.8f, 1.5f, 1, true, 12f, new Color(0.78f, 0.9f, 1f), new Color(1f, 0.62f, 0.34f)));
-            unitDefinitions.Add(CreateDefinition(UnitArchetype.Outrider, "Outrider Lance", PrimitiveType.Capsule, new Vector3(0.92f, 1.22f, 0.92f), 70f, 6.4f, 0.2f, 2.75f, 17f, 0.88f, 9f, 3.1f, false, 0f, 0f, 0f, 0.58f, 0, false, 1f, new Color(0.7f, 0.86f, 0.98f), new Color(0.92f, 0.48f, 0.26f)));
+            unitDefinitions.Add(CreateDefinition(UnitArchetype.Outrider, "Hover Lancer", PrimitiveType.Capsule, new Vector3(0.92f, 1.22f, 0.92f), 70f, 6.4f, 0.2f, 2.75f, 17f, 0.88f, 9f, 3.1f, false, 0f, 0f, 0f, 0.58f, 0, false, 1f, new Color(0.7f, 0.86f, 0.98f), new Color(0.92f, 0.48f, 0.26f)));
         }
 
         private static UnitDefinition CreateDefinition(

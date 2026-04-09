@@ -7,6 +7,7 @@ namespace Game.Audio
 {
     /// <summary>
     /// 외부 WAV 없이 짧은 비프/타격음(프로토타입용).
+    /// 승패 스팅은 전용 AudioSource; 그 외는 보이스 풀 + 프레임 상한(Normal) + 스팅 구간 짧은 SFX 덕.
     /// </summary>
     public static class ProceduralAudioUtility
     {
@@ -36,6 +37,55 @@ namespace Game.Audio
         private static bool warnedResultStingMixerParam;
 
         private static bool warnedResultStingPlayFailed;
+
+        /// <summary>전투 SFX 분산용 보이스 — [0]=고우선(히트·명령), [1..]=일반 라운드로빈</summary>
+        private static AudioSource[] sfxVoices;
+
+        private const int SfxVoiceCount = 6;
+
+        private static int sfxRoundRobin;
+
+        /// <summary>승패 스팅 구간에 얕은 히트·UI 비프가 뭉개지지 않게 짧은 연타 억제</summary>
+        private static float sfxDuckLightCombatUntilUnscaled = -999f;
+
+        private static int sfxFrameId = -1;
+
+        private static int sfxNormalPlaysThisFrame;
+
+        private const int MaxNormalSfxPlaysPerFrame = 14;
+
+        private enum ProceduralAudioPriority
+        {
+            Normal = 0,
+            High = 1,
+
+            /// <summary>믹서 없을 때 스팅 폴백 — 프레임 상한·덕 제외</summary>
+            ResultStingFallback = 2
+        }
+
+        /// <summary>일반 우선순위만 프레임당 상한 — 초과 시 조용히 드롭</summary>
+        private static bool TryConsumeNormalFrameBudget(ProceduralAudioPriority priority)
+        {
+            if (priority != ProceduralAudioPriority.Normal)
+            {
+                return true;
+            }
+
+            int f = Time.frameCount;
+            if (f != sfxFrameId)
+            {
+                sfxFrameId = f;
+                sfxNormalPlaysThisFrame = 0;
+            }
+
+            if (sfxNormalPlaysThisFrame >= MaxNormalSfxPlaysPerFrame)
+            {
+                return false;
+            }
+
+            sfxNormalPlaysThisFrame++;
+            return true;
+        }
 
         /// <summary>
         /// BattleAces_Main.mixer + 그룹 Volume Expose 후 호출 — GameUserSettings 슬라이더와 연결.
@@ -233,15 +283,92 @@ namespace Game.Audio
             return Mathf.Clamp01(linear * GameUserSettings.MasterVolume01);
         }
 
-        private static void PlayClip(AudioClip clip, float volumeLinear)
+        private static void EnsureSfxVoicePool()
+        {
+            EnsureSource();
+            if (sfxVoices != null && sfxVoices.Length == SfxVoiceCount)
+            {
+                return;
+            }
+
+            sfxVoices = new AudioSource[SfxVoiceCount];
+            sfxVoices[0] = globalSource;
+            Transform parent = globalSource.transform;
+            for (int i = 1; i < SfxVoiceCount; i++)
+            {
+                string childName = "SfxVoice_" + i;
+                Transform existingChild = parent.Find(childName);
+                GameObject go = existingChild != null
+                    ? existingChild.gameObject
+                    : new GameObject(childName);
+                go.transform.SetParent(parent, false);
+                AudioSource src = go.GetComponent<AudioSource>();
+                if (src == null)
+                {
+                    src = go.AddComponent<AudioSource>();
+                }
+
+                src.playOnAwake = false;
+                src.spatialBlend = 0f;
+                src.volume = 1f;
+                sfxVoices[i] = src;
+            }
+        }
+
+        private static bool ShouldSkipLightSfxDuringResultStingDuck(AudioClip clip, ProceduralAudioPriority priority)
+        {
+            if (clip == null || priority != ProceduralAudioPriority.Normal)
+            {
+                return false;
+            }
+
+            if (Time.unscaledTime >= sfxDuckLightCombatUntilUnscaled)
+            {
+                return false;
+            }
+
+            // 스팅 레이어와 겹치면 아주 짧은 비프·히트만 삭제(스팅 전용 소스는 별도)
+            return clip.length < 0.11f;
+        }
+
+        private static AudioSource PickSfxSource(ProceduralAudioPriority priority)
+        {
+            EnsureSfxVoicePool();
+            if (priority == ProceduralAudioPriority.High || priority == ProceduralAudioPriority.ResultStingFallback)
+            {
+                return sfxVoices[0];
+            }
+
+            int idx = 1 + (sfxRoundRobin++ % (SfxVoiceCount - 1));
+            return sfxVoices[idx];
+        }
+
+        private static void PlayClip(AudioClip clip, float volumeLinear, ProceduralAudioPriority priority = ProceduralAudioPriority.Normal)
         {
             if (clip == null)
             {
                 return;
             }
 
-            EnsureSource();
-            globalSource.PlayOneShot(clip, EffectiveVolume(volumeLinear));
+            if (priority == ProceduralAudioPriority.ResultStingFallback)
+            {
+                EnsureSource();
+                globalSource.PlayOneShot(clip, EffectiveVolume(volumeLinear));
+                return;
+            }
+
+            if (ShouldSkipLightSfxDuringResultStingDuck(clip, priority))
+            {
+                return;
+            }
+
+            if (!TryConsumeNormalFrameBudget(priority))
+            {
+                return;
+            }
+
+            AudioSource src = PickSfxSource(priority);
+            src.PlayOneShot(clip, EffectiveVolume(volumeLinear));
         }
 
         private static AudioClip BuildTone(float frequencyHz, float durationSec, float fadeOut = 0.12f)
@@ -270,19 +397,33 @@ namespace Game.Audio
         /// <summary>브리핑 시작/확인용 짧은 음</summary>
         public static void PlayUiConfirm()
         {
-            PlayClip(BuildTone(660f, 0.08f), 0.45f);
+            PlayClip(BuildTone(660f, 0.08f), 0.45f, ProceduralAudioPriority.High);
         }
 
         /// <summary>명령 불가(지형 미적중·우선 목표 없음 등) — 짧고 낮은 톤</summary>
         public static void PlayUiCommandRejected()
         {
-            PlayClip(BuildTone(200f, 0.055f, 0.04f), 0.2f);
+            PlayClip(BuildTone(200f, 0.055f, 0.04f), 0.2f, ProceduralAudioPriority.High);
+        }
+
+        /// <summary>덱 생산 주문 성공(큐에 들어감) — 거절음보다 밝고 짧게</summary>
+        public static void PlayDeckOrderQueued()
+        {
+            PlayClip(BuildTone(440f, 0.038f, 0.03f), 0.2f);
+            PlayClip(BuildTone(620f, 0.032f, 0.026f), 0.16f);
+        }
+
+        /// <summary>T/Y/U 지휘 코어 강화 구매 성공 — 브리핑 확인음과 구분되는 짧은 중저음</summary>
+        public static void PlayCoreUpgradeApplied()
+        {
+            PlayClip(BuildTone(520f, 0.065f, 0.045f), 0.32f, ProceduralAudioPriority.High);
+            PlayClip(BuildTone(380f, 0.045f, 0.035f), 0.18f, ProceduralAudioPriority.High);
         }
 
         /// <summary>미니맵 클릭 시야 이동 — 짧은 확인음(링 피드백과 짝)</summary>
         public static void PlayUiMinimapPing()
         {
-            PlayClip(BuildTone(780f, 0.05f, 0.035f), 0.22f);
+            PlayClip(BuildTone(780f, 0.05f, 0.035f), 0.22f, ProceduralAudioPriority.Normal);
         }
 
         /// <summary>생산 완료(아군 유닛 스폰)</summary>
@@ -304,47 +445,53 @@ namespace Game.Audio
             PlayClip(BuildTone(720f, 0.055f, 0.04f), 0.24f);
         }
 
+        /// <summary>적 대상 공격 명령 — 날카로운 짧은 확인음(주스와 톤 맞춤)</summary>
+        public static void PlayCombatAttackOrder()
+        {
+            PlayClip(BuildTone(480f, 0.042f, 0.032f), 0.24f, ProceduralAudioPriority.High);
+            PlayClip(BuildTone(920f, 0.028f, 0.022f), 0.18f, ProceduralAudioPriority.High);
+        }
+
+        /// <summary>A+이동 등 공격 이동 — 공격 명령보다 살짝 낮고 넓게</summary>
+        public static void PlayCombatAttackMoveOrder()
+        {
+            PlayClip(BuildTone(420f, 0.038f, 0.03f), 0.2f, ProceduralAudioPriority.High);
+            PlayClip(BuildTone(740f, 0.032f, 0.026f), 0.17f, ProceduralAudioPriority.High);
+        }
+
         /// <summary>목표 임박·갱신 알림</summary>
         public static void PlayObjectivePulse()
         {
-            PlayClip(BuildTone(620f, 0.07f, 0.05f), 0.32f);
+            PlayClip(BuildTone(620f, 0.07f, 0.05f), 0.32f, ProceduralAudioPriority.High);
         }
 
         /// <summary>적 코어 붕괴 직전(승리 임박) — 짧게 1회만 재생 권장</summary>
         public static void PlayVictoryImminentChime()
         {
-            PlayClip(BuildTone(880f, 0.06f, 0.04f), 0.26f);
-            PlayClip(BuildTone(990f, 0.055f, 0.035f), 0.2f);
+            PlayClip(BuildTone(880f, 0.06f, 0.04f), 0.26f, ProceduralAudioPriority.High);
+            PlayClip(BuildTone(990f, 0.055f, 0.035f), 0.2f, ProceduralAudioPriority.High);
         }
 
-        /// <summary>승리/패배 스팅 — 믹서 그룹이 있으면 전용 소스로 재생</summary>
+        /// <summary>승리/패배 스팅 — 짧은 화음 레이어(믹서 그룹 시 동일 라우팅)</summary>
         public static void PlayResultSting(bool victory)
         {
-            float f = victory ? 784f : 196f;
-            AudioClip clip = BuildTone(f, 0.22f, 0.18f);
-            const float vol = 0.5f;
-
+            // 얕은 전투 비프가 스팅과 뭉치지 않게 짧은 구간만 억제(전용 소스 레이어는 그대로)
+            sfxDuckLightCombatUntilUnscaled = Time.unscaledTime + 0.55f;
             try
             {
-                if (resultStingMixerGroup != null)
+                if (victory)
                 {
-                    EnsureResultStingSource();
-                    if (resultStingSource == null)
-                    {
-                        PlayClip(clip, vol);
-                        return;
-                    }
-
-                    resultStingSource.outputAudioMixerGroup = resultStingMixerGroup;
-                    PushMixerVolumesFromUserSettings();
-                    float shot = UseMixerExposedResultStingVolume
-                        ? Mathf.Clamp01(GameUserSettings.MasterVolume01)
-                        : EffectiveVolume(vol);
-                    resultStingSource.PlayOneShot(clip, shot);
-                    return;
+                    PlayResultStingOneShot(BuildTone(523f, 0.09f, 0.07f), 0.4f);
+                    PlayResultStingOneShot(BuildTone(659f, 0.1f, 0.075f), 0.42f);
+                    PlayResultStingOneShot(BuildTone(784f, 0.14f, 0.1f), 0.48f);
+                    PlayResultStingOneShot(BuildTone(990f, 0.09f, 0.065f), 0.38f);
                 }
-
-                PlayClip(clip, vol);
+                else
+                {
+                    PlayResultStingOneShot(BuildTone(155f, 0.16f, 0.12f), 0.42f);
+                    PlayResultStingOneShot(BuildTone(98f, 0.22f, 0.16f), 0.38f);
+                    PlayResultStingOneShot(BuildNoiseBlip(0.12f, 0.45f), 0.28f);
+                }
             }
             catch (System.Exception e)
             {
@@ -354,6 +501,34 @@ namespace Game.Audio
                     Debug.LogWarning("[ProceduralAudio] 승패 스팅 재생 실패 — 무시: " + e.Message);
                 }
             }
+        }
+
+        private static void PlayResultStingOneShot(AudioClip clip, float volumeLinear)
+        {
+            if (clip == null)
+            {
+                return;
+            }
+
+            if (resultStingMixerGroup != null)
+            {
+                EnsureResultStingSource();
+                if (resultStingSource == null)
+                {
+                    PlayClip(clip, volumeLinear, ProceduralAudioPriority.ResultStingFallback);
+                    return;
+                }
+
+                resultStingSource.outputAudioMixerGroup = resultStingMixerGroup;
+                PushMixerVolumesFromUserSettings();
+                float shot = UseMixerExposedResultStingVolume
+                    ? Mathf.Clamp01(GameUserSettings.MasterVolume01)
+                    : EffectiveVolume(volumeLinear);
+                resultStingSource.PlayOneShot(clip, shot);
+                return;
+            }
+
+            PlayClip(clip, volumeLinear, ProceduralAudioPriority.ResultStingFallback);
         }
 
         /// <summary>유닛 피격 — 병종별 주파수 살짝 분리(스팸 방지는 호출 측에서)</summary>
@@ -378,15 +553,19 @@ namespace Game.Audio
             float f = Mathf.Clamp(baseF + archHz, 220f, 720f);
             float vol = Mathf.Lerp(0.1f, 0.22f, intensity01);
             PlayClip(BuildTone(f, 0.035f, 0.028f), vol);
+            float fHigh = Mathf.Clamp(f * 1.62f, 380f, 980f);
+            PlayClip(BuildTone(fHigh, 0.022f, 0.018f), vol * 0.42f);
         }
 
-        /// <summary>유닛 사망 — 팀별 톤</summary>
+        /// <summary>유닛 사망 — 팀별 저·고역 + 짧은 노이즈</summary>
         public static void PlayUnitDeath(UnitTeam team)
         {
-            float f = team == UnitTeam.Player ? 280f : 220f;
-            PlayClip(BuildTone(f, 0.06f, 0.04f), 0.32f);
-            // 짧은 노이즈 한 번 더
-            PlayClip(BuildNoiseBlip(0.05f, 0.35f), team == UnitTeam.Player ? 0.22f : 0.18f);
+            bool ally = team == UnitTeam.Player;
+            float fLow = ally ? 300f : 240f;
+            float fMid = ally ? 520f : 380f;
+            PlayClip(BuildTone(fLow, 0.055f, 0.042f), ally ? 0.3f : 0.28f);
+            PlayClip(BuildTone(fMid, 0.04f, 0.03f), ally ? 0.22f : 0.2f);
+            PlayClip(BuildNoiseBlip(0.06f, 0.38f), ally ? 0.2f : 0.16f);
         }
 
         /// <summary>일반 구조물 피격(이단 거점 등) — 코어보다 가볍게</summary>
@@ -430,7 +609,7 @@ namespace Game.Audio
 
             AudioClip clip = AudioClip.Create("thud", samples, 1, sampleRate, false);
             clip.SetData(data, 0);
-            PlayClip(clip, Mathf.Lerp(0.25f, 0.55f, intensity01));
+            PlayClip(clip, Mathf.Lerp(0.25f, 0.55f, intensity01), ProceduralAudioPriority.High);
         }
     }
 }

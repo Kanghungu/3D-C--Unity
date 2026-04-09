@@ -1,4 +1,6 @@
-﻿namespace Game.Campaign.Data
+﻿using System;
+
+namespace Game.Campaign.Data
 {
     public static class MissionObjectiveDisplayText
     {
@@ -22,7 +24,7 @@
         {
             return kind switch
             {
-                MissionObjectiveKind.DestroyEnemyCore => "이단 전진 코어 섬멸",
+                MissionObjectiveKind.DestroyEnemyCore => "적 코어 섬멸",
                 MissionObjectiveKind.SanctuaryDefense => "성역 방어",
                 MissionObjectiveKind.EscortRelic => "성유물 호위",
                 MissionObjectiveKind.SeizeRelicOrNode => "거점 점령",
@@ -38,17 +40,17 @@
             return kind switch
             {
                 MissionObjectiveKind.DestroyEnemyCore =>
-                    "붉은 표식 = 적 코어.\n먼저 격파하면 승리.",
+                    "적대 표식 = 적 코어.\n먼저 격파하면 승리.",
                 MissionObjectiveKind.SanctuaryDefense =>
-                    "남은 시간을 버티면 승리.\n아군 코어가 먼저 무너지면 패배.",
+                    "방어 타이머를 채우면 승리.\n지휘 코어가 먼저 붕괴하면 패배.",
                 MissionObjectiveKind.EscortRelic =>
-                    "성유물을 목표 구역까지.\n성유물이 파괴되면 패배.",
+                    "성유물을 목표 구역까지 호위.\n성유물이 파괴되면 패배.",
                 MissionObjectiveKind.SeizeRelicOrNode =>
-                    "보라 구역을 일정 시간 유지.\n아군이 안에 있을 때만 진행되며, 머무는 동안 소량 회복됩니다.",
+                    "점령 구역(보라 표시)을 일정 시간 유지.\n아군이 구역 안에 있을 때만 진행되며, 점령 중 소량 회복됩니다.",
                 MissionObjectiveKind.DestroyHeresyStronghold =>
-                    "분홍 건물 = 이단 본거지(코어와 별개).\n본거지 격파 필요. 아군 코어 먼저 무너지면 패배.",
+                    "이단 본거지(분홍 표시, 적 코어와 별개)를 격파.\n지휘 코어가 먼저 붕괴하면 패배.",
                 MissionObjectiveKind.RecoverRelicAndEvacuate =>
-                    "성유물 확보 후 철수 구역까지.\n성유물 손실 시 패배.",
+                    "성유물 확보 후 철수 구역까지 이동.\n성유물을 잃으면 패배.",
                 _ => string.Empty
             };
         }
@@ -79,6 +81,14 @@
             if (DemoChapter6SingleMatchBundle.Matches(mission))
             {
                 return DemoChapter6SingleMatchBundle.ObjectiveHint;
+            }
+
+            // 대표 미션1 — 브리핑·패배 힌트와 한 세트로「별 목표 없음」을 상단/F1에도 짧게 박아 둠
+            if (mission.ObjectiveKind == MissionObjectiveKind.DestroyEnemyCore
+                && string.Equals(mission.MissionId, "mission_01_skirmish", StringComparison.Ordinal)
+                && string.IsNullOrEmpty(mission.OptionalBonusObjectiveId))
+            {
+                return "적대 표식 = 적 코어.\n먼저 격파하면 승리.\n(선택 별 목표 없음)";
             }
 
             return GetGameplayHint(mission.ObjectiveKind);

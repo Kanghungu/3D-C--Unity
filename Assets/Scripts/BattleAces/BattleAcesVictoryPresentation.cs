@@ -42,6 +42,9 @@ namespace Game.BattleAces
 
         private IEnumerator NudgeCameraRoutine()
         {
+            // 승리 스팅·결과 카드와 동일 unscaled 간격(BattleAcesFeedbackTiming)
+            yield return new WaitForSecondsRealtime(BattleAcesFeedbackTiming.ResultCardDelayAfterStingUnscaled);
+
             Camera cam = Camera.main;
             if (cam == null)
             {

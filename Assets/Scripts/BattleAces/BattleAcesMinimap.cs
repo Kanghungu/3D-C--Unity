@@ -51,6 +51,9 @@ namespace Game.BattleAces
 
         private readonly List<MinimapClickRipple> clickRipples = new List<MinimapClickRipple>(4);
 
+        /// <summary>시야 이동은 매번 — 링·톤만 짧은 unscaled 쿨다운으로 스팸 방지</summary>
+        private float lastMinimapClickAudioRippleUnscaled = -999f;
+
         private struct MinimapExtraDot
         {
             public Vector3 World;
@@ -143,7 +146,7 @@ namespace Game.BattleAces
             // 온보딩: 한 줄에 역할만(자세한 키는 F1)
             GUI.Label(
                 new Rect(mapRect.x, mapRect.y - 17f, mapRect.width, 28f),
-                "전술 지도 · 클릭/드래그 시야 · Shift+M 크기 · 왼쪽 「표식」= 범례");
+                DemoPresentationCopy.MinimapCaptionOneLine);
             GUI.color = Color.white;
 
             if (w <= 0.01f || h <= 0.01f)
@@ -156,45 +159,22 @@ namespace Game.BattleAces
 
             if (playerCore != null && playerCore.Health != null && playerCore.Health.IsAlive)
             {
-                float n = playerCore.Health.Normalized;
-                Color pc;
-                if (colorblindMm)
-                {
-                    // 색약 모드: 아군 코어 = 파랑 계열, 위험 시 노랑/주황
-                    pc = n <= 0.28f
-                        ? new Color(1f, 0.72f, 0.12f, 1f)
-                        : new Color(0.15f, 0.55f, 1f, 1f);
-                }
-                else
-                {
-                    pc = n <= 0.28f
-                        ? new Color(1f, 0.42f, 0.35f, 1f)
-                        : new Color(0.25f, 0.75f, 1f, 1f);
-                }
-
-                DrawWorldDot(playerCore.transform.position, pc, 9f, w, h);
+                BattleAcesReadability.GetMinimapPlayerCoreDot(
+                    playerCore.Health.Normalized,
+                    colorblindMm,
+                    out Color pc,
+                    out float pcSize);
+                DrawWorldDot(playerCore.transform.position, pc, pcSize, w, h);
             }
 
             if (enemyCore != null && enemyCore.Health != null && enemyCore.Health.IsAlive)
             {
-                float en = enemyCore.Health.Normalized;
-                bool low = en <= 0.32f;
-                Color ec;
-                if (colorblindMm)
-                {
-                    // 적은 붉은·녹색 대비 대신 주황·자주 계열
-                    ec = low
-                        ? new Color(1f, 0.85f, 0.2f, 1f)
-                        : new Color(0.95f, 0.45f, 0.12f, 1f);
-                }
-                else
-                {
-                    ec = low
-                        ? new Color(1f, 0.52f, 0.12f, 1f)
-                        : new Color(1f, 0.32f, 0.22f, 1f);
-                }
-
-                DrawWorldDot(enemyCore.transform.position, ec, low ? 10.2f : 9f, w, h);
+                BattleAcesReadability.GetMinimapEnemyCoreDot(
+                    enemyCore.Health.Normalized,
+                    colorblindMm,
+                    out Color ec,
+                    out float ecSize);
+                DrawWorldDot(enemyCore.transform.position, ec, ecSize, w, h);
             }
 
             SelectableUnit firstSelectedPlayer = null;
@@ -217,25 +197,12 @@ namespace Game.BattleAces
                     firstSelectedPlayer = unit;
                 }
 
-                Color c;
-                if (colorblindMm)
-                {
-                    c = unit.Team == UnitTeam.Player
-                        ? sel
-                            ? new Color(0.35f, 0.95f, 1f, 1f)
-                            : new Color(0.2f, 0.65f, 1f, 0.95f)
-                        : new Color(1f, 0.62f, 0.15f, 0.95f);
-                }
-                else
-                {
-                    c = unit.Team == UnitTeam.Player
-                        ? sel
-                            ? new Color(0.55f, 1f, 0.65f, 1f)
-                            : new Color(0.35f, 0.9f, 0.45f, 0.95f)
-                        : new Color(1f, 0.6f, 0.2f, 0.95f);
-                }
-
-                float dot = unit.Team == UnitTeam.Player && sel ? 6.8f : 4.5f;
+                BattleAcesReadability.GetMinimapUnitDot(
+                    unit.Team == UnitTeam.Player,
+                    sel,
+                    colorblindMm,
+                    out Color c,
+                    out float dot);
                 DrawWorldDot(unit.transform.position, c, dot, w, h);
             }
 
@@ -297,7 +264,8 @@ namespace Game.BattleAces
 
         private int CountLegendLines()
         {
-            int n = 3;
+            // 코어·유닛·시야·체력 낮음 안내
+            int n = 4;
             if (showRallyLegendLine)
             {
                 n++;
@@ -321,6 +289,7 @@ namespace Game.BattleAces
 
         private void DrawMinimapLegend(Rect legendRect)
         {
+            bool colorblindMm = GameUserSettings.ColorblindFriendlyMinimap;
             bool collapsed = IsLegendCollapsed();
             ImGuiGameUi.DrawFilledRect(legendRect, ImGuiGameUi.PanelBgHud);
             DrawBorder(legendRect, ImGuiGameUi.BorderCool);
@@ -354,12 +323,40 @@ namespace Game.BattleAces
             GUI.color = Color.white;
             y += 16f;
 
-            DrawLegendRowClipped(x, ref y, sw, textMaxW, new Color(0.35f, 0.78f, 0.95f, 1f), "코어 · 아군(청) / 적(적색)");
-            DrawLegendRowClipped(x, ref y, sw, textMaxW, new Color(0.42f, 0.88f, 0.52f, 1f), "유닛 · 선택 시 밝은 녹");
+            bool korean = GameUserSettings.Language == GameLanguage.Korean;
+            DrawLegendRowClipped(
+                x,
+                ref y,
+                sw,
+                textMaxW,
+                BattleAcesArtDirection.PointTeal,
+                BattleAcesReadability.BuildMinimapLegendCoreLine(korean, colorblindMm));
+            DrawLegendRowClipped(
+                x,
+                ref y,
+                sw,
+                textMaxW,
+                Color.Lerp(BattleAcesArtDirection.PointTeal, BattleAcesArtDirection.GunmetalLift, 0.25f),
+                BattleAcesReadability.BuildMinimapLegendUnitLine(korean));
             DrawLegendRowClipped(x, ref y, sw, textMaxW, new Color(0.95f, 0.82f, 0.35f, 1f), "시야 · 클릭/드래그 · Ctrl·Shift");
+            DrawLegendRowClipped(
+                x,
+                ref y,
+                sw,
+                textMaxW,
+                ImGuiGameUi.DefeatTint,
+                korean
+                    ? "코어 HP 낮음 · 점 커짐·색 경고(아군≤50%·≤28% …)"
+                    : "Low core HP · larger dot (ally warn/crit thresholds)");
             if (showRallyLegendLine)
             {
-                DrawLegendRowClipped(x, ref y, sw, textMaxW, new Color(0.5f, 0.85f, 1f, 1f), "집결(연청)");
+                DrawLegendRowClipped(
+                    x,
+                    ref y,
+                    sw,
+                    textMaxW,
+                    Color.Lerp(BattleAcesArtDirection.PointTeal, Color.white, 0.12f),
+                    "집결(티얼)");
             }
 
             if (boundObjectiveKind.HasValue)
@@ -791,13 +788,20 @@ namespace Game.BattleAces
         private void RegisterMinimapClickFeedback(Vector3 worldXZ, float worldW, float worldH)
         {
             Vector2 center = WorldToMapPixels(worldXZ, worldW, worldH);
-            clickRipples.Add(new MinimapClickRipple
+            float now = Time.unscaledTime;
+            if (now - lastMinimapClickAudioRippleUnscaled >=
+                BattleAcesFeedbackTiming.MinimapClickAudioRippleCooldownUnscaled)
             {
-                CenterGui = center,
-                EndUnscaled = Time.unscaledTime + 0.42f
-            });
+                lastMinimapClickAudioRippleUnscaled = now;
+                clickRipples.Add(new MinimapClickRipple
+                {
+                    CenterGui = center,
+                    EndUnscaled = now + 0.42f
+                });
+                ProceduralAudioUtility.PlayUiMinimapPing();
+            }
+
             BattleAcesFirstPlayGuide.NotifyMinimapClick();
-            ProceduralAudioUtility.PlayUiMinimapPing();
         }
 
         private void DrawMinimapClickRipples()

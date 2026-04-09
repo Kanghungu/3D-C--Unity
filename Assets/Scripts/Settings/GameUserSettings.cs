@@ -32,15 +32,25 @@ namespace Game.Settings
         private const string KeyDialogueCps = "gs_dialogue_chars_per_sec";
         private const string KeyGraphicPreset = "gs_demo_graphic_preset";
         private const string KeyLanguage = "gs_language";
+        private const string KeyBattleFogDistanceScale = "gs_ba_fog_dist_scale";
+        private const string KeyBattleFogIntensity01 = "gs_ba_fog_intensity";
 
         public const float DefaultMasterVolume = 0.82f;
         public const float DefaultCameraSensitivity = 1f;
         public const float DefaultMinimapScale = 1f;
         public const float DefaultUiScale = 1f;
 
-        public const float DefaultBattleAmbientVolume = 0.9f;
+        /// <summary>전투 앰비언트 기본값 — UI·스팅 대비 살짝 낮춰 한 판 톤 균형</summary>
+        public const float DefaultBattleAmbientVolume = 0.86f;
 
-        public const float DefaultResultStingVolume = 0.95f;
+        /// <summary>승패 스팅 기본값 — 과하게 튀지 않게 소폭 하향(설정 슬라이더로 여전히 조절)</summary>
+        public const float DefaultResultStingVolume = 0.9f;
+
+        /// <summary>ClassicDuel 안개 시작·끝 거리에 곱함 — 스샷·가독성(기본 1 = 아트 기준)</summary>
+        public const float DefaultBattleFogDistanceScale = 1f;
+
+        /// <summary>안개 색을 배경색↔안개색 사이에서 보간(0=옅게, 1=아트 기준)</summary>
+        public const float DefaultBattleFogIntensity01 = 1f;
 
         public static float MasterVolume01 { get; private set; } = DefaultMasterVolume;
 
@@ -58,7 +68,10 @@ namespace Game.Settings
         /// <summary>IMGUI 전체 스케일(0.75~1.35) — ImGuiGameUi.BeginScaledGui</summary>
         public static float UiScale01 { get; private set; } = DefaultUiScale;
 
-        /// <summary>미니맵 아군/적 색을 적록 대비 약한 팔레트로(Steam 데모 접근성)</summary>
+        /// <summary>
+        /// 미니맵 점을 색약 친화 팔레트로 그립니다. 색 값은 <c>BattleAcesArtDirection.MinimapColorblind*</c>에 고정되어
+        /// 일반 모드의 티얼·앰버 규율과 문서(<c>Assets/Docs/BATTLE_ACES_READABILITY.md</c>)와 맞춥니다.
+        /// </summary>
         public static bool ColorblindFriendlyMinimap { get; private set; }
 
         /// <summary>브리핑·자막 형 타이핑 속도(초당 글자 수 근사)</summary>
@@ -67,6 +80,10 @@ namespace Game.Settings
         public static DemoGraphicQualityPreset GraphicQualityPreset { get; private set; } = DemoGraphicQualityPreset.Balanced;
 
         public static GameLanguage Language { get; private set; } = GameLanguage.Korean;
+
+        public static float BattleFogDistanceScale { get; private set; } = DefaultBattleFogDistanceScale;
+
+        public static float BattleFogIntensity01 { get; private set; } = DefaultBattleFogIntensity01;
 
         static GameUserSettings()
         {
@@ -108,6 +125,11 @@ namespace Game.Settings
                 280f);
             GraphicQualityPreset = (DemoGraphicQualityPreset)Mathf.Clamp(PlayerPrefs.GetInt(KeyGraphicPreset, 0), 0, 1);
             Language = (GameLanguage)Mathf.Clamp(PlayerPrefs.GetInt(KeyLanguage, 0), 0, 1);
+            BattleFogDistanceScale = Mathf.Clamp(
+                PlayerPrefs.GetFloat(KeyBattleFogDistanceScale, DefaultBattleFogDistanceScale),
+                0.62f,
+                1.42f);
+            BattleFogIntensity01 = Mathf.Clamp01(PlayerPrefs.GetFloat(KeyBattleFogIntensity01, DefaultBattleFogIntensity01));
         }
 
         public static void Save()
@@ -122,6 +144,8 @@ namespace Game.Settings
             PlayerPrefs.SetFloat(KeyDialogueCps, DialogueRevealCharsPerSecond);
             PlayerPrefs.SetInt(KeyGraphicPreset, (int)GraphicQualityPreset);
             PlayerPrefs.SetInt(KeyLanguage, (int)Language);
+            PlayerPrefs.SetFloat(KeyBattleFogDistanceScale, BattleFogDistanceScale);
+            PlayerPrefs.SetFloat(KeyBattleFogIntensity01, BattleFogIntensity01);
             PlayerPrefs.SetInt(KeyFullscreen, Screen.fullScreen ? 1 : 0);
             PlayerPrefs.Save();
             AudioListener.volume = MasterVolume01;
@@ -185,6 +209,16 @@ namespace Game.Settings
         public static void SetLanguage(GameLanguage language)
         {
             Language = language;
+        }
+
+        public static void SetBattleFogDistanceScale(float scale)
+        {
+            BattleFogDistanceScale = Mathf.Clamp(scale, 0.62f, 1.42f);
+        }
+
+        public static void SetBattleFogIntensity01(float intensity01)
+        {
+            BattleFogIntensity01 = Mathf.Clamp01(intensity01);
         }
 
         /// <summary>그림자·거리만 조절(URP/HDRP 에셋은 건드리지 않음)</summary>

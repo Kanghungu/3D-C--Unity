@@ -5,7 +5,7 @@ Battle Aces 한 판 데모 스모크 (수동) — 우선 검증
 
 필수(매번 같은 순서)
 --------------------
-1. **`Assets/Docs/CHAPTER1_SMOKE_CHECKLIST.txt`** 전체 — 메뉴 패스, `NewSampleScene` 단독, 빌드(가능 시), 콘솔 Error 기준.
+1. **`Assets/Docs/CHAPTER1_SMOKE_CHECKLIST.txt`** 전체 — 메뉴 패스, `NewSampleScene` 단독, 빌드(가능 시), 콘솔 Error 기준, Player.log **`[DemoBoot]`**, 개발 빌드 시 **F10/F11**·저사양 FoW 갱신(문서 하단 참고).
 
 1b. (권장) **`Assets/Docs/CHAPTER2_SMOKE_CHECKLIST.txt`** — RTS 코어(카메라·선택·교전·승패 한 줄) 회귀.
 

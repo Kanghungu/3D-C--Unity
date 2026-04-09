@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Prototype;
+using Game.Settings;
 using Game.UI;
 using Game.Units;
 using UnityEngine;
@@ -8,7 +9,8 @@ using UnityEngine.InputSystem;
 namespace Game.BattleAces
 {
     /// <summary>
-    /// FoW: 격자·탐색/가시 + 게임플레이 마스크(지형·미니맵) + 우측 디버그 미리보기.
+    /// FoW: 격자·탐색/가시 + 게임플레이 마스크(지형·미니맵) + 우측 디버그 미리보기(F11).
+    /// 그래픽 Performance 프리셋이면 시야 갱신을 최소 2프레임마다로 완화.
     /// </summary>
     public sealed class BattleAcesFogOfWarDebug : MonoBehaviour
     {
@@ -126,6 +128,20 @@ namespace Game.BattleAces
             initialized = true;
         }
 
+        /// <summary>
+        /// 인스펙터 값에 더해, 저사양(Performance) 프리셋에서는 시야 갱신을 최소 2프레임마다로 완화.
+        /// </summary>
+        private int GetEffectiveVisionUpdateInterval()
+        {
+            int v = Mathf.Max(1, visionUpdateEveryNFrames);
+            if (GameUserSettings.GraphicQualityPreset == DemoGraphicQualityPreset.Performance)
+            {
+                v = Mathf.Max(v, 2);
+            }
+
+            return v;
+        }
+
         private void FillFogMaskFullyClear()
         {
             if (fogMaskTexture == null || grid == null)
@@ -165,7 +181,7 @@ namespace Game.BattleAces
                 showOverlay = !showOverlay;
             }
 
-            int interval = Mathf.Max(1, visionUpdateEveryNFrames);
+            int interval = GetEffectiveVisionUpdateInterval();
             if (Time.frameCount % interval != 0)
             {
                 return;
@@ -352,7 +368,7 @@ namespace Game.BattleAces
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(
                 new Rect(x, y + panelH + 20f, panelW, 44f),
-                $"검=미탐색  회청=탐색만  연두=가시\nF11 토글 · 코어+아군 · 장애물LOS{(useObstacleVisionBlocking ? "ON" : "OFF")} · 공중확대 · {Mathf.Max(1, visionUpdateEveryNFrames)}프레임");
+                $"검=미탐색  회청=탐색만  연두=가시\nF11 토글 · 코어+아군 · 장애물LOS{(useObstacleVisionBlocking ? "ON" : "OFF")} · 공중확대 · 시야 {GetEffectiveVisionUpdateInterval()}프레임마다");
 
             GUI.color = Color.white;
             ImGuiGameUi.EndScaledGui();

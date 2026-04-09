@@ -75,6 +75,9 @@ namespace Game.Units
                 case UnitArchetype.RoyalGuard:
                     Activate("Guardian Oath", 5f, 14f, 1f, 1.24f, 0.82f, 0.5f);
                     return true;
+                case UnitArchetype.Outrider:
+                    Activate("Overdrive", 4f, 10f, 1.42f, 1.16f, 0.84f, 0.82f);
+                    return true;
                 case UnitArchetype.Artillery:
                     Activate("Siege Load", 5f, 11f, 0.8f, 1.35f, 0.72f, 1.1f);
                     return true;

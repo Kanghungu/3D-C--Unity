@@ -188,7 +188,8 @@ namespace Game.BattleAces
 
             if (victoryMode == VictoryMode.EnemyCoreDestroyed)
             {
-                if (!victoryImminentChimePlayed && enemyHealth.IsAlive && enemyHealth.Normalized <= 0.22f)
+                if (!victoryImminentChimePlayed && enemyHealth.IsAlive &&
+                    enemyHealth.Normalized <= BattleAcesReadability.EnemyCoreVictoryImminentAudioNormalized)
                 {
                     victoryImminentChimePlayed = true;
                     ProceduralAudioUtility.PlayVictoryImminentChime();

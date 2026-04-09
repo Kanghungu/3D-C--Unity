@@ -21,7 +21,7 @@
 1. Unity로 프로젝트를 연다.  
 2. `File → Build Settings`에 **`CampaignMenu`**, **`NewSampleScene`** 포함 여부(없으면 에디터 메뉴 **Game/Campaign/Register Campaign Scenes In Build** 또는 수동 추가).  
 3. **Console**(`Window → General → Console`) 연 뒤 **Clear**.  
-4. (권장) **Game/Campaign/Verify Chapter 1 Build Scenes** 로 목록·파일 존재 확인.
+4. (권장) **Game/Campaign/Verify Chapter 1 Build Scenes** 또는 **Tools/프로젝트/챕터1 씬 (CampaignBuildMenu 와 동일)** 로 목록·파일 존재 확인(경로 단일 출처 `CampaignChapter1BuildPaths`).
 
 ### 챕터 1 — 진입·메뉴·난이도·스모크 (고정)
 
@@ -52,10 +52,17 @@
 4. **미니맵**: **좌클릭** 시야 이동·**드래그** 패닝. **Shift + 좌 드래그** 아군만 박스 선택. **Ctrl + 좌클릭** 클릭 지점 **근처 아군** 선택(없으면 시야만 이동). 우하 **범례**에 Ctrl 안내 한 줄.  
 5. 아군 **단일 선택** 시 코어까지 **청록 연결선**. 적 코어 저체력 시 점 강조.  
 6. **우클릭 불가** 지형: 거절음 + 하단 한 줄.  
-7. **아군 피격**: 붉은 플래시·병종별 톤(감으로).  
-8. **O**: 설정·UI 크기·저장 후 재시작 유지·좁은 창 **스크롤**.  
-9. **V**: 표적 모드·재시작 후 유지.  
-10. **F1**: 한글, **핵심 5줄** + **자세히**(배속·미니맵·랠리 문구 최신인지).
+7. **아군 피격**: 붉은 플래시·병종별 톤(감으로). **지휘 코어** 피격은 별도 묶음(소리+플래시+상단 막대, unscaled 쿨다운).  
+8. **생산·강화 피드백**: 덱 주문 **성공**(청록 막대+짧은 톤) vs **거절**(금색 막대+낮은 톤, 자원·큐·상한·브리핑 동일 패턴). T/Y/U 성공은 `PlayCoreUpgradeApplied`. 생산 완료 시 짧은 **링** 이펙트.  
+9. **승패**: 스팅 직후 **unscaled 0.14s** 뒤 결과 카드·승리 카메라 당김 동기.  
+10. **미니맵**: 클릭 시야는 매번, **링·톤**만 짧은 쿨다운.  
+11. B축 상세 표: `Assets/Docs/BATTLE_ACES_IMMEDIATE_FEEDBACK.md`.  
+12. **O**: 설정·UI 크기·저장 후 재시작 유지·좁은 창 **스크롤**.  
+13. **V**: 표적 모드·재시작 후 유지.  
+14. **F1**: **핵심 요약**(한·영) + **자세히**; 전투 중 **상단 목표 바가 켜지면** F1 에서는 주 목표 문구 **생략**·보조 힌트만(중복 방지).  
+15. **개발 빌드·에디터**: **F10** — 우상단 진단(FPS·씬·timeScale·그래픽 프리셋·해상도). **F11** — FoW 디버그 격자 토글(`BattleAcesFogOfWarDebug`, F10 과 역할 분리). **일시정지 P**·**배속 [ ]·숫자패드 ±** 는 `RtsTimeControl` 과 일시정지 패널(`DemoPresentationCopy.PauseBattleControlsBody`) 문구와 동기화.  
+16. **Player.log `[DemoBoot]`** — 첫 씬 로드 후 한 줄(버전·씬·해상도·`devBuild`·`editor`·`gfxPreset`·미션 ID). 빌드 스모크 비교용.  
+17. **가독성(C)**: 자원 스트립·코어 HP 구간·미니맵 점·시간 한 줄 규칙은 `BattleAcesReadability`·`ImGuiGameUi`·`DemoPresentationCopy` — 표 `Assets/Docs/BATTLE_ACES_READABILITY.md`.
 
 ### D. 승리·패배·결과 화면
 
@@ -91,17 +98,18 @@
 
 1. Console **Clear** → `CampaignMenu` Play → **메인 → 데모** 한 판 → 결과·메인.  
 2. (권장) `NewSampleScene` 단독 Play → 폴백 데모 한 판.  
-3. 노란 경고 과다 여부 메모. 여유 시 **J**(FoW).  
-4. **Build** 후 실행 파일로 **데모 한 판**만(화면·입력·소리).  
+3. 노란 경고 과다 여부 메모. 여유 시 **J**(FoW). 개발 빌드면 **F10/F11**·**O** 설정(Performance)에서 FoW 갱신 완화 확인.  
+4. **Build** 후 실행 파일로 **데모 한 판**만(화면·입력·소리). Player.log **`[DemoBoot]`** 한 줄 확인.  
 5. (캠페인 작업 시에만) 미션 1·2 등 **E절** 항목.
 
 ### J. 안개 전쟁(FoW)·시야 (짧게)
 
 1. 지형: **미탐색 / 옅은 안개 / 시야 맑음** 구분.  
 2. 미니맵에도 안개, 유닛·코어 점은 위에 표시.  
-3. **F10**: FoW 디버그 격자·장애물 LOS(`BattleAcesFogOfWarDebug`에서 끌 수 있음).  
-4. 미션 5 등: 지상 시야·장애물, 공중/비행 시야 넓음.  
-5. Console에 **`[FoW] Shader … 찾을 수 없습니다`** 없음.
+3. **F11**: FoW 디버그 격자·장애물 LOS 미리보기 토글(`BattleAcesFogOfWarDebug`). **F10**은 별도 — 전역 진단 HUD만(겹침 방지).  
+4. **저사양 그래픽(Performance)**: 시야 그리드 갱신이 인스펙터 값과 무관하게 **최소 2프레임에 1회**로 완화(`GetEffectiveVisionUpdateInterval`). Balanced 는 인스펙터 `visionUpdateEveryNFrames` 그대로(기본 1).  
+5. 미션 5 등: 지상 시야·장애물, 공중/비행 시야 넓음.  
+6. Console에 **`[FoW] Shader … 찾을 수 없습니다`** 없음.
 
 ---
 
@@ -135,7 +143,7 @@
 
 ## 5. 최근 요약
 
-- FoW: 지형·미니맵 마스크, 탐색 옅은 안개, `VisionObstacle` LOS, 공중 시야 확장·F10 디버그.  
+- FoW: 지형·미니맵 마스크, 탐색 옅은 안개, `VisionObstacle` LOS, 공중 시야 확장·**F11** 디버그 격자·Performance 시 **2프레임마다** 시야 갱신 완화.  
 - 캠페인·전투: 대사·승패·브리핑 UX, 수입/방어 시간·적 AI 소조정, 미션6 공중 변주 등.  
 - 입력·안내: 배속 **`[`/`]`·숫자패드 ±**, 미니맵 **Ctrl+클릭**, **Alt+우클릭** 생산 랠리, 점령 **소량 회복**·공중 **F1** 안내. 적 **집결 후 물결 공격**(대개 **5기** 묶음). HUD·목표 바 **청록 스트라이프·카드형 레이아웃**.  
 - 메뉴 **메인 → 데모** — **쉬움·보통·어려움**(스커미시 ID): 적 생산·개장 부스트만 다름. 브리핑 생략 · ●○ 미저장 · 결과 **메인 메뉴로**.  

@@ -1,3 +1,4 @@
+using Game.Settings;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -21,22 +22,30 @@ namespace Game.BattleAces
             ? speedSteps[Mathf.Clamp(speedIndex, 0, speedSteps.Length - 1)]
             : 1f;
 
-        /// <summary>HUD 한 줄 — 일시정지·배속 표시</summary>
-        public string GetStatusLineKo()
+        /// <summary>좌측 패널 하단 한 줄 — 일시정지·배속(한·영, 중점 구분 통일)</summary>
+        public string GetHudTimeStatusLine()
         {
             if (!allowControl)
             {
                 return string.Empty;
             }
 
+            bool ko = GameUserSettings.Language == GameLanguage.Korean;
             if (paused)
             {
-                return "시간: 일시정지 (P) · [ ] 배속 · 숫자패드 - +";
+                return ko
+                    ? "시간 · 일시정지 (P) · [ ] 배속 · 숫자패드 - +"
+                    : "Time · paused (P) · [ ] speed · numpad - +";
             }
 
             float s = CurrentSpeedStep;
-            return $"시간: 배속 {s:0.##}× (P 일시정지 · [ 느리게 · ] 빠르게)";
+            return ko
+                ? $"시간 · 배속 {s:0.##}× (P 일시정지 · [ 느리게 · ] 빠르게)"
+                : $"Time · speed {s:0.##}× (P pause · [ slower · ] faster)";
         }
+
+        /// <summary>호환용 — <see cref="GetHudTimeStatusLine"/> 와 동일</summary>
+        public string GetStatusLineKo() => GetHudTimeStatusLine();
 
         private void Awake()
         {

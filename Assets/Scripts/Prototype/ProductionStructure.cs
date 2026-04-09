@@ -372,14 +372,20 @@ namespace Game.Prototype
 
             if (database == null)
             {
-                return string.Join(", ", allowedArchetypes);
+                List<string> localizedLabels = new();
+                foreach (UnitArchetype archetype in allowedArchetypes)
+                {
+                    localizedLabels.Add(UnitDefinition.ResolveDisplayName(archetype));
+                }
+
+                return string.Join(", ", localizedLabels);
             }
 
             List<string> labels = new();
             foreach (UnitArchetype archetype in allowedArchetypes)
             {
                 UnitDefinition definition = database.GetDefinition(archetype);
-                string label = definition != null ? definition.DisplayName : archetype.ToString();
+                string label = definition != null ? definition.DisplayName : UnitDefinition.ResolveDisplayName(archetype);
                 int requiredPhase = GetRequiredBasePhase(archetype);
 
                 if (requiredPhase > 1)
@@ -488,13 +494,13 @@ namespace Game.Prototype
                         UnitArchetype.ShieldInfantry => "방패",
                         UnitArchetype.Spearman => "창",
                         UnitArchetype.Rifleman => "총",
-                        _ => archetype.ToString()
+                        _ => UnitDefinition.ResolveDisplayName(archetype)
                     });
                     continue;
                 }
 
                 UnitDefinition definition = database != null ? database.GetDefinition(archetype) : null;
-                labels.Add(definition != null ? definition.DisplayName : archetype.ToString());
+                labels.Add(definition != null ? definition.DisplayName : UnitDefinition.ResolveDisplayName(archetype));
             }
 
             if (labels.Count == 0)
@@ -507,7 +513,7 @@ namespace Game.Prototype
                     }
 
                     UnitDefinition definition = database != null ? database.GetDefinition(archetype) : null;
-                    labels.Add(definition != null ? definition.DisplayName : archetype.ToString());
+                    labels.Add(definition != null ? definition.DisplayName : UnitDefinition.ResolveDisplayName(archetype));
 
                     if (labels.Count >= 3)
                     {

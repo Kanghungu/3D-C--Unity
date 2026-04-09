@@ -124,7 +124,7 @@ namespace Game.BattleAces
                 UnitArchetype.Fighter => "전투기",
                 UnitArchetype.SpecialWarrior => "특전",
                 UnitArchetype.RoyalGuard => "근위",
-                UnitArchetype.Outrider => "기동",
+                UnitArchetype.Outrider => "호버",
                 UnitArchetype.MobileFortress => "요새",
                 UnitArchetype.AirborneCitadel => "공성",
                 _ => archetype.ToString()

@@ -13,11 +13,17 @@ namespace Game.BattleAces
         private const float CommandRejectHintSeconds = 1.05f;
         private const float RallyPointHintSeconds = 2.55f;
         private const float DeckRejectHintSeconds = 2.15f;
+        private const float DeckOrderOkHintSeconds = 1.05f;
+        private const float PlayerCoreHitHudHintSeconds = 1.38f;
 
         private static float commandRejectHintHideUnscaled = -999f;
         private static float rallyPointHintHideUnscaled = -999f;
         private static float deckRejectHintHideUnscaled = -999f;
         private static string deckRejectHintMessage = string.Empty;
+        private static float deckOrderOkHintHideUnscaled = -999f;
+        private static string deckOrderOkHintMessage = string.Empty;
+        private static float playerCoreHitHudHideUnscaled = -999f;
+        private static string playerCoreHitHudMessage = string.Empty;
 
         [SerializeField] private BattleAcesEconomy economy;
         [SerializeField] private BattleAcesCore playerCore;
@@ -39,10 +45,32 @@ namespace Game.BattleAces
             BattleAcesFirstPlayGuide.NotifyRallySet();
         }
 
-        public static void PulseDeckRejectHint(string messageKo)
+        /// <summary>덱 생산·T/Y/U 강화 거절 등 경제/큐 거절 한 줄(한·영 문구는 호출부에서 결정)</summary>
+        public static void PulseEconomyRejectHint(string hintLine)
         {
-            deckRejectHintMessage = messageKo ?? string.Empty;
+            deckRejectHintMessage = hintLine ?? string.Empty;
             deckRejectHintHideUnscaled = Time.unscaledTime + DeckRejectHintSeconds;
+        }
+
+        /// <summary>덱 주문 성공 — 거절 막대(금색)와 다른 청록 톤·짧은 문구</summary>
+        public static void PulseDeckOrderSuccessHint(UnitArchetype archetype)
+        {
+            bool ko = GameUserSettings.Language == GameLanguage.Korean;
+            string unit = FormatArchetypeShortStatic(archetype, ko);
+            deckOrderOkHintMessage = ko
+                ? $"{unit} · 생산 대기열에 추가됨"
+                : $"{unit} · queued for production";
+            deckOrderOkHintHideUnscaled = Time.unscaledTime + DeckOrderOkHintSeconds;
+        }
+
+        /// <summary>지휘 코어 피격 — 유닛보다 무거운 HUD 한 줄(쿨다운은 CoreStructureHitSound 에서 묶음 처리)</summary>
+        public static void PulsePlayerCoreHitHud()
+        {
+            bool ko = GameUserSettings.Language == GameLanguage.Korean;
+            playerCoreHitHudMessage = ko
+                ? "지휘 코어 피격 — 전열을 재정비하십시오"
+                : "Command core under attack — regroup";
+            playerCoreHitHudHideUnscaled = Time.unscaledTime + PlayerCoreHitHudHintSeconds;
         }
 
         public void Bind(
@@ -69,12 +97,20 @@ namespace Game.BattleAces
 
             if (match != null && match.IsFinished && missionContext == null)
             {
-                DrawSkirmishResultOverlay();
+                bool deferForSting = missionFlow != null &&
+                                     missionFlow.ResultCardRevealNotBeforeUnscaled > 0f &&
+                                     Time.unscaledTime < missionFlow.ResultCardRevealNotBeforeUnscaled;
+                if (!deferForSting)
+                {
+                    DrawSkirmishResultOverlay();
+                }
             }
 
+            DrawDeckOrderOkTransientHint();
             DrawRallyPointSetTransientHint();
             DrawCommandRejectTransientHint();
             DrawDeckRejectTransientHint();
+            DrawPlayerCoreHitTransientHint();
             ImGuiGameUi.EndScaledGui();
         }
 
@@ -111,7 +147,7 @@ namespace Game.BattleAces
 
             GUI.skin.label.fontSize = 10;
             GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(new Rect(x, y, width, 14f), "TACTICAL STATUS");
+            GUI.Label(new Rect(x, y, width, 14f), DemoPresentationCopy.HudLeftPanelEyebrow);
 
             GUI.skin.label.fontSize = 18;
             GUI.color = ImGuiGameUi.TextTitle;
@@ -121,12 +157,27 @@ namespace Game.BattleAces
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(new Rect(x, y + 40f, width, 18f), GetTopSubtitle());
 
+            // 상단 UGUI 목표 줄이 있으면 같은 문구를 좌측에 다시 쓰지 않음 — 한 판 톤·가독성 통일
+            bool objectiveOnTopBar =
+                uguiObjective != null &&
+                uguiObjective.HasObjectiveUi &&
+                missionFlow != null &&
+                missionFlow.IsGameplayStarted;
+
             string objective = missionContext != null
                 ? MissionObjectiveDisplayText.GetPrimaryLine(missionContext)
                 : DemoPresentationCopy.RoundGoalOneLineKo;
             GUI.skin.label.fontSize = 11;
-            GUI.color = ImGuiGameUi.TextTitle;
-            GUI.Label(new Rect(x, y + 62f, width, 32f), objective);
+            if (objectiveOnTopBar)
+            {
+                GUI.color = ImGuiGameUi.TextMuted;
+                GUI.Label(new Rect(x, y + 62f, width, 32f), DemoPresentationCopy.LeftHudObjectiveFromTopBarKo);
+            }
+            else
+            {
+                GUI.color = ImGuiGameUi.TextTitle;
+                GUI.Label(new Rect(x, y + 62f, width, 32f), objective);
+            }
         }
 
         private void DrawEconomyStrip(Rect shell)
@@ -139,8 +190,8 @@ namespace Game.BattleAces
             Rect strip = new Rect(shell.x + 18f, shell.y + 98f, shell.width - 36f, 36f);
             ImGuiGameUi.DrawPanelFrame(
                 strip,
-                new Color(0.075f, 0.082f, 0.095f, 0.94f),
-                new Color(0.2f, 0.23f, 0.3f, 0.7f),
+                ImGuiGameUi.EconomyStripPanelBg,
+                ImGuiGameUi.EconomyStripBorder,
                 1f);
 
             GUI.skin.label.fontSize = 27;
@@ -215,7 +266,7 @@ namespace Game.BattleAces
             float y = shell.y + shell.height - 38f;
 
             GUI.skin.label.fontSize = 10;
-            GUI.color = new Color(0.56f, 0.62f, 0.7f, 1f);
+            GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(new Rect(x, y, width, 16f), GetInputHintLine());
         }
 
@@ -229,14 +280,13 @@ namespace Game.BattleAces
 
             GUI.skin.label.fontSize = 10;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(new Rect(shell.x + 18f, shell.y + shell.height - 20f, shell.width - 36f, 14f), rtc.GetStatusLineKo());
+            GUI.Label(new Rect(shell.x + 18f, shell.y + shell.height - 20f, shell.width - 36f, 14f), rtc.GetHudTimeStatusLine());
         }
 
         private void DrawSkirmishResultOverlay()
         {
-            string headline = match != null && match.State == BattleAcesMatchController.MatchState.Victory
-                ? (IsKorean ? "승리 · 적 코어 파괴" : "Victory · Enemy core destroyed")
-                : (IsKorean ? "패배 · 아군 코어 붕괴" : "Defeat · Command core lost");
+            bool victory = match != null && match.State == BattleAcesMatchController.MatchState.Victory;
+            DemoPresentationCopy.GetSkirmishResultHeadline(victory, out string headline);
 
             float playSec = missionFlow != null
                 ? missionFlow.LastMatchPlaySecondsUnscaled
@@ -312,7 +362,7 @@ namespace Game.BattleAces
                 return BattleAcesObjectiveUgui.FormatTopBarDemoTitle(missionContext);
             }
 
-            return IsKorean ? "스커미시 전술 네트워크" : "Skirmish Tactical Network";
+            return DemoPresentationCopy.HudSkirmishFallbackTitle;
         }
 
         private string GetTopSubtitle()
@@ -322,9 +372,7 @@ namespace Game.BattleAces
                 return MissionObjectiveDisplayText.GetGameplayHint(missionContext);
             }
 
-            return IsKorean
-                ? "전장 운영, 생산, 재배치를 한 패널에서 확인"
-                : "Track command flow, production, and redeployment from one panel";
+            return DemoPresentationCopy.HudSkirmishFallbackSubtitle;
         }
 
         private string BuildProductionLine()
@@ -377,9 +425,7 @@ namespace Game.BattleAces
 
         private string GetInputHintLine()
         {
-            return IsKorean
-                ? "1-8 생산 · WASD 이동 · 우클릭 명령 · Ctrl+A 전체 선택 · F1 도움말"
-                : "1-8 build · WASD move · Right Click command · Ctrl+A select all · F1 help";
+            return DemoPresentationCopy.HudCombatInputHintOneLine;
         }
 
         private static void DrawRallyPointSetTransientHint()
@@ -420,6 +466,28 @@ namespace Game.BattleAces
             DrawTransientBar(Screen.height - 126f, 580f, ImGuiGameUi.AccentGold, deckRejectHintMessage);
         }
 
+        private static void DrawDeckOrderOkTransientHint()
+        {
+            if (Time.unscaledTime >= deckOrderOkHintHideUnscaled || string.IsNullOrEmpty(deckOrderOkHintMessage))
+            {
+                return;
+            }
+
+            DrawTransientBar(Screen.height - 158f, 540f, ImGuiGameUi.AccentCyan, deckOrderOkHintMessage);
+        }
+
+        private static void DrawPlayerCoreHitTransientHint()
+        {
+            if (Time.unscaledTime >= playerCoreHitHudHideUnscaled || string.IsNullOrEmpty(playerCoreHitHudMessage))
+            {
+                return;
+            }
+
+            // 코어 피격은 명령 거절보다 위(나중에 그려서 최상단)
+            Color coreHitAccent = BattleAcesArtDirection.EnemyEmber;
+            DrawTransientBar(Screen.height - 48f, 620f, coreHitAccent, playerCoreHitHudMessage);
+        }
+
         private static void DrawTransientBar(float y, float width, Color accent, string msg)
         {
             float barW = Mathf.Min(width, Screen.width - 32f);
@@ -432,7 +500,12 @@ namespace Game.BattleAces
 
         private string GetShortName(UnitArchetype archetype)
         {
-            if (IsKorean)
+            return FormatArchetypeShortStatic(archetype, IsKorean);
+        }
+
+        private static string FormatArchetypeShortStatic(UnitArchetype archetype, bool korean)
+        {
+            if (korean)
             {
                 return archetype switch
                 {
@@ -443,7 +516,7 @@ namespace Game.BattleAces
                     UnitArchetype.Fighter => "전투기",
                     UnitArchetype.SpecialWarrior => "특전",
                     UnitArchetype.RoyalGuard => "근위",
-                    UnitArchetype.Outrider => "기동",
+                    UnitArchetype.Outrider => "호버",
                     UnitArchetype.MobileFortress => "요새",
                     UnitArchetype.AirborneCitadel => "공성",
                     _ => archetype.ToString()
@@ -459,7 +532,7 @@ namespace Game.BattleAces
                 UnitArchetype.Fighter => "Fighter",
                 UnitArchetype.SpecialWarrior => "Special",
                 UnitArchetype.RoyalGuard => "Royal Guard",
-                UnitArchetype.Outrider => "Outrider",
+                UnitArchetype.Outrider => "Hover",
                 UnitArchetype.MobileFortress => "Fortress",
                 UnitArchetype.AirborneCitadel => "Citadel",
                 _ => archetype.ToString()

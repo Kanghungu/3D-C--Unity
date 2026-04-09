@@ -9,8 +9,9 @@ using Game.Units;
 namespace Game.CameraSystem
 {
     /// <summary>
-    /// Simple RTS-style camera movement for early prototyping.
-    /// Attach this to the main camera and tune the serialized values in the inspector.
+    /// Battle Aces / 프로토타입 공용 RTS 카메라.
+    /// 브리핑 중: <see cref="BattleMissionFlow.IsBriefingBlocking"/> 일 때 Space 는 교전 포커스가 아니라
+    /// 작전 시작에 쓰이므로, <see cref="HandleQuickFocusHotkeys"/> 에서 Space 포커스를 막음(문구는 <c>DemoPresentationCopy.BriefingContinueFooterKo</c>).
     /// </summary>
     public class RTSCameraController : MonoBehaviour
     {
@@ -26,16 +27,25 @@ namespace Game.CameraSystem
         [SerializeField] private float maxHeight = 820f;
         [SerializeField] private bool zoomTowardCursor = true;
 
-        // ???? ??? ?????????= ???? ????????????????
+        // SmoothDamp 대신 관성 감쇠로 줌 속도 누적
         private float _zoomVelocity;
 
-        // ?????????????????
+        // 유닛 미선택 시 우드래그로 지면 패닝
         private bool _rightDragActive;
         private bool _rightDragPanning;
         private Vector2 _rightDragStartScreenPos;
         private Vector3 _rightDragGrabPoint;
 
         public bool IsRightDragPanning => _rightDragPanning;
+
+        [Header("전투 주스 — 카메라 쉐이크")]
+        [Tooltip("Impulse 누적에 곱해지는 XZ 최대 오프셋(월드 단위, 한 프레임)")]
+        [SerializeField] private float combatShakeMaxWorldOffset = 1.12f;
+
+        [Tooltip("unscaled — 값이 클수록 빠르게 진동이 가라앉음")]
+        [SerializeField] private float combatShakeDecayPerSecond = 3.8f;
+
+        private float combatShakeStrength;
 
         [Header("Bounds")]
         [SerializeField] private Vector2 xBounds = new(-1600f, 1600f);
@@ -63,7 +73,7 @@ namespace Game.CameraSystem
             maxHeight = Mathf.Max(maxHeight, longestSide * 0.48f);
         }
 
-        /// <summary>?? ?? ?? ?? ??? XZ ?? ??? ???? ?? ???.</summary>
+        /// <summary>맵 경계 — 카메라 XZ 위치를 이 사각 안으로 클램프</summary>
         public void SetWorldXZBounds(float minX, float maxX, float minZ, float maxZ)
         {
             if (minX > maxX)
@@ -81,7 +91,7 @@ namespace Game.CameraSystem
             ClampPosition();
         }
 
-        /// <summary>? ?? ??? ???? ?? ???(?? ??? ??? ??? ? ??).</summary>
+        /// <summary>카메라 높이(y) 최소·최대 — 줌 한계</summary>
         public void SetHeightClamp(float minGroundHeight, float maxGroundHeight)
         {
             minHeight = Mathf.Max(2f, minGroundHeight);
@@ -111,6 +121,36 @@ namespace Game.CameraSystem
             ClampPosition();
         }
 
+        /// <summary>명중·명령·승패 등 — 0~1 impulse, LateUpdate 에서 XZ 노이즈로 소모</summary>
+        public void AddCombatShake(float impulse01)
+        {
+            impulse01 = Mathf.Clamp01(impulse01);
+            combatShakeStrength = Mathf.Clamp01(combatShakeStrength + impulse01 * 0.92f);
+        }
+
+        private void LateUpdate()
+        {
+            ApplyCombatShakeFrame();
+        }
+
+        private void ApplyCombatShakeFrame()
+        {
+            if (combatShakeStrength <= 0.001f)
+            {
+                return;
+            }
+
+            float w = combatShakeStrength * combatShakeMaxWorldOffset;
+            float n1 = Mathf.PerlinNoise(Time.unscaledTime * 38.7f, 1.718f) - 0.5f;
+            float n2 = Mathf.PerlinNoise(2.31f, Time.unscaledTime * 38.7f) - 0.5f;
+            transform.position += new Vector3(n1 * 2f * w, 0f, n2 * 2f * w);
+            ClampPosition();
+            combatShakeStrength = Mathf.MoveTowards(
+                combatShakeStrength,
+                0f,
+                Time.unscaledDeltaTime * combatShakeDecayPerSecond);
+        }
+
         private void HandleRightDragPan()
         {
             Camera cam = GetAttachedCamera();
@@ -121,7 +161,7 @@ namespace Game.CameraSystem
 
             if (Mouse.current.rightButton.wasPressedThisFrame)
             {
-                // ??????????????????????????? ????? ??????????????????? ???????
+                // 유닛 선택 중이면 우클릭은 명령용 — 카메라 드래그 시작 안 함
                 bool hasSelection = PrototypeSelectionController.Instance != null
                     && PrototypeSelectionController.Instance.SelectedUnits.Count > 0;
                 if (hasSelection)
@@ -156,7 +196,7 @@ namespace Game.CameraSystem
 
             Vector2 currentScreenPos = Mouse.current.position.ReadValue();
 
-            // 6px ????? ???? ?????????????? ?????
+            // 작은 흔들림은 무시 — 임계 넘기면 패닝 모드
             if (!_rightDragPanning && Vector2.Distance(currentScreenPos, _rightDragStartScreenPos) > 6f)
             {
                 _rightDragPanning = true;
@@ -167,7 +207,7 @@ namespace Game.CameraSystem
                 return;
             }
 
-            // ??????? ???????: ??????????????? ???? ???? ??????????????????????
+            // 잡은 지점이 화면과 함께 움직이도록 역방향 패닝
             Ray currentRay = cam.ScreenPointToRay(new Vector3(currentScreenPos.x, currentScreenPos.y, 0f));
             Plane groundPlane = new(Vector3.up, Vector3.zero);
             if (groundPlane.Raycast(currentRay, out float dist))
@@ -181,14 +221,14 @@ namespace Game.CameraSystem
 
         private void HandleMovement()
         {
-            // ????????????????? ???????????????? ???? ?????
+            // 우드래그 패닝 중에는 WASD·가장자리 이동 생략
             if (_rightDragPanning)
             {
                 return;
             }
 
             Vector3 inputDirection = Vector3.zero;
-            // Ctrl+A ?? ?? ? ? WASD ??? ??? ?? ?? ??(????????? ???)
+            // Ctrl 누른 채 WASD 는 덱 단축(1~8)과 겹치므로 카메라 이동 차단
             bool ctrlBlocksWasdPan =
                 Keyboard.current.leftCtrlKey.isPressed || Keyboard.current.rightCtrlKey.isPressed;
 
@@ -212,7 +252,7 @@ namespace Game.CameraSystem
                 inputDirection += Vector3.left;
             }
 
-            // WASD ??? ? Q/E ??? ??? ?? ???(1~8 ? ?)? ?? ???
+            // WASD 패닝(Q/E 회전 없음 — 덱 키와 분리)
             if (!ctrlBlocksWasdPan)
             {
                 if (Keyboard.current.wKey.isPressed)
@@ -295,7 +335,7 @@ namespace Game.CameraSystem
                 return;
             }
 
-            // ????? ??? ???? ????????????? ???? ??????? ?????????
+            // 높이에 비례한 스크롤 임펄스 — 고도에서도 줌 체감 유지
             float impulse = Mathf.Max(20f, transform.position.y * 1.8f);
             _zoomVelocity -= Mathf.Sign(scrollDelta) * impulse;
         }
@@ -312,7 +352,7 @@ namespace Game.CameraSystem
             pos.y += _zoomVelocity * Time.deltaTime;
             pos.y = Mathf.Clamp(pos.y, minHeight, maxHeight);
 
-            // ???????????????? ???
+            // 한계에 닿으면 관성 제거
             if (pos.y <= minHeight || pos.y >= maxHeight)
             {
                 _zoomVelocity = 0f;
@@ -321,10 +361,10 @@ namespace Game.CameraSystem
             float deltaY = pos.y - prevY;
             transform.position = pos;
 
-            // ???????? ????0.25??????? ?????? ??? 0????
+            // 지수 감쇠로 관성 소멸
             _zoomVelocity *= Mathf.Pow(0.003f, Time.deltaTime);
 
-            // ???? ???? ????
+            // 커서 기준 줌(옵션) — 피벗 유지
             if (!zoomTowardCursor || Mathf.Approximately(deltaY, 0f))
             {
                 return;
@@ -344,7 +384,7 @@ namespace Game.CameraSystem
                 return;
             }
 
-            // ???? ????? ????? ???????????????????XZ ???
+            // 줌 시 커서 아래 지점을 화면에 고정 — 유사 삼각형으로 XZ 보정
             // newCamXZ = cursorXZ + (oldCamXZ - cursorXZ) * (newY / oldY)
             Vector3 cursorGround = ray.GetPoint(enter);
             Vector3 camToCursor = transform.position - cursorGround;
@@ -406,7 +446,7 @@ namespace Game.CameraSystem
             ClampPosition();
         }
 
-        /// <summary>??? ??? ? ? ?? XZ ?? ??? ???? ??.</summary>
+        /// <summary>월드 XZ 평면상 델타만큼 카메라 이동</summary>
         public void PanWorldDeltaXZ(Vector3 deltaWorldXZ)
         {
             deltaWorldXZ.y = 0f;
@@ -425,7 +465,7 @@ namespace Game.CameraSystem
                     return;
                 }
 
-                // Battle Aces(NewSampleScene) ? ??? BaseStructure? ???? ?? ???? ???
+                // Battle Aces — BaseStructure 없을 때 지휘 코어로 폴백
                 if (BattleAcesCore.TryFindAliveCore(UnitTeam.Player, out BattleAcesCore baPlayerCore))
                 {
                     CenterViewOnWorldPoint(baPlayerCore.transform.position);
@@ -439,7 +479,7 @@ namespace Game.CameraSystem
                 return;
             }
 
-            // ????? Space ? ?? ??? ? ??? ???? ??? ?? ?
+            // 브리핑 중 Space 는 작전 개시용 — 여기서는 카메라 포커스 금지
             if (BattleMissionFlow.Instance != null && BattleMissionFlow.Instance.IsBriefingBlocking)
             {
                 return;
@@ -528,7 +568,7 @@ namespace Game.CameraSystem
                 return Vector3.Lerp(playerBase.transform.position, enemyBase.transform.position, 0.38f);
             }
 
-            // ????? ??? ?? ?(Battle Aces) ? ? ? ?? ????? ?? ??
+            // 프로토 거점 없음 — 양 코어 중점으로 시야(Battle Aces)
             if (BattleAcesCore.TryFindAliveCore(UnitTeam.Player, out BattleAcesCore baPlayer)
                 && BattleAcesCore.TryFindAliveCore(UnitTeam.Enemy, out BattleAcesCore baEnemy))
             {

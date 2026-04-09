@@ -45,6 +45,8 @@ namespace Game.BattleAces
                 " res=" + Screen.width + "x" + Screen.height +
                 " fullscreen=" + Screen.fullScreen +
                 " platform=" + Application.platform +
+                " devBuild=" + Debug.isDebugBuild +
+                " editor=" + Application.isEditor +
                 " gfxPreset=" + GameUserSettings.GraphicQualityPreset +
                 " activeMissionId=" + (string.IsNullOrEmpty(missionId) ? "(none)" : missionId));
         }

@@ -1,5 +1,6 @@
 using Game.Audio;
 using Game.Prototype;
+using Game.Settings;
 using Game.Units;
 using System.Collections.Generic;
 using UnityEngine;
@@ -67,10 +68,20 @@ namespace Game.BattleAces
         private static float lastPlayerEconomyRejectUnscaled = -999f;
         private const float PlayerEconomyRejectCooldownSeconds = 0.38f;
 
+        /// <summary>T/Y/U 거절 한 줄에 붙는 짧은 꼬리표(한·영)</summary>
+        private enum UpgradeHotkeySlot
+        {
+            Production,
+            Hull,
+            Income
+        }
+
         // 챕터3: 한 판 안에서 1~2단계는 무난히, 3단계는 판세 따라 달성(이전보다 약간 저렴·효과↑)
-        private static readonly int[] ProductionUpgradeCosts = { 52, 82, 115 };
-        private static readonly int[] HullUpgradeCosts = { 45, 75, 105 };
-        private static readonly int[] IncomeUpgradeCosts = { 58, 88, 118 };
+        // 1티어 비용 간격으로 초반 2~3분 안에 T(생산)·Y(선체)·U(수입) 중 무엇을 먼저 살지 갈리게 함
+        // 한 판 1~2티어 목표에 맞춘 약간 완화(반복 플레이 페이싱)
+        private static readonly int[] ProductionUpgradeCosts = { 52, 77, 112 };
+        private static readonly int[] HullUpgradeCosts = { 40, 71, 102 };
+        private static readonly int[] IncomeUpgradeCosts = { 60, 86, 116 };
 
         public UnitTeam Team => team;
         public UnitHealth Health => health;
@@ -277,7 +288,8 @@ namespace Game.BattleAces
 
             if (rallyWorldPing.TryGetComponent(out Renderer rend))
             {
-                rend.material.color = new Color(0.22f, 0.82f, 0.95f, 1f);
+                // 아트 방향: 의식 티얼 포인트만 채도 있게
+                rend.material.color = BattleAcesArtDirection.PointTeal;
             }
         }
 
@@ -346,11 +358,11 @@ namespace Game.BattleAces
                         if (Time.unscaledTime - lastPlayerEconomyRejectUnscaled >= PlayerEconomyRejectCooldownSeconds)
                         {
                             lastPlayerEconomyRejectUnscaled = Time.unscaledTime;
-                            string hint = GetDeckEnqueueFailHintKo(failReason);
+                            string hint = GetDeckEnqueueFailHint(failReason);
                             if (!string.IsNullOrEmpty(hint))
                             {
                                 ProceduralAudioUtility.PlayUiCommandRejected();
-                                BattleAcesHudOverlay.PulseDeckRejectHint(hint);
+                                BattleAcesHudOverlay.PulseEconomyRejectHint(hint);
                             }
                             else if (failReason != DeckEnqueueFailReason.InvalidOrDead)
                             {
@@ -372,40 +384,41 @@ namespace Game.BattleAces
 
             if (keyboard.tKey.wasPressedThisFrame)
             {
-                TryHotkeyUpgrade(TryPurchaseProductionUpgrade, "생산 T");
+                TryHotkeyUpgrade(TryPurchaseProductionUpgrade, UpgradeHotkeySlot.Production);
             }
 
             if (keyboard.yKey.wasPressedThisFrame)
             {
-                TryHotkeyUpgrade(TryPurchaseHullUpgrade, "장갑 Y");
+                TryHotkeyUpgrade(TryPurchaseHullUpgrade, UpgradeHotkeySlot.Hull);
             }
 
             if (keyboard.uKey.wasPressedThisFrame)
             {
-                TryHotkeyUpgrade(TryPurchaseIncomeUpgrade, "수입 U");
+                TryHotkeyUpgrade(TryPurchaseIncomeUpgrade, UpgradeHotkeySlot.Income);
             }
         }
 
         private delegate bool TryUpgradeOutDelegate(out UpgradePurchaseFailReason failReason);
 
-        private void TryHotkeyUpgrade(TryUpgradeOutDelegate tryPurchase, string labelForHint)
+        private void TryHotkeyUpgrade(TryUpgradeOutDelegate tryPurchase, UpgradeHotkeySlot hotkeySlot)
         {
-            if (Time.unscaledTime - lastPlayerEconomyRejectUnscaled < PlayerEconomyRejectCooldownSeconds)
-            {
-                return;
-            }
-
+            // 생산 키와 동일: 시도는 항상 하고, 거절 피드백만 쿨다운(쿨다운 중에도 구매 성공은 즉시 반응)
             if (tryPurchase(out UpgradePurchaseFailReason fail))
             {
                 return;
             }
 
-            string hint = GetUpgradePurchaseFailHintKo(fail, labelForHint);
+            if (Time.unscaledTime - lastPlayerEconomyRejectUnscaled < PlayerEconomyRejectCooldownSeconds)
+            {
+                return;
+            }
+
             lastPlayerEconomyRejectUnscaled = Time.unscaledTime;
+            string hint = GetUpgradePurchaseFailHint(fail, hotkeySlot);
             if (!string.IsNullOrEmpty(hint))
             {
                 ProceduralAudioUtility.PlayUiCommandRejected();
-                BattleAcesHudOverlay.PulseDeckRejectHint(hint);
+                BattleAcesHudOverlay.PulseEconomyRejectHint(hint);
             }
             else if (fail != UpgradePurchaseFailReason.NotApplicable)
             {
@@ -413,15 +426,39 @@ namespace Game.BattleAces
             }
         }
 
-        public static string GetUpgradePurchaseFailHintKo(UpgradePurchaseFailReason reason, string upgradeShortLabel)
+        private static string UpgradeHotkeyTail(UpgradeHotkeySlot slot)
         {
+            bool ko = GameUserSettings.Language == GameLanguage.Korean;
+            return slot switch
+            {
+                UpgradeHotkeySlot.Production => ko ? "생산 T" : "production T",
+                UpgradeHotkeySlot.Hull => ko ? "장갑 Y" : "armor Y",
+                UpgradeHotkeySlot.Income => ko ? "수입 U" : "income U",
+                _ => string.Empty
+            };
+        }
+
+        private static string GetUpgradePurchaseFailHint(UpgradePurchaseFailReason reason, UpgradeHotkeySlot slot)
+        {
+            string tail = UpgradeHotkeyTail(slot);
+            bool ko = GameUserSettings.Language == GameLanguage.Korean;
             return reason switch
             {
-                UpgradePurchaseFailReason.BriefingBlocking => $"강화 불가: 브리핑 중 ({upgradeShortLabel})",
-                UpgradePurchaseFailReason.MatchFinished => $"강화 불가: 전투 종료 ({upgradeShortLabel})",
-                UpgradePurchaseFailReason.InsufficientCredits => $"강화 불가: 자원 부족 ({upgradeShortLabel})",
-                UpgradePurchaseFailReason.MaxTier => $"강화 불가: {upgradeShortLabel} 만령",
-                UpgradePurchaseFailReason.InvalidState => $"강화 불가: 코어 상태 확인 ({upgradeShortLabel})",
+                UpgradePurchaseFailReason.BriefingBlocking => ko
+                    ? $"강화 불가: 브리핑 중 ({tail})"
+                    : $"Upgrade blocked: briefing ({tail})",
+                UpgradePurchaseFailReason.MatchFinished => ko
+                    ? $"강화 불가: 전투 종료 ({tail})"
+                    : $"Upgrade blocked: battle over ({tail})",
+                UpgradePurchaseFailReason.InsufficientCredits => ko
+                    ? $"강화 불가: 자원 부족 ({tail})"
+                    : $"Upgrade blocked: not enough credits ({tail})",
+                UpgradePurchaseFailReason.MaxTier => ko
+                    ? $"강화 불가: {tail} 만령"
+                    : $"Upgrade blocked: {tail} at max",
+                UpgradePurchaseFailReason.InvalidState => ko
+                    ? $"강화 불가: 코어 상태 확인 ({tail})"
+                    : $"Upgrade blocked: core state ({tail})",
                 _ => null
             };
         }
@@ -480,7 +517,7 @@ namespace Game.BattleAces
             }
 
             productionUpgradeTier++;
-            ProceduralAudioUtility.PlayUiConfirm();
+            ProceduralAudioUtility.PlayCoreUpgradeApplied();
             return true;
         }
 
@@ -526,7 +563,7 @@ namespace Game.BattleAces
 
             health.AddMaxHealthBonus(480f);
             hullUpgradeTier++;
-            ProceduralAudioUtility.PlayUiConfirm();
+            ProceduralAudioUtility.PlayCoreUpgradeApplied();
             return true;
         }
 
@@ -566,7 +603,7 @@ namespace Game.BattleAces
 
             economy.AddPlayerIncomePerSecond(1.32f);
             incomeUpgradeTier++;
-            ProceduralAudioUtility.PlayUiConfirm();
+            ProceduralAudioUtility.PlayCoreUpgradeApplied();
             return true;
         }
 
@@ -636,6 +673,12 @@ namespace Game.BattleAces
 
             productionQueue.Enqueue(archetype);
 
+            if (team == UnitTeam.Player)
+            {
+                ProceduralAudioUtility.PlayDeckOrderQueued();
+                BattleAcesHudOverlay.PulseDeckOrderSuccessHint(archetype);
+            }
+
             if (!isProducing)
             {
                 StartNextProduction();
@@ -644,17 +687,30 @@ namespace Game.BattleAces
             return true;
         }
 
-        /// <summary>생산 거절 HUD 한 줄 — null 이면 표시 생략</summary>
-        public static string GetDeckEnqueueFailHintKo(DeckEnqueueFailReason reason)
+        /// <summary>생산 거절 HUD 한 줄 — null 이면 표시 생략(언어 설정 반영)</summary>
+        private static string GetDeckEnqueueFailHint(DeckEnqueueFailReason reason)
         {
+            bool ko = GameUserSettings.Language == GameLanguage.Korean;
             return reason switch
             {
-                DeckEnqueueFailReason.BriefingBlocking => "생산 불가: 브리핑 중 (작전 시작 후)",
-                DeckEnqueueFailReason.MatchFinished => "생산 불가: 전투 종료",
-                DeckEnqueueFailReason.QueueFull => "생산 불가: 큐 가득 참",
-                DeckEnqueueFailReason.FieldCap => "생산 불가: 전장 유닛 상한",
-                DeckEnqueueFailReason.NoDefinition => "생산 불가: 덱 슬롯 없음",
-                DeckEnqueueFailReason.InsufficientCredits => "생산 불가: 자원 부족",
+                DeckEnqueueFailReason.BriefingBlocking => ko
+                    ? "생산 불가: 브리핑 중 (작전 시작 후)"
+                    : "Build blocked: briefing (start the operation first)",
+                DeckEnqueueFailReason.MatchFinished => ko
+                    ? "생산 불가: 전투 종료"
+                    : "Build blocked: battle ended",
+                DeckEnqueueFailReason.QueueFull => ko
+                    ? "생산 불가: 큐 가득 참"
+                    : "Build blocked: queue full",
+                DeckEnqueueFailReason.FieldCap => ko
+                    ? "생산 불가: 전장 유닛 상한"
+                    : "Build blocked: unit cap on field",
+                DeckEnqueueFailReason.NoDefinition => ko
+                    ? "생산 불가: 덱 슬롯 없음"
+                    : "Build blocked: empty deck slot",
+                DeckEnqueueFailReason.InsufficientCredits => ko
+                    ? "생산 불가: 자원 부족"
+                    : "Build blocked: not enough credits",
                 _ => null
             };
         }
@@ -703,6 +759,7 @@ namespace Game.BattleAces
 
                         unit.MoveTo(rallyWorldPosition);
                         ProceduralAudioUtility.PlayProductionComplete();
+                        SpawnPlayerProductionReadyRing(spawnPos);
                     }
                     else
                     {
@@ -717,6 +774,29 @@ namespace Game.BattleAces
             productionTimeRemaining = 0f;
         }
 
+        /// <summary>생산 완료 순간 — 짧은 링 확장(프로시저럴 톤과 짝)</summary>
+        private static void SpawnPlayerProductionReadyRing(Vector3 groundPosition)
+        {
+            GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            go.name = "BA_ProdReadyFX";
+            go.transform.position = groundPosition + new Vector3(0f, 0.07f, 0f);
+            go.transform.localScale = new Vector3(0.35f, 0.02f, 0.35f);
+            if (go.TryGetComponent(out Collider col))
+            {
+                col.enabled = false;
+            }
+
+            if (go.TryGetComponent(out Renderer rend))
+            {
+                Color c = BattleAcesArtDirection.PointTeal;
+                c.a = 0.92f;
+                rend.material.color = c;
+            }
+
+            TimedWorldEffect tw = go.AddComponent<TimedWorldEffect>();
+            tw.Configure(0.24f, new Vector3(2.35f, 0.018f, 2.35f), Vector3.zero);
+        }
+
         private Vector3 GetSpawnPositionNearCore()
         {
             const float ringRadius = 8.5f;
@@ -724,7 +804,7 @@ namespace Game.BattleAces
             Vector3 best = transform.position + new Vector3(0f, 1f, ringRadius * 0.35f);
             for (int attempt = 0; attempt < 14; attempt++)
             {
-                Vector2 ring = Random.insideUnitCircle * ringRadius;
+                Vector2 ring = UnityEngine.Random.insideUnitCircle * ringRadius;
                 Vector3 candidate = transform.position + new Vector3(ring.x, 1f, ring.y);
                 if (!IsTooCloseToFriendlySpawn(candidate, minSeparation))
                 {
@@ -733,7 +813,7 @@ namespace Game.BattleAces
 
                 if (attempt > 6)
                 {
-                    float a = Random.Range(0f, Mathf.PI * 2f);
+                    float a = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
                     candidate = transform.position + new Vector3(Mathf.Cos(a) * ringRadius, 1f, Mathf.Sin(a) * ringRadius);
                     if (!IsTooCloseToFriendlySpawn(candidate, minSeparation * 0.85f))
                     {

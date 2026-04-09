@@ -20,6 +20,8 @@ namespace Game.BattleAces
         /// <summary>승패 카드 공통 안내 — CampaignDialogue_KR 의 result_campaign_next_hint 와 동일 키</summary>
         private const string ResultCampaignNextHintDialogueId = "result_campaign_next_hint";
 
+        private static bool IsKoreanLang => GameUserSettings.Language == GameLanguage.Korean;
+
         private MissionDefinition mission;
         private BattleAcesMatchController match;
         private BattleAcesEconomy economyRef;
@@ -35,6 +37,9 @@ namespace Game.BattleAces
         private bool showResultOverlay;
         private float resultPlaySeconds;
         private int resultPlayerCredits;
+
+        /// <summary>승패 스팅 직후 unscaled 시각까지는 결과 카드를 그리지 않음(청각→시각 순서 통일)</summary>
+        private float resultCardRevealNotBeforeUnscaled = -1f;
 
         // 승패 본문 — 기본 IMGUI 라벨보다 줄간격을 넓혀 한글 가독성 개선
         private GUIStyle resultBodyLabelStyle;
@@ -62,6 +67,9 @@ namespace Game.BattleAces
         /// <summary>직전 매치 종료 시 기록된 플레이 길이(초, unscaled) — HUD 스커미시 오버레이 등</summary>
         public float LastMatchPlaySecondsUnscaled => resultPlaySeconds;
 
+        /// <summary>스커미시 IMGUI 결과 등, 미션 흐름과 동일한 «스팅 후 카드» 타이밍용</summary>
+        public float ResultCardRevealNotBeforeUnscaled => resultCardRevealNotBeforeUnscaled;
+
         public static BattleMissionFlow Instance { get; private set; }
 
         private void OnEnable()
@@ -80,6 +88,7 @@ namespace Game.BattleAces
             economyRef = economy;
             runStatsRef = runStats;
             bonusMetThisRound = false;
+            resultCardRevealNotBeforeUnscaled = -1f;
             if (match != null)
             {
                 match.MatchEnded += OnMatchEnded;
@@ -182,7 +191,11 @@ namespace Game.BattleAces
                 CampaignProgressStorage.MarkBonusObjectiveCompleted(mission.MissionId);
             }
 
-            ProceduralAudioUtility.PlayResultSting(st == BattleAcesMatchController.MatchState.Victory);
+            // 한 판 톤: 카메라 임펄스 → 결과 스팅 레이어 → (unscaled) 짧은 간격 → 결과 카드
+            bool victory = st == BattleAcesMatchController.MatchState.Victory;
+            BattleAcesCombatJuice.NotifyMatchResult(victory);
+            ProceduralAudioUtility.PlayResultSting(victory);
+            resultCardRevealNotBeforeUnscaled = Time.unscaledTime + BattleAcesFeedbackTiming.ResultCardDelayAfterStingUnscaled;
             showResultOverlay = true;
             RtsTimeControl rtc = RtsTimeControl.Instance;
             if (rtc != null)
@@ -223,6 +236,11 @@ namespace Game.BattleAces
                 return;
             }
 
+            if (resultCardRevealNotBeforeUnscaled > 0f && Time.unscaledTime < resultCardRevealNotBeforeUnscaled)
+            {
+                return;
+            }
+
             DrawResultScreen(core);
         }
 
@@ -243,10 +261,9 @@ namespace Game.BattleAces
 
             if (string.IsNullOrEmpty(text))
             {
-                text =
-                    $"작전명: {MissionObjectiveDisplayText.ResolveMissionDisplayName(mission)}\n\n" +
-                    $"작전 목표: {MissionObjectiveDisplayText.GetPrimaryLine(mission)}\n\n" +
-                    "전열을 정비하고 적 진영 목표를 돌파하십시오.";
+                text = DemoPresentationCopy.BuildDefaultBriefingBodyKo(
+                    MissionObjectiveDisplayText.ResolveMissionDisplayName(mission),
+                    MissionObjectiveDisplayText.GetPrimaryLine(mission));
             }
 
             string textToDraw = BuildBriefingVisibleText(text);
@@ -275,7 +292,7 @@ namespace Game.BattleAces
             GUI.skin.label.fontSize = 15;
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(new Rect(card.x + 20f, card.yMax - 44f, card.width - 40f, 32f),
-                "Space / Enter / 좌클릭으로 작전 시작");
+                DemoPresentationCopy.BriefingContinueFooterKo);
             GUI.color = Color.white;
             GUI.skin.label.fontSize = prevLabelFont;
 
@@ -329,27 +346,9 @@ namespace Game.BattleAces
 
             if (string.IsNullOrEmpty(body))
             {
-                if (skirmishPractice)
-                {
-                    if (isFallbackOneMatchDemo)
-                    {
-                        body = won
-                            ? "Battle Aces 한 판 데모 승리. 본진·덱·적 AI 루프를 익히기에 적합합니다."
-                            : "데모 패배. 생산·집결(Alt+우클릭)을 조정해 R 또는 아래 버튼으로 같은 데모를 다시 시작하십시오.";
-                    }
-                    else
-                    {
-                        body = won
-                            ? "연습 전투 승리. 본진·덱·적 물결 AI를 익히기에 적합합니다."
-                            : "연습 전투 패배. 생산·집결(Alt+우클릭)·무대를 바꿔 다시 도전하십시오.";
-                    }
-                }
-                else
-                {
-                    body = won
-                        ? "적 목표를 무너뜨렸습니다. 다음 진격 준비를 시작하십시오."
-                        : "전선이 붕괴되었습니다. 병력을 재정비한 뒤 다시 시도하십시오.";
-                }
+                body = skirmishPractice
+                    ? DemoPresentationCopy.ResultBodyFallbackPractice(won, isFallbackOneMatchDemo)
+                    : DemoPresentationCopy.ResultBodyFallbackCampaign(won);
             }
 
             float cardW = Mathf.Min(700f, Screen.width - 40f);
@@ -370,62 +369,22 @@ namespace Game.BattleAces
             float innerW = card.width - padX * 2f;
             float y = card.y + 18f;
 
-            string title = won ? "작전 승리" : "작전 실패";
+            // 순서: 스팅(오디오) → 카드 → 본문 → 통계 → 다음 단계·입력 안내 → 버튼 (스팅은 OnMatchEnded 에서 먼저 재생됨)
+            string title = DemoPresentationCopy.GetResultScreenTitle(won);
             GUI.skin.label.fontSize = 26;
             GUI.color = won ? ImGuiGameUi.VictoryTint : ImGuiGameUi.DefeatTint;
             GUI.Label(new Rect(card.x + padX, y, innerW, 40f), title);
             y += 44f;
-
-            GUI.skin.label.fontSize = 17;
-            GUI.color = ImGuiGameUi.AccentGold;
-            string rKeyLine = isFallbackOneMatchDemo
-                ? "R 키 — 같은 데모 즉시 재시작 (아래 왼쪽 버튼과 동일)"
-                : skirmishPractice
-                    ? "R 키 — 같은 스커미시 즉시 재시작 (아래 왼쪽 버튼과 동일)"
-                    : "R 키 — 같은 미션 즉시 재시작 (아래 왼쪽 버튼과 동일)";
-            GUI.Label(new Rect(card.x + padX, y, innerW, 30f), rKeyLine);
-            y += 30f;
-
-            GUI.skin.label.fontSize = 15;
-            GUI.color = ImGuiGameUi.TextMuted;
-            string escLine = skirmishPractice
-                ? "Esc 키 — 메인 메뉴로 (아래 오른쪽 「메인 메뉴로」와 동일)"
-                : "Esc 키 — 캠페인 메뉴로 (아래 오른쪽 「캠페인 메뉴로」와 동일)";
-            GUI.Label(new Rect(card.x + padX, y, innerW, 26f), escLine);
-            GUI.color = Color.white;
-            y += 30f;
-
-            string nextCampaignLine;
-            if (skirmishPractice)
-            {
-                nextCampaignLine = isFallbackOneMatchDemo
-                    ? "한 판 데모입니다. 캠페인 ●○ 진행은 바뀌지 않습니다. 「메인 메뉴로」에서 캠페인·데모를 다시 고르십시오."
-                    : "연습 전투입니다. 캠페인 ●○ 진행은 바뀌지 않습니다. 메인에서 캠페인 또는 데모를 다시 고르십시오.";
-            }
-            else
-            {
-                nextCampaignLine = core != null
-                    ? core.TryGetDialogue(ResultCampaignNextHintDialogueId)
-                    : null;
-                if (string.IsNullOrEmpty(nextCampaignLine))
-                {
-                    nextCampaignLine =
-                        "캠페인 진행은 메뉴에서 다음 미션을 고르십시오. 아래 「캠페인 메뉴로」로 돌아갑니다.";
-                }
-            }
-
-            GUIStyle nextStepStyle = GetOrCreateResultNextStepHintStyle();
-            float nextStepH = nextStepStyle.CalcHeight(new GUIContent(nextCampaignLine), innerW);
-            nextStepH = Mathf.Clamp(nextStepH, 22f, 64f);
-            GUI.Label(new Rect(card.x + padX, y, innerW, nextStepH), nextCampaignLine, nextStepStyle);
-            y += nextStepH + 8f;
 
             string endReasonLine = match != null
                 ? FormatMatchEndReasonLine(match.LastEndReason, won)
                 : string.Empty;
             if (!string.IsNullOrEmpty(endReasonLine))
             {
+                GUI.skin.label.fontSize = 14;
+                GUI.color = ImGuiGameUi.TextMuted;
                 GUI.Label(new Rect(card.x + padX, y, innerW, 24f), endReasonLine);
+                GUI.color = Color.white;
                 y += 28f;
             }
 
@@ -435,17 +394,17 @@ namespace Game.BattleAces
                 if (!string.IsNullOrEmpty(retryHint))
                 {
                     GUI.skin.label.fontSize = 14;
-                    GUI.color = ImGuiGameUi.AccentGold;
+                    GUI.color = ImGuiGameUi.AccentCyan;
                     GUI.Label(new Rect(card.x + padX, y, innerW, 40f), retryHint);
                     y += 44f;
                 }
             }
 
-            // 본문 아래: 여백 + 통계 + 안내 + 버튼 영역 — 패배 힌트·상단 다음-미션 안내(2줄) 여유
-            float footerBlock = veryLowRes ? 196f : 208f;
-            if (runStatsRef != null || (mission != null && !string.IsNullOrEmpty(mission.OptionalBonusObjectiveId)))
+            // 하단: 통계·보조목표·다음 단계·R/Esc·개발 메모·버튼
+            float footerBlock = veryLowRes ? 292f : 304f;
+            if (mission != null && !string.IsNullOrEmpty(mission.OptionalBonusObjectiveId))
             {
-                footerBlock += 36f;
+                footerBlock += 44f;
             }
             float bodyH = Mathf.Clamp(card.yMax - y - footerBlock, 40f, 900f);
             GUIStyle bodyStyle = GetOrCreateResultBodyLabelStyle();
@@ -457,7 +416,9 @@ namespace Game.BattleAces
             // 통계 한 줄 — RunStats(생산·격파·손실) + 플레이 시간 mm:ss
             string statsOneLine = runStatsRef != null
                 ? runStatsRef.BuildFullResultSummaryLine(resultPlaySeconds, resultPlayerCredits)
-                : $"플레이 {BattleAcesRunStats.FormatPlayTimeMmSs(resultPlaySeconds)} · 종료 시 자원 {resultPlayerCredits}";
+                : (IsKoreanLang
+                    ? $"플레이 {BattleAcesRunStats.FormatPlayTimeMmSs(resultPlaySeconds)} · 종료 시 자원 {resultPlayerCredits}"
+                    : $"Play {BattleAcesRunStats.FormatPlayTimeMmSs(resultPlaySeconds)} · credits at end {resultPlayerCredits}");
             GUI.Label(new Rect(card.x + padX, afterBody, innerW, 36f), statsOneLine);
 
             float extraY = afterBody + 34f;
@@ -477,10 +438,47 @@ namespace Game.BattleAces
                 extraY += 42f;
             }
 
-            GUI.skin.label.fontSize = 12;
+            string nextCampaignLine;
+            if (skirmishPractice)
+            {
+                nextCampaignLine = DemoPresentationCopy.ResultNextStepPractice(isFallbackOneMatchDemo);
+            }
+            else
+            {
+                nextCampaignLine = core != null
+                    ? core.TryGetDialogue(ResultCampaignNextHintDialogueId)
+                    : null;
+                if (string.IsNullOrEmpty(nextCampaignLine))
+                {
+                    nextCampaignLine = DemoPresentationCopy.ResultNextStepCampaignDefaultKo;
+                }
+            }
+
+            GUIStyle nextStepStyle = GetOrCreateResultNextStepHintStyle();
+            float nextStepH = nextStepStyle.CalcHeight(new GUIContent(nextCampaignLine), innerW);
+            nextStepH = Mathf.Clamp(nextStepH, 22f, 72f);
+            GUI.skin.label.fontSize = 13;
+            GUI.Label(new Rect(card.x + padX, extraY, innerW, nextStepH), nextCampaignLine, nextStepStyle);
+            extraY += nextStepH + 10f;
+
+            GUI.skin.label.fontSize = 17;
+            GUI.color = ImGuiGameUi.AccentGold;
             GUI.Label(
-                new Rect(card.x + padX, extraY, innerW, 34f),
-                "결과 후 콘솔(경고·에러) 확인. R 재시작은 상단 금색 안내와 같습니다.");
+                new Rect(card.x + padX, extraY, innerW, 28f),
+                DemoPresentationCopy.ResultScreenRKeyLine(isFallbackOneMatchDemo, skirmishPractice));
+            extraY += 28f;
+
+            GUI.skin.label.fontSize = 15;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(
+                new Rect(card.x + padX, extraY, innerW, 26f),
+                DemoPresentationCopy.ResultScreenEscLine(skirmishPractice));
+            GUI.color = Color.white;
+            extraY += 30f;
+
+            GUI.skin.label.fontSize = 12;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(card.x + padX, extraY, innerW, 34f), DemoPresentationCopy.ResultScreenFooterDevNoteKo);
             GUI.color = Color.white;
             GUI.skin.label.fontSize = 14;
 
@@ -490,17 +488,19 @@ namespace Game.BattleAces
             Rect menu = new Rect(card.x + 32f + btnW, btnY, btnW - 8f, 48f);
 
             string retryLabel = isFallbackOneMatchDemo
-                ? "같은 데모 재시작"
+                ? (IsKoreanLang ? "같은 데모 재시작" : "Restart demo")
                 : skirmishPractice
-                    ? "같은 스커미시 재시작"
-                    : "같은 미션 재시작";
+                    ? (IsKoreanLang ? "같은 스커미시 재시작" : "Restart skirmish")
+                    : (IsKoreanLang ? "같은 미션 재시작" : "Restart mission");
             if (ImGuiGameUi.GameMenuButton(retry, retryLabel))
             {
                 Time.timeScale = 1f;
                 SceneManager.LoadScene(SceneManager.GetActiveScene().path);
             }
 
-            string menuButtonLabel = skirmishPractice ? "메인 메뉴로" : "캠페인 메뉴로";
+            string menuButtonLabel = skirmishPractice
+                ? (IsKoreanLang ? "메인 메뉴로" : "Main menu")
+                : (IsKoreanLang ? "캠페인 메뉴로" : "Campaign menu");
             if (ImGuiGameUi.GameMenuButton(menu, menuButtonLabel))
             {
                 Time.timeScale = 1f;
@@ -563,36 +563,72 @@ namespace Game.BattleAces
         /// <summary>대사 테이블에 힌트 키가 없을 때 한 줄 폴백</summary>
         private static string GetBuiltInDefeatRetryHint(BattleAcesMatchController.MatchEndReason reason)
         {
+            if (!IsKoreanLang)
+            {
+                return reason switch
+                {
+                    BattleAcesMatchController.MatchEndReason.DefeatPlayerCoreDestroyed =>
+                        "Retry: keep production (1–8) and T/Y/U upgrades near your core; rally (Alt+right-click) before big fights.",
+                    BattleAcesMatchController.MatchEndReason.DefeatRelicOrKeyObjectiveLost =>
+                        "Retry: hold the relic or key point first; shorten side engagements.",
+                    BattleAcesMatchController.MatchEndReason.DefeatMissionFailed =>
+                        "Retry: check the top bar / F1 objective, then adjust route and timing.",
+                    _ =>
+                        "Retry: reset economy, production, and rally, then press R or the button below."
+                };
+            }
+
             return reason switch
             {
                 BattleAcesMatchController.MatchEndReason.DefeatPlayerCoreDestroyed =>
-                    "재도전: 생산(1~8)·집결(Alt+우클릭)·자원·강화(T/Y/U)로 본진 방어를 보강해 보세요.",
+                    "재도전: 지휘 코어 앞 생산(1~8)·T/Y/U 강화, 집결(Alt+우클릭)로 방어 리듬을 다시 맞추십시오.",
                 BattleAcesMatchController.MatchEndReason.DefeatRelicOrKeyObjectiveLost =>
-                    "재도전: 목표 유물·거점을 먼저 확보하고 분산을 줄이세요.",
+                    "재도전: 성유물·거점을 먼저 지키고, 측면 교전은 짧게 끊으십시오.",
                 BattleAcesMatchController.MatchEndReason.DefeatMissionFailed =>
-                    "재도전: 미션 목표(상단·F1)를 확인한 뒤 병력 운용을 바꿔 보세요.",
+                    "재도전: 상단 목표 바·F1의 주 목표를 확인한 뒤 경로·시간에 맞춰 접근을 바꾸십시오.",
                 _ =>
-                    "재도전: 자원·생산·집결을 정비한 뒤 R 또는 아래 버튼으로 다시 시도하세요."
+                    "재도전: 자원·생산·집결을 한 번 정리한 뒤 R 또는 아래 버튼으로 이어가세요."
             };
         }
 
         private static string FormatMatchEndReasonLine(BattleAcesMatchController.MatchEndReason reason, bool won)
         {
+            if (!IsKoreanLang)
+            {
+                if (won)
+                {
+                    return reason switch
+                    {
+                        BattleAcesMatchController.MatchEndReason.VictoryEnemyCoreDestroyed => "Outcome: enemy core destroyed",
+                        BattleAcesMatchController.MatchEndReason.VictoryMissionObjective => "Outcome: mission objective complete",
+                        _ => "Outcome: victory"
+                    };
+                }
+
+                return reason switch
+                {
+                    BattleAcesMatchController.MatchEndReason.DefeatPlayerCoreDestroyed => "Outcome: command core destroyed",
+                    BattleAcesMatchController.MatchEndReason.DefeatRelicOrKeyObjectiveLost => "Outcome: key objective lost",
+                    BattleAcesMatchController.MatchEndReason.DefeatMissionFailed => "Outcome: mission failed",
+                    _ => "Outcome: defeat"
+                };
+            }
+
             if (won)
             {
                 return reason switch
                 {
-                    BattleAcesMatchController.MatchEndReason.VictoryEnemyCoreDestroyed => "종료 사유: 적 코어 파괴",
-                    BattleAcesMatchController.MatchEndReason.VictoryMissionObjective => "종료 사유: 미션 목표 달성",
+                    BattleAcesMatchController.MatchEndReason.VictoryEnemyCoreDestroyed => "종료 사유: 적 코어 격파",
+                    BattleAcesMatchController.MatchEndReason.VictoryMissionObjective => "종료 사유: 작전 목표 달성",
                     _ => "종료 사유: 작전 승리"
                 };
             }
 
             return reason switch
             {
-                BattleAcesMatchController.MatchEndReason.DefeatPlayerCoreDestroyed => "종료 사유: 아군 코어 파괴",
+                BattleAcesMatchController.MatchEndReason.DefeatPlayerCoreDestroyed => "종료 사유: 지휘 코어 붕괴",
                 BattleAcesMatchController.MatchEndReason.DefeatRelicOrKeyObjectiveLost => "종료 사유: 핵심 목표 상실",
-                BattleAcesMatchController.MatchEndReason.DefeatMissionFailed => "종료 사유: 미션 실패",
+                BattleAcesMatchController.MatchEndReason.DefeatMissionFailed => "종료 사유: 작전 실패",
                 _ => "종료 사유: 작전 실패"
             };
         }
@@ -646,10 +682,10 @@ namespace Game.BattleAces
 
             int prevSize = GUI.skin.label.fontSize;
             GUI.skin.label.fontSize = 19;
-            GUI.color = ImGuiGameUi.AccentGold;
+            GUI.color = ImGuiGameUi.AccentCyan;
             GUI.Label(
                 new Rect(22f, 14f, Screen.width - 44f, 36f),
-                $"작전 목표 · {MissionObjectiveDisplayText.GetPrimaryLine(m)}");
+                $"{DemoPresentationCopy.BriefingTopBarPrefixKo} · {MissionObjectiveDisplayText.GetPrimaryLine(m)}");
             GUI.skin.label.fontSize = prevSize;
             GUI.color = Color.white;
         }

@@ -107,8 +107,17 @@ namespace Game.BattleAces
             float missionExtraH = 0f;
             if (missionForLayout != null)
             {
-                // 상단 바와 같이: 데모 제목 + 목표 + 힌트(긴 미션은 추가 높이)
-                missionExtraH = 148f;
+                bool compactMission = ShouldCompactF1MissionBlock(missionForLayout);
+                if (compactMission)
+                {
+                    // 상단 UGUI에 1차 목표가 있을 때 — F1 은 보조만(높이 축소)
+                    missionExtraH = 102f;
+                }
+                else
+                {
+                    missionExtraH = 148f;
+                }
+
                 string hintPreview = MissionObjectiveDisplayText.GetGameplayHint(missionForLayout);
                 if (!string.IsNullOrEmpty(hintPreview) && hintPreview.Length > 72)
                 {
@@ -149,42 +158,79 @@ namespace Game.BattleAces
             Color prevGuiColor = GUI.color;
 
             GUI.skin.label.fontSize = 20;
-            GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(new Rect(card.x + 18f, card.y + 14f, card.width - 130f, 32f), "조작 안내");
+            GUI.color = ImGuiGameUi.AccentCyan;
+            GUI.Label(new Rect(card.x + 18f, card.y + 14f, card.width - 130f, 32f), DemoPresentationCopy.HelpF1PanelTitle);
             float bodyTopY = card.y + 42f;
 
             PersistentGameCore core = PersistentGameCore.Instance;
             MissionDefinition mission = core != null ? core.ActiveMission : null;
             if (mission != null)
             {
-                GUI.skin.label.fontSize = 14;
-                GUI.color = ImGuiGameUi.VictoryTint;
-                GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, 22f), "이번 작전 (상단 바와 동일)");
-                bodyTopY += 22f;
-
-                GUI.skin.label.fontSize = 14;
-                GUI.color = ImGuiGameUi.AccentGold;
-                string barTitle = BattleAcesObjectiveUgui.FormatTopBarDemoTitle(mission);
-                GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, 22f), barTitle);
-                bodyTopY += 24f;
-
-                GUI.skin.label.fontSize = 15;
-                GUI.color = ImGuiGameUi.TextTitle;
-                GUI.Label(
-                    new Rect(card.x + 18f, bodyTopY, card.width - 36f, 24f),
-                    MissionObjectiveDisplayText.GetPrimaryLine(mission));
-                bodyTopY += 26f;
-
-                string hint = MissionObjectiveDisplayText.GetGameplayHint(mission);
-                if (!string.IsNullOrEmpty(hint))
+                bool compactMission = ShouldCompactF1MissionBlock(mission);
+                if (compactMission)
                 {
-                    GUIStyle hintStyle = GetOrCreateMissionHintStyle();
-                    float hintH = Mathf.Clamp(
-                        hintStyle.CalcHeight(new GUIContent(hint), card.width - 36f),
-                        28f,
-                        96f);
-                    GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, hintH), hint, hintStyle);
-                    bodyTopY += hintH + 6f;
+                    GUI.skin.label.fontSize = 14;
+                    GUI.color = ImGuiGameUi.AccentGold;
+                    GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, 22f), DemoPresentationCopy.HelpF1SectionRoleLine);
+                    bodyTopY += 24f;
+
+                    GUI.skin.label.fontSize = 13;
+                    GUI.color = ImGuiGameUi.TextMuted;
+                    GUI.Label(
+                        new Rect(card.x + 18f, bodyTopY, card.width - 36f, 36f),
+                        DemoPresentationCopy.HelpF1PrimaryOnTopBarLine);
+                    bodyTopY += 40f;
+
+                    string hintCompact = MissionObjectiveDisplayText.GetGameplayHint(mission);
+                    if (!string.IsNullOrEmpty(hintCompact))
+                    {
+                        GUI.skin.label.fontSize = 14;
+                        GUI.color = ImGuiGameUi.AccentCyan;
+                        GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, 20f), DemoPresentationCopy.HelpF1SecondaryHintsHeader);
+                        bodyTopY += 22f;
+
+                        GUIStyle hintStyleC = GetOrCreateMissionHintStyle();
+                        float hintHc = Mathf.Clamp(
+                            hintStyleC.CalcHeight(new GUIContent(hintCompact), card.width - 36f),
+                            28f,
+                            96f);
+                        GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, hintHc), hintCompact, hintStyleC);
+                        bodyTopY += hintHc + 6f;
+                    }
+                }
+                else
+                {
+                    GUI.skin.label.fontSize = 14;
+                    GUI.color = ImGuiGameUi.AccentCyan;
+                    GUI.Label(
+                        new Rect(card.x + 18f, bodyTopY, card.width - 36f, 22f),
+                        DemoPresentationCopy.HelpMissionThisOperationHeader);
+                    bodyTopY += 22f;
+
+                    GUI.skin.label.fontSize = 14;
+                    GUI.color = ImGuiGameUi.TextTitle;
+                    string barTitle = BattleAcesObjectiveUgui.FormatTopBarDemoTitle(mission);
+                    GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, 22f), barTitle);
+                    bodyTopY += 24f;
+
+                    GUI.skin.label.fontSize = 15;
+                    GUI.color = ImGuiGameUi.TextTitle;
+                    GUI.Label(
+                        new Rect(card.x + 18f, bodyTopY, card.width - 36f, 24f),
+                        MissionObjectiveDisplayText.GetPrimaryLine(mission));
+                    bodyTopY += 26f;
+
+                    string hint = MissionObjectiveDisplayText.GetGameplayHint(mission);
+                    if (!string.IsNullOrEmpty(hint))
+                    {
+                        GUIStyle hintStyle = GetOrCreateMissionHintStyle();
+                        float hintH = Mathf.Clamp(
+                            hintStyle.CalcHeight(new GUIContent(hint), card.width - 36f),
+                            28f,
+                            96f);
+                        GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, hintH), hint, hintStyle);
+                        bodyTopY += hintH + 6f;
+                    }
                 }
 
                 // 공중 요새 변주 — 이 데모에선 건물 클릭 선택 없음
@@ -192,9 +238,9 @@ namespace Game.BattleAces
                 {
                     GUI.skin.label.fontSize = 13;
                     GUI.skin.label.wordWrap = true;
-                    GUI.color = ImGuiGameUi.AccentGold;
+                    GUI.color = ImGuiGameUi.TextMuted;
                     const string airborneNote =
-                        "공중 요새(공성) 변주: 적 거점을 마우스로 선택하지 않습니다. " +
+                        "공중 요새(공성) 변주: 적 코어를 마우스로 선택하지 않습니다. " +
                         "덱 1~8 생산 후 부대 선택·우클릭 이동/공격만 사용합니다.";
                     float airH = GUI.skin.label.CalcHeight(new GUIContent(airborneNote), card.width - 36f);
                     airH = Mathf.Clamp(airH, 40f, 78f);
@@ -207,27 +253,21 @@ namespace Game.BattleAces
             // --- 한 장 요약(5줄) ---
             GUI.skin.label.fontSize = 14;
             GUI.color = ImGuiGameUi.TextTitle;
-            GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, 22f), "핵심 요약");
+            GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, 22f), DemoPresentationCopy.HelpSummarySectionTitle);
             bodyTopY += 24f;
 
-            // Battle Aces(NewSampleScene)에 실제로 붙어 있는 조작만 — 없는 시스템은 아래 「이 데모에 없음」
-            const string summarySixLines =
-                "• 왼쪽 HUD: 자원·덱 1~8·생산 큐·집결(Alt+지면 우클릭)·T/Y/U 본진 강화\n" +
-                "• 선택: 좌클릭/드래그(아군만) · 우클릭 이동·공격 · Ctrl+A 전체 · Esc 해제\n" +
-                "• 카메라: WASD·화살표·가장자리·휠(회전 없음) · Space/ Home · ,(쉼표) 집결 시야\n" +
-                "• 우하단 전술 지도: 클릭·드래그 · Ctrl+클릭·Shift 드래그 선택 · Shift+M 크기\n" +
-                "• P 일시정지 · [ ]·숫자패드 ± 배속 · O 설정 · V 자동 표적 · H/G/B(유닛 선택 시)\n" +
-                "• F1 이 창 · 승패 화면에서만 R 재시작";
-
+            string summarySixLines = DemoPresentationCopy.BuildHelpCoreSummarySixLines();
             GUIStyle sumStyle = GetOrCreateHelpSummaryStyle();
             float sumH = sumStyle.CalcHeight(new GUIContent(summarySixLines), card.width - 36f);
-            sumH = Mathf.Clamp(sumH, 120f, 220f);
+            sumH = Mathf.Clamp(sumH, 120f, 248f);
             GUI.Label(new Rect(card.x + 18f, bodyTopY, card.width - 36f, sumH), summarySixLines, sumStyle);
             bodyTopY += sumH + 8f;
 
             // 자세히 토글 — HUD 버튼 스타일
             Rect detailToggleRect = new Rect(card.x + 18f, bodyTopY, Mathf.Min(340f, card.width - 40f), 32f);
-            string toggleLabel = helpDetailsExpanded ? "접기 ▲ (전체 목록 숨김)" : "자세히 보기 ▼ (전체 조작 목록)";
+            string toggleLabel = helpDetailsExpanded
+                ? DemoPresentationCopy.HelpDetailToggleCollapse
+                : DemoPresentationCopy.HelpDetailToggleExpand;
             if (ImGuiGameUi.GameMenuButton(detailToggleRect, toggleLabel))
             {
                 helpDetailsExpanded = !helpDetailsExpanded;
@@ -245,25 +285,7 @@ namespace Game.BattleAces
                     "집에서 처음 켤 때: O 로 볼륨·UI 크기·전체화면을 맞추고 「설정 저장」을 누르세요.");
                 bodyTopY += 48f;
 
-                const string bodyFull =
-                    "— Battle Aces 데모에 있는 것만 —\n" +
-                    "P: 일시정지 · [ / ] 또는 숫자패드 - +: 배속 단계\n" +
-                    "O: 설정(볼륨·UI 크기·전체화면 등)\n" +
-                    "좌클릭·드래그: 아군만 선택 · Ctrl+A: 살아 있는 아군 전체 · Esc: 선택 해제\n" +
-                    "우클릭: 이동 / 적·목표 공격\n" +
-                    "Alt+지면 우클릭: 집결(랠리) — 청색 링 · ,(쉼표): 랠리로 카메라\n" +
-                    "1~8: 덱 생산 주문(자원·큐 제한 시 짧은 거절음)\n" +
-                    "T / Y / U: 본진 생산·장갑·자원 강화(왼쪽 HUD 비용 표시)\n" +
-                    "H / G / B: 홀드 / 수비(가까운 아군 거점) / 후퇴 — 유닛 선택 시\n" +
-                    "카메라: WASD·화살표·가장자리 · 휠 줌(키보드 회전 없음 · Ctrl 누른 채 WASD는 카메라 이동 안 함)\n" +
-                    "Space: 교전 쪽 시야 · Home: 아군 코어\n" +
-                    "전술 지도: 클릭·드래그 이동 · Ctrl+클릭 근처 아군 · Shift+드래그 박스 선택 · Shift+M 크기\n" +
-                    "V: 자동 표적(가까운 적 우선) 토글 · F1: 이 창\n" +
-                    "R: 승리/패배 결과 화면에서만 같은 씬 재시작\n" +
-                    "Ctrl+F2~F5: 부대 단축 지정 · F2~F5: 불러오기(더블 탭 시 해당 부대로 카메라)\n" +
-                    "※ F1은 도움말 전용이라 F1 단축 그룹은 쓰이지 않습니다.\n\n" +
-                    "— 이 데모에 없음 —\n" +
-                    "멀티플레이, 기술 트리, 본진 외 건물 건설, 거점/건물 마우스 선택 후 명령, 캠페인 외 맵 편집 등";
+                string bodyFull = DemoPresentationCopy.BuildBattleAcesF1ExpandedDetailBody();
 
                 GUIStyle detailStyle = GetOrCreateHelpDetailBodyStyle();
                 const float footerReserve = 50f;
@@ -277,11 +299,11 @@ namespace Game.BattleAces
 
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.skin.label.fontSize = 13;
-            GUI.Label(new Rect(card.x + 18f, card.yMax - 44f, card.width - 36f, 28f), "다시 F1 을 누르면 닫습니다.");
+            GUI.Label(new Rect(card.x + 18f, card.yMax - 44f, card.width - 36f, 28f), DemoPresentationCopy.HelpF1FooterCloseHint);
             GUI.color = Color.white;
 
             Rect closeBtn = new Rect(card.xMax - 120f, card.y + 12f, 100f, 32f);
-            if (ImGuiGameUi.GameMenuButton(closeBtn, "닫기 (F1)"))
+            if (ImGuiGameUi.GameMenuButton(closeBtn, DemoPresentationCopy.HelpF1CloseButton))
             {
                 if (pendingFirstRunIntroMark)
                 {
@@ -297,6 +319,24 @@ namespace Game.BattleAces
             GUI.color = prevGuiColor;
 
             ImGuiGameUi.EndScaledGui();
+        }
+
+        /// <summary>상단 UGUI 목표 바가 켜진 전투 중에는 F1 에서 주 목표 문구를 반복하지 않음(C축)</summary>
+        private static bool ShouldCompactF1MissionBlock(MissionDefinition mission)
+        {
+            if (mission == null)
+            {
+                return false;
+            }
+
+            BattleMissionFlow flow = BattleMissionFlow.Instance;
+            if (flow == null || !flow.IsGameplayStarted)
+            {
+                return false;
+            }
+
+            BattleAcesObjectiveUgui ugui = BattleAcesObjectiveUgui.Instance;
+            return ugui != null && ugui.HasObjectiveUi;
         }
 
         private GUIStyle GetOrCreateHelpSummaryStyle()

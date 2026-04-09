@@ -21,8 +21,24 @@ namespace Game.BattleAces
         private Text textAuxiliary;
         private bool built;
 
+        /// <summary>씬에 인스턴스 1개 전제 — F1·가독성 분기용</summary>
+        public static BattleAcesObjectiveUgui Instance { get; private set; }
+
         public bool HasObjectiveUi => built && mission != null;
         public float TopReservePixels => HasObjectiveUi ? TopMargin + StripHeight + 6f : 0f;
+
+        private void OnEnable()
+        {
+            Instance = this;
+        }
+
+        private void OnDisable()
+        {
+            if (Instance == this)
+            {
+                Instance = null;
+            }
+        }
 
         public void Initialize(MissionDefinition m, BattleMissionFlow battleFlow)
         {
@@ -63,6 +79,11 @@ namespace Game.BattleAces
 
         private void OnDestroy()
         {
+            if (Instance == this)
+            {
+                Instance = null;
+            }
+
             if (rootCanvas != null)
             {
                 Destroy(rootCanvas.gameObject);
@@ -111,7 +132,7 @@ namespace Game.BattleAces
             stripeRt.sizeDelta = new Vector2(4f, 0f);
             stripeRt.anchoredPosition = Vector2.zero;
             Image stripeImg = leftStripe.AddComponent<Image>();
-            stripeImg.color = ImGuiGameUi.HudStripeTactical;
+            stripeImg.color = ImGuiGameUi.AccentCyan;
             stripeImg.raycastTarget = false;
 
             GameObject accent = new GameObject("AccentLine");
@@ -127,7 +148,8 @@ namespace Game.BattleAces
             accentImg.raycastTarget = false;
 
             textDemoTitle = CreateStretchedTopText(panel.transform, "DemoTitle", font, 15, TextAnchor.MiddleLeft, 10f, 22f, 10f);
-            textDemoTitle.color = ImGuiGameUi.AccentGold;
+            // 상단 1차 악센트 — 아트 방향 티얼(작전명·UGUI와 F1 동일 톤)
+            textDemoTitle.color = ImGuiGameUi.AccentCyan;
             AddOutline(textDemoTitle);
 
             textObjective = CreateStretchedTopText(panel.transform, "Objective", font, 16, TextAnchor.MiddleLeft, 34f, 26f, 10f);
@@ -206,7 +228,12 @@ namespace Game.BattleAces
                 return name;
             }
 
-            return string.IsNullOrEmpty(name) ? "데모" : $"데모 · {name}";
+            if (string.IsNullOrEmpty(name))
+            {
+                return DemoPresentationCopy.UguiCampaignStripWhenNameMissing;
+            }
+
+            return $"{DemoPresentationCopy.UguiCampaignStripPrefix} · {name}";
         }
 
         private void RefreshTexts()

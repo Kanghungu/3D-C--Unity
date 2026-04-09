@@ -1,3 +1,4 @@
+using Game.BattleAces;
 using Game.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -13,7 +14,7 @@ namespace Game.Settings
         private const float PanelHeightPreferred = 620f;
         private const float PanelLeft = 24f;
         private const float PanelBottomMargin = 16f;
-        private const float ContentHeightApprox = 640f;
+        private const float ContentHeightApprox = 820f;
 
         private bool panelOpen;
 
@@ -123,6 +124,39 @@ namespace Game.Settings
 
                 y += 38f;
 
+                // --- 전투 안개 (선택) ---
+                DrawSectionTitle(ref y, innerPadX, innerW, "전투 안개 (선택)");
+                DrawSectionHint(ref y, innerPadX, innerW, "ClassicDuel 평지 데모 전장만. 스샷·유닛 가독성용 — 저장 후 유지됩니다.");
+
+                GUI.skin.label.fontSize = 13;
+                GUI.color = Color.white;
+                GUI.Label(new Rect(innerPadX, y, 168f, 22f), "안개 거리");
+                float fogDist = GUI.HorizontalSlider(
+                    new Rect(sliderLeft, y + 4f, sliderW, 18f),
+                    GameUserSettings.BattleFogDistanceScale,
+                    0.62f,
+                    1.42f);
+                if (!Mathf.Approximately(fogDist, GameUserSettings.BattleFogDistanceScale))
+                {
+                    GameUserSettings.SetBattleFogDistanceScale(fogDist);
+                    BattleAcesWorldPresentation.RefreshBattleFogIfClassicDuelActive();
+                }
+
+                y += 36f;
+                GUI.Label(new Rect(innerPadX, y, 168f, 22f), "안개 강도");
+                float fogInt = GUI.HorizontalSlider(
+                    new Rect(sliderLeft, y + 4f, sliderW, 18f),
+                    GameUserSettings.BattleFogIntensity01,
+                    0f,
+                    1f);
+                if (!Mathf.Approximately(fogInt, GameUserSettings.BattleFogIntensity01))
+                {
+                    GameUserSettings.SetBattleFogIntensity01(fogInt);
+                    BattleAcesWorldPresentation.RefreshBattleFogIfClassicDuelActive();
+                }
+
+                y += 40f;
+
                 // --- 화면 ---
                 DrawSectionTitle(ref y, innerPadX, innerW, "화면");
                 DrawSectionHint(ref y, innerPadX, innerW, "카메라 감도·창 모드·HUD(IMGUI) 표시 크기입니다.");
@@ -176,12 +210,22 @@ namespace Game.Settings
 
                 y += 40f;
 
+                // --- 입력 안내(Battle Aces 범위) ---
+                DrawSectionTitle(ref y, innerPadX, innerW, "입력 안내");
+                DrawSectionHint(ref y, innerPadX, innerW, DemoPresentationCopy.SettingsInputNoRebindHint);
+
+                y += 8f;
+
                 // --- 접근성 ---
                 DrawSectionTitle(ref y, innerPadX, innerW, "접근성");
-                DrawSectionHint(ref y, innerPadX, innerW, "미니맵 색약 모드 · 브리핑 글자 나오는 속도(자막과 동일 슬라이더).");
+                DrawSectionHint(
+                    ref y,
+                    innerPadX,
+                    innerW,
+                    "미니맵 색약: 아트 팔레트(티얼·앰버)와 같은 축에서 파랑·시안/주황만 더 벌림 — BATTLE_ACES_READABILITY.md. 브리핑 속도는 자막과 동일 슬라이더.");
 
                 bool cb = GameUserSettings.ColorblindFriendlyMinimap;
-                bool cbNew = GUI.Toggle(new Rect(innerPadX, y, innerW, 24f), cb, "미니맵 색약 친화 (아군 청·적 주황)");
+                bool cbNew = GUI.Toggle(new Rect(innerPadX, y, innerW, 24f), cb, "미니맵 색약 (아군 청·시안 / 적 앰버·주황)");
                 if (cbNew != cb)
                 {
                     GameUserSettings.SetColorblindFriendlyMinimap(cbNew);

@@ -1,3 +1,4 @@
+using Game.BattleAces;
 using Game.Campaign.Core;
 using Game.Campaign.Data;
 using Game.Settings;
@@ -19,12 +20,17 @@ namespace Game.Campaign
         [SerializeField] private CampaignMissionCatalog catalog;
         [SerializeField] private bool useRuntimeDemoIfCatalogEmpty = true;
 
+        /// <summary>데모(즉시 전투)에서 마지막으로 고른 전장 레이아웃 — 씬 로드 시 스커미시 미션에 반영</summary>
+        private static BattleArenaLayoutKind demoSelectedArenaLayout = BattleArenaLayoutKind.ClassicDuel;
+
         private MainMenuLayer currentLayer = MainMenuLayer.Root;
         private float menuOpenedUnscaled;
 
         private void OnEnable()
         {
             menuOpenedUnscaled = Time.unscaledTime;
+            // 전투 씬에서 바꾼 RenderSettings·포스트를 메뉴 톤으로 복구(씬 로드 훅과 중복돼도 무해)
+            BattleAcesWorldPresentation.ApplyMenuWorldPresentation();
         }
 
         private void Update()
@@ -233,7 +239,9 @@ namespace Game.Campaign
             ImGuiGameUi.DrawPanelFrame(note, ImGuiGameUi.PanelBgHudCard, ImGuiGameUi.BorderCool, 1f);
             GUI.skin.label.fontSize = 11;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(note, L("Esc는 하위 메뉴에서 돌아가기, R은 전투 재시작, F10은 진단 HUD 토글입니다.", "Esc returns from submenus. R restarts after a match. F10 toggles diagnostics."));
+            GUI.Label(note, L(
+                "Esc 하위 복귀 · 전투 중 F1 도움말 · 전투 후 R 재시작 · (개발 빌드) F10 진단·F11 FoW 격자",
+                "Esc: back · F1 help in combat · R after battle · (dev) F10 diagnostics, F11 FoW grid"));
             GUI.color = Color.white;
         }
 
@@ -329,10 +337,12 @@ namespace Game.Campaign
             GUI.skin.label.fontSize = 12;
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(
-                new Rect(left.x + 24f, left.y + 68f, left.width - 48f, 44f),
-                L("맵과 덱은 동일하고, 난이도는 주로 적 압박과 생산 템포를 바꿉니다.", "Same core map and deck. Difficulty mainly changes AI pressure and production pace."));
+                new Rect(left.x + 24f, left.y + 68f, left.width - 48f, 36f),
+                L("덱은 동일합니다. 아래에서 전장 맵을 고른 뒤 난이도를 누르면 시작됩니다.", "Same deck. Pick a battlefield map below, then choose a difficulty to start."));
 
-            float btnY = left.y + 122f;
+            DrawDemoArenaMapPicker(new Rect(left.x + 24f, left.y + 108f, left.width - 48f, 92f));
+
+            float btnY = left.y + 210f;
             float btnW = left.width - 48f;
             float btnH = 64f;
             float btnGap = 16f;
@@ -368,9 +378,15 @@ namespace Game.Campaign
 
             GUI.skin.label.fontSize = 12;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(new Rect(right.x + 24f, right.y + 138f, right.width - 48f, 64f), DemoPresentationCopy.KeyboardOnlyNoticeKo + "\n\n" + DemoPresentationCopy.AfterMatchExitOneLineKo);
+            GUI.Label(new Rect(right.x + 24f, right.y + 128f, right.width - 48f, 72f), DemoPresentationCopy.KeyboardOnlyNoticeKo + "\n\n" + DemoPresentationCopy.AfterMatchExitOneLineKo);
 
-            Rect statCard = new Rect(right.x + 24f, right.y + 232f, right.width - 48f, 104f);
+            GUI.skin.label.fontSize = 11;
+            GUI.color = ImGuiGameUi.AccentGold;
+            GUI.Label(
+                new Rect(right.x + 24f, right.y + 200f, right.width - 48f, 22f),
+                L("선택 전장: " + FormatArenaLayoutLabelKo(demoSelectedArenaLayout), "Battlefield: " + FormatArenaLayoutLabelEn(demoSelectedArenaLayout)));
+
+            Rect statCard = new Rect(right.x + 24f, right.y + 228f, right.width - 48f, 104f);
             ImGuiGameUi.DrawPanelFrame(statCard, ImGuiGameUi.PanelBgHudCard, ImGuiGameUi.BorderCool, 1f);
             GUI.skin.label.fontSize = GameUserSettings.Language == GameLanguage.Korean ? 10 : 11;
             GUI.color = ImGuiGameUi.ResourceHighlight;
@@ -483,10 +499,66 @@ namespace Game.Campaign
             return line.TrimEnd();
         }
 
+        private void DrawDemoArenaMapPicker(Rect area)
+        {
+            GUI.skin.label.fontSize = 13;
+            GUI.color = ImGuiGameUi.TextTitle;
+            GUI.Label(new Rect(area.x, area.y, area.width, 20f), L("전장 맵", "Battlefield map"));
+
+            float rowY = area.y + 26f;
+            float gap = 8f;
+            float w = (area.width - gap * 2f) / 3f;
+            float h = 56f;
+
+            DrawArenaMapOption(new Rect(area.x, rowY, w, h), BattleArenaLayoutKind.ClassicDuel, L("평지\n클래식", "Open\nclassic"));
+            DrawArenaMapOption(new Rect(area.x + w + gap, rowY, w, h), BattleArenaLayoutKind.CrossroadsSpirit, L("십자\n투혼식", "Cross\nSpirit-style"));
+            DrawArenaMapOption(new Rect(area.x + (w + gap) * 2f, rowY, w, h), BattleArenaLayoutKind.NarrowMidChoke, L("중앙\n초크", "Mid\nchoke"));
+            GUI.color = Color.white;
+        }
+
+        private static void DrawArenaMapOption(Rect r, BattleArenaLayoutKind kind, string multilineLabel)
+        {
+            bool on = demoSelectedArenaLayout == kind;
+            if (on)
+            {
+                ImGuiGameUi.DrawPanelFrame(r, new Color(0.12f, 0.22f, 0.28f, 0.95f), ImGuiGameUi.AccentCyan, 2f);
+            }
+            else
+            {
+                ImGuiGameUi.DrawPanelFrame(r, new Color(0.08f, 0.1f, 0.14f, 0.88f), new Color(0.22f, 0.28f, 0.36f, 0.7f), 1f);
+            }
+
+            GUI.skin.label.fontSize = 11;
+            GUI.color = on ? ImGuiGameUi.TextTitle : ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(r.x + 6f, r.y + 8f, r.width - 12f, r.height - 16f), multilineLabel);
+            if (GUI.Button(r, GUIContent.none, GUIStyle.none))
+            {
+                demoSelectedArenaLayout = kind;
+            }
+
+            GUI.color = Color.white;
+        }
+
+        private static string FormatArenaLayoutLabelKo(BattleArenaLayoutKind k) =>
+            k switch
+            {
+                BattleArenaLayoutKind.CrossroadsSpirit => "십자 (투혼식)",
+                BattleArenaLayoutKind.NarrowMidChoke => "중앙 초크",
+                _ => "평지 클래식"
+            };
+
+        private static string FormatArenaLayoutLabelEn(BattleArenaLayoutKind k) =>
+            k switch
+            {
+                BattleArenaLayoutKind.CrossroadsSpirit => "Crossroads (Spirit-style)",
+                BattleArenaLayoutKind.NarrowMidChoke => "Mid choke",
+                _ => "Open classic"
+            };
+
         private static void StartSkirmishVsAi(SkirmishDifficultyTier tier)
         {
             MissionDefinition skirmish = ScriptableObject.CreateInstance<MissionDefinition>();
-            skirmish.AssignSkirmishVsAiRuntime(tier);
+            skirmish.AssignSkirmishVsAiRuntime(tier, demoSelectedArenaLayout);
 
             PersistentGameCore core = EnsurePersistentCore();
             core.SetActiveMission(skirmish);
@@ -505,7 +577,7 @@ namespace Game.Campaign
         private static void StartSkirmishVariantAggressive(SkirmishDifficultyTier tier)
         {
             MissionDefinition skirmish = ScriptableObject.CreateInstance<MissionDefinition>();
-            skirmish.AssignSkirmishVsAiRuntime(tier);
+            skirmish.AssignSkirmishVsAiRuntime(tier, demoSelectedArenaLayout);
 
             string suffix = tier switch
             {

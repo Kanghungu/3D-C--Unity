@@ -1,4 +1,5 @@
-﻿using Game.Prototype;
+﻿using Game.BattleAces;
+using Game.Prototype;
 using UnityEngine;
 
 namespace Game.Units
@@ -43,6 +44,11 @@ namespace Game.Units
         private UnitDefinition definition;
         private Color defaultColor;
         private Color selectedColor;
+
+        /// <summary>선택 링 직경·두께 — 바닥에서 윤곽이 더 잘 보이게</summary>
+        private const float SelectionRingDiameter = 1.38f;
+
+        private const float SelectionRingHeight = 0.046f;
 
         public UnitTeam Team => team;
         public UnitArchetype Archetype => definition != null ? definition.Archetype : UnitArchetype.Spearman;
@@ -133,6 +139,15 @@ namespace Game.Units
             }
 
             ApplyColor(isSelected ? selectedColor : defaultColor);
+            if (isSelected)
+            {
+                ApplySelectionRingHighlight();
+            }
+            else
+            {
+                ApplySelectionRingTeamIdleTint();
+            }
+
             UpdateStatusIndicator();
         }
 
@@ -142,7 +157,8 @@ namespace Game.Units
             {
                 if (cachedRenderer != null)
                 {
-                    cachedRenderer.material.color = color;
+                    // 실루엣 이미터는 유지하고 알베도만 — 선택 시 몸통만 밝게
+                    ReadablePrimitiveMaterialUtility.ApplyAlbedoOnly(cachedRenderer, color);
                 }
             }
         }
@@ -160,20 +176,60 @@ namespace Game.Units
                 defaultColor = team == UnitTeam.Player ? definition.PlayerColor : definition.EnemyColor;
             }
 
-            selectedColor = team == UnitTeam.Player ? new Color(0.2f, 0.95f, 0.3f) : new Color(1f, 0.75f, 0.2f);
+            defaultColor = BattleAcesReadability.EnhanceFactionUnitTint(defaultColor, team);
+
+            // 선택 링은 티얼/앰버 — 본체 틴트는 살짝 채도만 올린 티얼·앰버 계열
+            selectedColor = team == UnitTeam.Player
+                ? Color.Lerp(BattleAcesArtDirection.PointTeal, new Color(0.2f, 0.95f, 0.55f, 1f), 0.35f)
+                : Color.Lerp(BattleAcesArtDirection.EnemyEmber, new Color(1f, 0.72f, 0.28f, 1f), 0.28f);
 
             if (cachedRenderers != null && cachedRenderers.Length > 0)
             {
                 ApplyColor(defaultColor);
             }
 
-            if (selectionRing != null)
+            ApplySelectionRingTeamIdleTint();
+            UpdateStatusIndicator();
+        }
+
+        /// <summary>비선택 상태 링 틴트 — 다음에 선택될 때까지 유지</summary>
+        private void ApplySelectionRingTeamIdleTint()
+        {
+            if (selectionRing == null)
             {
-                Renderer ringRenderer = selectionRing.GetComponent<Renderer>();
-                ringRenderer.material.color = team == UnitTeam.Player ? new Color(0.1f, 1f, 0.3f, 0.9f) : new Color(1f, 0.4f, 0.1f, 0.9f);
+                return;
             }
 
-            UpdateStatusIndicator();
+            Renderer ringRenderer = selectionRing.GetComponent<Renderer>();
+            if (ringRenderer == null)
+            {
+                return;
+            }
+
+            Color ringColor = team == UnitTeam.Player
+                ? BattleAcesArtDirection.PointTeal
+                : BattleAcesArtDirection.EnemyEmber;
+            ReadablePrimitiveMaterialUtility.Apply(ringRenderer, ringColor, 0.82f);
+        }
+
+        /// <summary>선택됨 — 링만 강한 시안·금색 이미터로 분리</summary>
+        private void ApplySelectionRingHighlight()
+        {
+            if (selectionRing == null)
+            {
+                return;
+            }
+
+            Renderer ringRenderer = selectionRing.GetComponent<Renderer>();
+            if (ringRenderer == null)
+            {
+                return;
+            }
+
+            Color ringColor = team == UnitTeam.Player
+                ? Color.Lerp(BattleAcesArtDirection.PointTeal, Color.white, 0.12f)
+                : Color.Lerp(BattleAcesArtDirection.EnemyEmber, Color.white, 0.1f);
+            ReadablePrimitiveMaterialUtility.Apply(ringRenderer, ringColor, 1.15f);
         }
 
         private void CreateSelectionRing()
@@ -188,7 +244,7 @@ namespace Game.Units
             selectionRing.transform.SetParent(transform);
             selectionRing.transform.localPosition = new Vector3(0f, -0.45f, 0f);
             selectionRing.transform.localRotation = Quaternion.identity;
-            selectionRing.transform.localScale = new Vector3(1.2f, 0.03f, 1.2f);
+            selectionRing.transform.localScale = new Vector3(SelectionRingDiameter, SelectionRingHeight, SelectionRingDiameter);
             selectionRing.GetComponent<Collider>().enabled = false;
             selectionRing.SetActive(false);
         }
@@ -237,7 +293,7 @@ namespace Game.Units
                 "Ability Halo",
                 new Vector3(0f, 0.24f, 0f),
                 new Vector3(0.12f, 0.025f, 0.12f),
-                new Color(1f, 0.84f, 0.32f));
+                Color.Lerp(BattleAcesArtDirection.EnemyEmber, BattleAcesArtDirection.PointTeal, 0.15f));
             abilityHaloRenderer = abilityHalo.GetComponent<Renderer>();
 
             roleBadgePrimary = CreateStatusPrimitive(
@@ -270,7 +326,7 @@ namespace Game.Units
                 "Directive Pointer Beam",
                 new Vector3(0f, 0f, 0.32f),
                 new Vector3(0.03f, 0.03f, 0.64f),
-                new Color(0.36f, 0.92f, 1f));
+                BattleAcesArtDirection.PointTeal);
             directivePointerBeamRenderer = directivePointerBeam.GetComponent<Renderer>();
 
             directivePointerTip = CreateStatusPrimitive(
@@ -279,7 +335,7 @@ namespace Game.Units
                 "Directive Pointer Tip",
                 new Vector3(0f, 0f, 0.66f),
                 new Vector3(0.1f, 0.1f, 0.1f),
-                new Color(0.36f, 0.92f, 1f));
+                BattleAcesArtDirection.PointTeal);
             directivePointerTipRenderer = directivePointerTip.GetComponent<Renderer>();
         }
 
@@ -301,7 +357,9 @@ namespace Game.Units
             string orderLabel = OrderLabel;
             bool directional = false;
             bool lateral = false;
-            Color orderColor = Team == UnitTeam.Player ? new Color(0.44f, 0.8f, 1f) : new Color(1f, 0.54f, 0.3f);
+            Color orderColor = Team == UnitTeam.Player
+                ? Color.Lerp(BattleAcesArtDirection.PointTeal, Color.white, 0.08f)
+                : Color.Lerp(BattleAcesArtDirection.EnemyEmber, Color.white, 0.06f);
             float bannerWidth = 0.08f;
             float bannerDepth = 0.18f;
             float coreScale = IsSelected ? 0.18f : 0.15f;
@@ -311,27 +369,27 @@ namespace Game.Units
             {
                 case "Engage":
                     directional = true;
-                    orderColor = new Color(1f, 0.34f, 0.22f);
+                    orderColor = BattleAcesArtDirection.EnemyEmber;
                     bannerDepth = 0.36f;
                     coreScale = 0.18f;
                     pulse = 0.9f + Mathf.PingPong(Time.time * 5.2f, 0.22f);
                     break;
                 case "Advance":
                     directional = true;
-                    orderColor = new Color(0.28f, 0.95f, 1f);
+                    orderColor = Color.Lerp(BattleAcesArtDirection.PointTeal, new Color(0.5f, 0.95f, 1f, 1f), 0.25f);
                     bannerDepth = 0.34f;
                     coreScale = 0.17f;
                     pulse = 0.88f + Mathf.PingPong(Time.time * 3.8f, 0.18f);
                     break;
                 case "Move":
                     directional = true;
-                    orderColor = new Color(0.34f, 0.95f, 0.42f);
+                    orderColor = Color.Lerp(BattleAcesArtDirection.PointTeal, new Color(0.35f, 0.92f, 0.55f, 1f), 0.4f);
                     bannerDepth = 0.28f;
                     pulse = 0.88f + Mathf.PingPong(Time.time * 3f, 0.14f);
                     break;
                 case "Guard":
                     lateral = true;
-                    orderColor = new Color(1f, 0.86f, 0.34f);
+                    orderColor = Color.Lerp(BattleAcesArtDirection.GunmetalLift, BattleAcesArtDirection.PointTeal, 0.45f);
                     bannerWidth = 0.34f;
                     bannerDepth = 0.08f;
                     coreScale = 0.17f;
@@ -344,7 +402,9 @@ namespace Game.Units
                     break;
                 default:
                     orderColor = IsSelected
-                        ? (Team == UnitTeam.Player ? new Color(0.82f, 1f, 0.62f) : new Color(1f, 0.82f, 0.42f))
+                        ? (Team == UnitTeam.Player
+                            ? Color.Lerp(BattleAcesArtDirection.PointTeal, Color.white, 0.22f)
+                            : Color.Lerp(BattleAcesArtDirection.EnemyEmber, Color.white, 0.18f))
                         : new Color(0.48f, 0.5f, 0.54f);
                     bannerWidth = 0.08f;
                     bannerDepth = 0.12f;
@@ -507,6 +567,23 @@ namespace Game.Units
                     animatedPosition.y += isFlying ? Mathf.Abs(wave) * 0.03f : 0f;
                     animatedRotation *= Quaternion.Euler(wingTilt, 0f, sway * 6f);
                 }
+                else if (partName.Contains("Thruster") || partName.Contains("Engine"))
+                {
+                    animatedPosition.y += Mathf.Abs(wave) * 0.028f;
+                    animatedPosition.z -= attackPulse * 0.04f;
+                    animatedRotation *= Quaternion.Euler(wave * 6f, sway * 6f, 0f);
+                    animatedScale *= 1f + Mathf.Abs(wave) * 0.08f + attackPulse * 0.06f;
+                }
+                else if (partName.Contains("Halo") || partName.Contains("Core"))
+                {
+                    animatedPosition.y += Mathf.Abs(wave) * 0.024f;
+                    animatedScale *= 1f + Mathf.Abs(wave) * 0.06f + attackPulse * 0.08f;
+                }
+                else if (partName.Contains("Bike") || partName.Contains("Lance") || partName.Contains("Banner"))
+                {
+                    animatedPosition.y += wave * 0.02f * motion;
+                    animatedRotation *= Quaternion.Euler(wave * 3f, 0f, sway * 4f);
+                }
                 else if (partName.Contains("Hull") || partName.Contains("Deck") || partName.Contains("Citadel") || partName.Contains("Flight"))
                 {
                     animatedPosition.y += isFlying ? Mathf.Abs(wave) * 0.04f : 0f;
@@ -531,11 +608,14 @@ namespace Game.Units
             if (selectionRing != null && selectionRing.activeSelf)
             {
                 float ringPulse = 1f + Mathf.PingPong(Time.time * 2.8f, 0.12f);
-                selectionRing.transform.localScale = new Vector3(1.2f * ringPulse, 0.03f, 1.2f * ringPulse);
+                selectionRing.transform.localScale = new Vector3(
+                    SelectionRingDiameter * ringPulse,
+                    SelectionRingHeight,
+                    SelectionRingDiameter * ringPulse);
             }
             else if (selectionRing != null)
             {
-                selectionRing.transform.localScale = new Vector3(1.2f, 0.03f, 1.2f);
+                selectionRing.transform.localScale = new Vector3(SelectionRingDiameter, SelectionRingHeight, SelectionRingDiameter);
             }
         }
 
@@ -586,6 +666,11 @@ namespace Game.Units
                     secondaryScale = new Vector3(0.18f, 0.03f, 0.18f);
                     secondaryPosition = new Vector3(0f, -0.2f, -0.1f);
                     break;
+                case UnitArchetype.Outrider:
+                    primaryScale = new Vector3(0.24f, 0.04f, 0.1f);
+                    secondaryScale = new Vector3(0.08f, 0.08f, 0.08f);
+                    secondaryPosition = new Vector3(0f, -0.08f, -0.24f);
+                    break;
                 case UnitArchetype.Artillery:
                     primaryScale = new Vector3(0.2f, 0.05f, 0.12f);
                     secondaryScale = new Vector3(0.06f, 0.06f, 0.06f);
@@ -629,15 +714,16 @@ namespace Game.Units
         {
             return archetype switch
             {
-                UnitArchetype.Spearman => new Color(0.36f, 1f, 0.62f),
-                UnitArchetype.ShieldInfantry => new Color(0.3f, 0.78f, 1f),
-                UnitArchetype.Rifleman => new Color(1f, 0.78f, 0.34f),
-                UnitArchetype.SpecialWarrior => new Color(1f, 0.66f, 0.42f),
-                UnitArchetype.RoyalGuard => new Color(1f, 0.9f, 0.56f),
-                UnitArchetype.Artillery => new Color(1f, 0.54f, 0.32f),
-                UnitArchetype.Fighter => new Color(0.62f, 0.9f, 1f),
-                UnitArchetype.MobileFortress => new Color(0.88f, 0.72f, 1f),
-                UnitArchetype.AirborneCitadel => new Color(0.84f, 0.96f, 1f),
+                UnitArchetype.Spearman => Color.Lerp(BattleAcesArtDirection.PointTeal, new Color(0.3f, 0.95f, 0.55f, 1f), 0.35f),
+                UnitArchetype.ShieldInfantry => Color.Lerp(BattleAcesArtDirection.PointTeal, BattleAcesArtDirection.AmbientSky, 0.28f),
+                UnitArchetype.Rifleman => Color.Lerp(BattleAcesArtDirection.EnemyEmber, new Color(1f, 0.75f, 0.38f, 1f), 0.32f),
+                UnitArchetype.SpecialWarrior => Color.Lerp(BattleAcesArtDirection.EnemyEmber, BattleAcesArtDirection.PointTeal, 0.22f),
+                UnitArchetype.RoyalGuard => Color.Lerp(BattleAcesArtDirection.EnemyEmber, new Color(1f, 0.82f, 0.5f, 1f), 0.28f),
+                UnitArchetype.Outrider => Color.Lerp(BattleAcesArtDirection.PointTeal, new Color(0.55f, 0.95f, 1f, 1f), 0.34f),
+                UnitArchetype.Artillery => Color.Lerp(BattleAcesArtDirection.EnemyEmber, new Color(1f, 0.5f, 0.3f, 1f), 0.2f),
+                UnitArchetype.Fighter => Color.Lerp(BattleAcesArtDirection.PointTeal, new Color(0.55f, 0.88f, 1f, 1f), 0.3f),
+                UnitArchetype.MobileFortress => Color.Lerp(BattleAcesArtDirection.PointTeal, new Color(0.75f, 0.7f, 0.92f, 1f), 0.25f),
+                UnitArchetype.AirborneCitadel => Color.Lerp(BattleAcesArtDirection.PointTeal, Color.white, 0.2f),
                 _ => Color.Lerp(fallbackColor, Color.white, 0.24f)
             };
         }
@@ -665,10 +751,10 @@ namespace Game.Units
                     ? 0.9f + Mathf.PingPong(Time.time * 2.2f, 0.14f)
                     : 0.84f + Mathf.PingPong(Time.time * 1.4f, 0.08f);
             Color haloColor = abilityActive
-                ? new Color(1f, 0.86f, 0.28f)
+                ? Color.Lerp(BattleAcesArtDirection.EnemyEmber, BattleAcesArtDirection.PointTeal, 0.2f)
                 : abilityReady
                     ? Color.Lerp(orderColor, Color.white, 0.2f)
-                    : new Color(0.92f, 0.62f, 0.24f);
+                    : Color.Lerp(BattleAcesArtDirection.EnemyEmber, Color.white, 0.12f);
 
             abilityHalo.localScale = new Vector3(0.12f * haloPulse, 0.025f, 0.12f * haloPulse);
 
@@ -740,8 +826,8 @@ namespace Game.Units
         {
             objectivePosition = transform.position;
             objectiveColor = team == UnitTeam.Player
-                ? new Color(0.34f, 0.92f, 1f)
-                : new Color(1f, 0.46f, 0.24f);
+                ? BattleAcesArtDirection.PointTeal
+                : BattleAcesArtDirection.EnemyEmber;
             baseAssault = false;
 
             BattleDirectiveController directiveController = BattleDirectiveController.Instance;
@@ -761,8 +847,8 @@ namespace Game.Units
 
                 objectivePosition = enemyBase.transform.position;
                 objectiveColor = team == UnitTeam.Player
-                    ? new Color(0.44f, 0.96f, 1f)
-                    : new Color(1f, 0.56f, 0.26f);
+                    ? Color.Lerp(BattleAcesArtDirection.PointTeal, Color.white, 0.08f)
+                    : Color.Lerp(BattleAcesArtDirection.EnemyEmber, Color.white, 0.06f);
                 baseAssault = true;
                 return true;
             }
@@ -776,8 +862,8 @@ namespace Game.Units
             objectivePosition = priorityNode.transform.position;
             objectiveColor = priorityNode.Tier switch
             {
-                ControlNodeTier.Grand => new Color(1f, 0.9f, 0.42f),
-                ControlNodeTier.Major => new Color(0.82f, 0.9f, 0.48f),
+                ControlNodeTier.Grand => Color.Lerp(BattleAcesArtDirection.PointTeal, new Color(0.95f, 0.78f, 0.38f, 1f), 0.35f),
+                ControlNodeTier.Major => Color.Lerp(BattleAcesArtDirection.PointTeal, new Color(0.85f, 0.88f, 0.5f, 1f), 0.28f),
                 _ => objectiveColor
             };
             return true;

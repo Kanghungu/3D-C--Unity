@@ -141,6 +141,25 @@ namespace Game.BattleAces
             attackWaveTimer = Mathf.Min(8f, attackWaveInterval * 0.55f);
         }
 
+        /// <summary>
+        /// ClassicDuel + 데모 지형 — 집결 반경·물결 주기를 넓혀 유닛이 덜 뭉치고 출격이 막히지 않게.
+        /// 미러 레이아웃은 좌우 반전으로 측면 이동이 길어질 수 있어 집결 판정만 소폭 확대.
+        /// </summary>
+        public void ApplyClassicDuelStageLayoutModifiers(bool mirroredLayout)
+        {
+            gatherRadius = Mathf.Min(86f, gatherRadius + 14f);
+            attackWaveInterval *= 0.91f;
+            attackWaveTimer = Mathf.Min(attackWaveTimer, attackWaveInterval * 0.5f);
+            forceWaveAfterSeconds = Mathf.Max(20f, forceWaveAfterSeconds - 12f);
+            minUnitsForAttackWave = Mathf.Max(4, minUnitsForAttackWave - 1);
+            forcedWaveMinUnits = Mathf.Max(3, forcedWaveMinUnits - 1);
+
+            if (mirroredLayout)
+            {
+                gatherRadius = Mathf.Min(90f, gatherRadius + 8f);
+            }
+        }
+
         private void Update()
         {
             if (match != null && match.IsFinished)

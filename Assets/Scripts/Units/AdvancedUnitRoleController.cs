@@ -11,6 +11,7 @@ namespace Game.Units
         private SelectableUnit selectableUnit;
         private SimpleUnitMover mover;
         private UnitCombat combat;
+        private UnitAbilityState abilityState;
         private ProductionStructure productionStructure;
         private BaseStructure homeBase;
         private int dockedRiflemen;
@@ -25,6 +26,7 @@ namespace Game.Units
             selectableUnit = GetComponent<SelectableUnit>();
             mover = GetComponent<SimpleUnitMover>();
             combat = GetComponent<UnitCombat>();
+            abilityState = GetComponent<UnitAbilityState>();
             productionStructure = GetComponent<ProductionStructure>();
         }
 
@@ -59,6 +61,8 @@ namespace Game.Units
             {
                 MaintainHoverHeight(selectableUnit.Definition.HoverHeight);
             }
+
+            TryAutoActivateRoleAbilityIfNeeded();
         }
 
         public bool AllowsMovement()
@@ -79,6 +83,52 @@ namespace Game.Units
             }
 
             return true;
+        }
+
+        public float GetPassiveMoveSpeedMultiplier()
+        {
+            return Archetype switch
+            {
+                UnitArchetype.SpecialWarrior => combat != null && combat.CurrentTarget != null ? 1.22f : 1.08f,
+                UnitArchetype.RoyalGuard => IsNearHomeBase(18f) ? 1.02f : 0.92f,
+                UnitArchetype.Outrider => combat != null && combat.CurrentTarget != null ? 1.3f : 1.18f,
+                _ => 1f
+            };
+        }
+
+        public float GetPassiveAttackDamageMultiplier()
+        {
+            return Archetype switch
+            {
+                UnitArchetype.SpecialWarrior => combat != null && combat.CurrentTarget != null ? 1.22f : 1.1f,
+                UnitArchetype.RoyalGuard => IsNearHomeBase(22f) ? 1.28f : 1.14f,
+                UnitArchetype.Outrider => 1.08f,
+                _ => 1f
+            };
+        }
+
+        public float GetPassiveAttackRangeBonus()
+        {
+            return Archetype switch
+            {
+                UnitArchetype.SpecialWarrior => 0.65f,
+                UnitArchetype.RoyalGuard => 0.4f,
+                UnitArchetype.Outrider => 0.25f,
+                _ => 0f
+            };
+        }
+
+        public float ModifyIncomingDamage(float damage)
+        {
+            float multiplier = Archetype switch
+            {
+                UnitArchetype.SpecialWarrior => combat != null && combat.CurrentTarget != null ? 0.9f : 0.96f,
+                UnitArchetype.RoyalGuard => IsNearHomeBase(24f) ? 0.68f : 0.82f,
+                UnitArchetype.Outrider => 0.94f,
+                _ => 1f
+            };
+
+            return damage * multiplier;
         }
 
         public Vector3 AdjustDestination(Vector3 destination)
@@ -154,6 +204,45 @@ namespace Game.Units
 
             combat?.ClearTarget();
             mover?.SetDestination(ClampToRadius(transform.position, anchor, 72f));
+        }
+
+        private void TryAutoActivateRoleAbilityIfNeeded()
+        {
+            if (selectableUnit == null ||
+                selectableUnit.Team != UnitTeam.Enemy ||
+                abilityState == null ||
+                !abilityState.IsReady ||
+                combat == null ||
+                combat.CurrentTarget == null)
+            {
+                return;
+            }
+
+            float targetDistance = Vector3.Distance(transform.position, combat.CurrentTarget.transform.position);
+            switch (Archetype)
+            {
+                case UnitArchetype.SpecialWarrior:
+                    if (targetDistance <= 8.5f)
+                    {
+                        abilityState.TryActivateRoleAbility();
+                    }
+
+                    break;
+                case UnitArchetype.RoyalGuard:
+                    if (targetDistance <= 7.5f || IsNearHomeBase(24f))
+                    {
+                        abilityState.TryActivateRoleAbility();
+                    }
+
+                    break;
+                case UnitArchetype.Outrider:
+                    if (targetDistance <= 6.5f)
+                    {
+                        abilityState.TryActivateRoleAbility();
+                    }
+
+                    break;
+            }
         }
 
         private void UpdateAirborneCitadelState()
@@ -263,6 +352,16 @@ namespace Game.Units
             }
 
             return false;
+        }
+
+        private bool IsNearHomeBase(float radius)
+        {
+            if (homeBase == null)
+            {
+                return false;
+            }
+
+            return Vector3.Distance(transform.position, homeBase.transform.position) <= radius;
         }
 
         private static Vector3 ClampToRadius(Vector3 point, Vector3 center, float radius)

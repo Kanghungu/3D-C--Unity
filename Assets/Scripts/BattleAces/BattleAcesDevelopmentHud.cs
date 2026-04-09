@@ -66,7 +66,7 @@ namespace Game.BattleAces
             GUI.depth = -2000;
 
             const float panelWidth = 280f;
-            const float panelHeight = 118f;
+            const float panelHeight = 132f;
             Rect r = new Rect(Screen.width - panelWidth - 6f, 6f, panelWidth, panelHeight);
             ImGuiGameUi.DrawHudCardWithLeftStripe(
                 r,
@@ -85,7 +85,8 @@ namespace Game.BattleAces
             };
 
             string body =
-                "Battle Aces 진단 (F10 숨김)\n" +
+                "Battle Aces 진단 (F10 토글)\n" +
+                "FoW 격자 미리보기: F11 (전투 씬)\n" +
                 "ver " + Application.version +
                 " · " + Application.platform +
                 "\n씬 " + SceneManager.GetActiveScene().name +
