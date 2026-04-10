@@ -5,16 +5,23 @@ namespace Game.Prototype
 {
     /// <summary>
     /// Shared primitive-based silhouettes and faction visual helpers for runtime prototype entities.
+    /// 아군 청록·적 앰버는 <c>BattleAcesArtDirection.PointTeal</c>(0.18,0.88,0.98)·<c>EnemyEmber</c>(0.92,0.38,0.22) 와 숫자 동기화(Prototype 어셈블리가 BattleAces 를 참조하지 않음).
     /// </summary>
     public static class PrototypeEntityVisualFactory
     {
         private const string SpearmanModelResourcePath = "PrototypeUnits/test";
 
+        /// <summary>BattleAcesArtDirection.PointTeal 과 동기 — Prototype 은 BattleAces 어셈블리 미참조</summary>
+        private static readonly Color SyncedAllyPointTeal = new Color(0.18f, 0.88f, 0.98f);
+
+        /// <summary>BattleAcesArtDirection.EnemyEmber 과 동기</summary>
+        private static readonly Color SyncedEnemyEmber = new Color(0.92f, 0.38f, 0.22f);
+
         public static void ApplyBaseVisuals(GameObject target, UnitTeam team)
         {
-            Color primaryColor = team == UnitTeam.Player ? new Color(0.48f, 0.58f, 0.82f) : new Color(0.72f, 0.26f, 0.18f);
-            Color secondaryColor = team == UnitTeam.Player ? new Color(0.82f, 0.78f, 0.62f) : new Color(0.38f, 0.1f, 0.07f);
-            Color accentColor = team == UnitTeam.Player ? new Color(0.22f, 0.92f, 1f) : new Color(1f, 0.45f, 0.14f);
+            Color primaryColor = team == UnitTeam.Player ? new Color(0.46f, 0.56f, 0.8f) : new Color(0.74f, 0.27f, 0.19f);
+            Color secondaryColor = team == UnitTeam.Player ? new Color(0.84f, 0.8f, 0.64f) : new Color(0.36f, 0.1f, 0.07f);
+            Color accentColor = team == UnitTeam.Player ? SyncedAllyPointTeal : SyncedEnemyEmber;
             Renderer rootRenderer = target.GetComponent<Renderer>();
             if (rootRenderer != null)
             {
@@ -29,7 +36,7 @@ namespace Game.Prototype
         {
             Color primaryColor = team == UnitTeam.Player ? new Color(0.72f, 0.66f, 0.52f) : new Color(0.82f, 0.34f, 0.2f);
             Color secondaryColor = team == UnitTeam.Player ? new Color(0.92f, 0.84f, 0.58f) : new Color(0.4f, 0.16f, 0.09f);
-            Color accentColor = team == UnitTeam.Player ? new Color(0.15f, 0.82f, 0.98f) : new Color(1f, 0.5f, 0.16f);
+            Color accentColor = team == UnitTeam.Player ? SyncedAllyPointTeal : SyncedEnemyEmber;
             Renderer rootRenderer = target.GetComponent<Renderer>();
             if (rootRenderer != null)
             {
@@ -43,7 +50,7 @@ namespace Game.Prototype
         public static void ApplyTurretVisuals(GameObject target, UnitTeam team)
         {
             Color primaryColor = team == UnitTeam.Player ? new Color(0.62f, 0.74f, 0.9f) : new Color(0.88f, 0.36f, 0.2f);
-            Color accentColor = team == UnitTeam.Player ? new Color(0.18f, 0.88f, 1f) : new Color(0.42f, 0.1f, 0.06f);
+            Color accentColor = team == UnitTeam.Player ? SyncedAllyPointTeal : SyncedEnemyEmber;
             Renderer rootRenderer = target.GetComponent<Renderer>();
             if (rootRenderer != null)
             {
@@ -57,10 +64,10 @@ namespace Game.Prototype
         public static void BuildUnitSilhouette(Transform root, UnitDefinition definition, UnitTeam team)
         {
             // 아군: 차가운 청·시안 대비 / 적: 따뜻한 적갈·주황 포인트 — 멀리서 실루엣 분리
-            Color armor = team == UnitTeam.Player ? new Color(0.62f, 0.74f, 0.94f) : new Color(0.55f, 0.26f, 0.2f);
-            Color cloth = team == UnitTeam.Player ? new Color(0.18f, 0.36f, 0.58f) : new Color(0.4f, 0.14f, 0.1f);
+            Color armor = team == UnitTeam.Player ? new Color(0.64f, 0.76f, 0.96f) : new Color(0.58f, 0.27f, 0.21f);
+            Color cloth = team == UnitTeam.Player ? new Color(0.16f, 0.34f, 0.56f) : new Color(0.37f, 0.13f, 0.09f);
             Color skin = team == UnitTeam.Player ? new Color(0.82f, 0.72f, 0.6f) : new Color(0.72f, 0.55f, 0.42f);
-            Color glow = team == UnitTeam.Player ? new Color(0.2f, 0.94f, 1f) : new Color(1f, 0.48f, 0.12f);
+            Color glow = team == UnitTeam.Player ? SyncedAllyPointTeal : SyncedEnemyEmber;
             Color weapon = team == UnitTeam.Player ? new Color(0.88f, 0.92f, 1f) : new Color(0.26f, 0.07f, 0.05f);
 
             switch (definition.Archetype)
@@ -74,16 +81,25 @@ namespace Game.Prototype
                     BuildHumanoid(root, armor, cloth, skin, 1.05f, false);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Pike Shaft", new Vector3(0.22f, 1.06f, 0.28f), new Vector3(0.06f, 1.12f, 0.06f), weapon);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Pike Head", new Vector3(0.22f, 1.62f, 0.28f), new Vector3(0.12f, 0.18f, 0.12f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "Pike Counterweight", new Vector3(0.22f, 0.54f, 0.28f), new Vector3(0.12f, 0.14f, 0.12f), cloth, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    CreateChildPrimitive(root, PrimitiveType.Sphere, "Pike Lantern", new Vector3(-0.18f, 0.98f, 0.24f), new Vector3(0.14f, 0.14f, 0.14f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "PauldronBadgeL", new Vector3(-0.26f, 1.12f, 0.06f), new Vector3(0.1f, 0.08f, 0.12f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "PauldronBadgeR", new Vector3(0.26f, 1.12f, 0.06f), new Vector3(0.1f, 0.08f, 0.12f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
                     break;
                 case UnitArchetype.ShieldInfantry:
                     BuildHumanoid(root, armor, cloth, skin, 1.12f, true);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Shield", new Vector3(-0.28f, 0.82f, 0.48f), new Vector3(0.44f, 0.62f, 0.14f), weapon);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Short Blade", new Vector3(0.26f, 0.88f, 0.46f), new Vector3(0.06f, 0.14f, 0.34f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "ShieldBoss", new Vector3(-0.28f, 0.82f, 0.58f), new Vector3(0.12f, 0.12f, 0.04f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "ShieldRim", new Vector3(-0.28f, 0.82f, 0.62f), new Vector3(0.46f, 0.64f, 0.035f), weapon, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
                     break;
                 case UnitArchetype.Rifleman:
                     BuildHumanoid(root, armor, cloth, skin, 0.98f, false);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Long Rifle", new Vector3(0f, 0.96f, 0.46f), new Vector3(0.08f, 0.08f, 0.88f), weapon);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Back Pack", new Vector3(0f, 0.9f, -0.22f), new Vector3(0.24f, 0.34f, 0.18f), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "Scope", new Vector3(0f, 1.08f, 0.42f), new Vector3(0.08f, 0.04f, 0.18f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "MuzzleBrake", new Vector3(0f, 0.96f, 0.9f), new Vector3(0.12f, 0.06f, 0.06f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "Foregrip", new Vector3(0f, 0.88f, 0.62f), new Vector3(0.06f, 0.1f, 0.14f), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
                     break;
                 case UnitArchetype.SpecialWarrior:
                     BuildSpecialWarriorSilhouette(root, armor, cloth, skin, glow, weapon);
@@ -96,12 +112,21 @@ namespace Game.Prototype
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Siege Barrel", new Vector3(0f, 0.44f, 0.86f), new Vector3(0.22f, 0.14f, 0.92f), weapon, ReadablePrimitiveMaterialUtility.EmissionAccent);
                     CreateChildPrimitive(root, PrimitiveType.Cylinder, "Wheel Left", new Vector3(-0.46f, 0.2f, 0f), new Vector3(0.18f, 0.22f, 0.18f), armor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
                     CreateChildPrimitive(root, PrimitiveType.Cylinder, "Wheel Right", new Vector3(0.46f, 0.2f, 0f), new Vector3(0.18f, 0.22f, 0.18f), armor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "RecoilBraceLeft", new Vector3(-0.18f, 0.36f, 0.22f), new Vector3(0.08f, 0.1f, 0.64f), armor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "RecoilBraceRight", new Vector3(0.18f, 0.36f, 0.22f), new Vector3(0.08f, 0.1f, 0.64f), armor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "TargetGlass", new Vector3(0f, 0.58f, 0.42f), new Vector3(0.16f, 0.08f, 0.12f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "BarrelLug", new Vector3(0f, 0.44f, 1.18f), new Vector3(0.08f, 0.1f, 0.08f), armor, ReadablePrimitiveMaterialUtility.EmissionAccent);
                     break;
                 case UnitArchetype.Fighter:
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Hull", new Vector3(0f, 0.12f, 0f), new Vector3(0.3f, 0.12f, 0.86f), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Cockpit", new Vector3(0f, 0.22f, 0.08f), new Vector3(0.18f, 0.12f, 0.28f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Wing Left", new Vector3(-0.62f, 0.06f, 0f), new Vector3(0.66f, 0.04f, 0.26f), armor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Wing Right", new Vector3(0.62f, 0.06f, 0f), new Vector3(0.66f, 0.04f, 0.26f), armor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "Tail Fin", new Vector3(0f, 0.26f, -0.42f), new Vector3(0.08f, 0.22f, 0.18f), armor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "WingStrakeL", new Vector3(-0.62f, 0.02f, 0.1f), new Vector3(0.52f, 0.03f, 0.12f), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "WingStrakeR", new Vector3(0.62f, 0.02f, 0.1f), new Vector3(0.52f, 0.03f, 0.12f), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+                    CreateChildPrimitive(root, PrimitiveType.Sphere, "EngineGlowLeft", new Vector3(-0.18f, 0.1f, -0.38f), new Vector3(0.12f, 0.12f, 0.12f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
+                    CreateChildPrimitive(root, PrimitiveType.Sphere, "EngineGlowRight", new Vector3(0.18f, 0.1f, -0.38f), new Vector3(0.12f, 0.12f, 0.12f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
                     break;
                 case UnitArchetype.MobileFortress:
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Deck", new Vector3(0f, 0.52f, 0f), new Vector3(0.82f, 0.12f, 0.82f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
@@ -109,12 +134,17 @@ namespace Game.Prototype
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Cannon", new Vector3(0f, 0.72f, 1.04f), new Vector3(0.16f, 0.16f, 0.72f), weapon, ReadablePrimitiveMaterialUtility.EmissionAccent);
                     CreateChildPrimitive(root, PrimitiveType.Cylinder, "Track Left", new Vector3(-0.76f, 0.18f, 0f), new Vector3(0.18f, 0.18f, 0.88f), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
                     CreateChildPrimitive(root, PrimitiveType.Cylinder, "Track Right", new Vector3(0.76f, 0.18f, 0f), new Vector3(0.18f, 0.18f, 0.88f), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "SideTowerLeft", new Vector3(-0.46f, 0.86f, -0.12f), new Vector3(0.18f, 0.26f, 0.18f), armor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "SideTowerRight", new Vector3(0.46f, 0.86f, -0.12f), new Vector3(0.18f, 0.26f, 0.18f), armor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "ProwRam", new Vector3(0f, 0.46f, 1.22f), new Vector3(0.22f, 0.12f, 0.28f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
                     break;
                 case UnitArchetype.AirborneCitadel:
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Flight Deck", new Vector3(0f, 0.82f, 0f), new Vector3(0.92f, 0.12f, 0.92f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Core Keep", new Vector3(0f, 1.16f, 0f), new Vector3(0.52f, 0.42f, 0.52f), armor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Wing Left", new Vector3(-1.18f, 0.24f, 0f), new Vector3(0.88f, 0.06f, 0.42f), weapon, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Wing Right", new Vector3(1.18f, 0.24f, 0f), new Vector3(0.88f, 0.06f, 0.42f), weapon, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+                    CreateChildPrimitive(root, PrimitiveType.Cylinder, "EngineHalo", new Vector3(0f, 0.42f, -0.18f), new Vector3(0.28f, 0.03f, 0.28f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "DorsalFin", new Vector3(0f, 1.48f, -0.16f), new Vector3(0.16f, 0.34f, 0.2f), armor, ReadablePrimitiveMaterialUtility.EmissionAccent);
                     break;
                 case UnitArchetype.Outrider:
                     BuildOutriderSilhouette(root, armor, cloth, skin, glow, weapon);
@@ -182,7 +212,7 @@ namespace Game.Prototype
         public static void BuildControlNodeSilhouette(Transform root)
         {
             // 거점·목표: 중립 암석 + 시안/황금 대비, 세로 스파이어로 실루엣 고정
-            Color glow = new(0.18f, 0.92f, 1f);
+            Color glow = SyncedAllyPointTeal;
             Color stone = new(0.42f, 0.38f, 0.34f);
             Color accentGold = new(0.95f, 0.78f, 0.28f);
 
@@ -221,11 +251,20 @@ namespace Game.Prototype
             CreateChildPrimitive(root, PrimitiveType.Capsule, "Torso", new Vector3(0f, torsoHeight, 0f), new Vector3(torsoWidth, 0.42f, torsoDepth), armor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
             CreateChildPrimitive(root, PrimitiveType.Sphere, "Head", new Vector3(0f, torsoHeight + 0.54f, 0.04f), new Vector3(headScale, headScale, headScale), skin, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
             CreateChildPrimitive(root, PrimitiveType.Cube, "Visor", new Vector3(0f, torsoHeight + 0.56f, 0.18f), new Vector3(0.12f, 0.04f, 0.08f), cloth, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "Breastplate", new Vector3(0f, torsoHeight + 0.02f, 0.18f), new Vector3(torsoWidth + 0.08f, 0.2f, 0.08f), armor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "SpinePack", new Vector3(0f, torsoHeight + 0.04f, -0.18f), new Vector3(torsoWidth * 0.82f, 0.28f, 0.1f), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "ShoulderLeft", new Vector3(-armOffset, torsoHeight + 0.28f, 0f), new Vector3(0.16f, 0.1f, 0.18f), armor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "ShoulderRight", new Vector3(armOffset, torsoHeight + 0.28f, 0f), new Vector3(0.16f, 0.1f, 0.18f), armor, ReadablePrimitiveMaterialUtility.EmissionAccent);
             CreateChildPrimitive(root, PrimitiveType.Cube, "Hip Guard", new Vector3(0f, torsoHeight - 0.28f, 0f), new Vector3(torsoWidth + 0.04f, 0.14f, torsoDepth), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
             CreateChildPrimitive(root, PrimitiveType.Capsule, "Left Leg", new Vector3(-legGap, 0.42f, 0f), new Vector3(0.14f, 0.34f, 0.14f), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
             CreateChildPrimitive(root, PrimitiveType.Capsule, "Right Leg", new Vector3(legGap, 0.42f, 0f), new Vector3(0.14f, 0.34f, 0.14f), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "KneeGuardLeft", new Vector3(-legGap, 0.38f, 0.1f), new Vector3(0.1f, 0.08f, 0.08f), armor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "KneeGuardRight", new Vector3(legGap, 0.38f, 0.1f), new Vector3(0.1f, 0.08f, 0.08f), armor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "FootGuardLeft", new Vector3(-legGap, 0.06f, 0.12f), new Vector3(0.12f, 0.06f, 0.18f), armor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "FootGuardRight", new Vector3(legGap, 0.06f, 0.12f), new Vector3(0.12f, 0.06f, 0.18f), armor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
             CreateChildPrimitive(root, PrimitiveType.Capsule, "Left Arm", new Vector3(-armOffset, torsoHeight + 0.08f, 0f), new Vector3(0.12f, 0.28f, 0.12f), armor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
             CreateChildPrimitive(root, PrimitiveType.Capsule, "Right Arm", new Vector3(armOffset, torsoHeight + 0.08f, 0f), new Vector3(0.12f, 0.28f, 0.12f), armor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+            CreateChildPrimitive(root, PrimitiveType.Cylinder, "BackHalo", new Vector3(0f, torsoHeight + 0.28f, -0.14f), new Vector3(0.14f, 0.02f, 0.14f), cloth, ReadablePrimitiveMaterialUtility.EmissionAccent);
         }
 
         private static void BuildSpecialWarriorSilhouette(Transform root, Color armor, Color cloth, Color skin, Color glow, Color weapon)
@@ -266,27 +305,40 @@ namespace Game.Prototype
             CreateChildPrimitive(root, PrimitiveType.Cube, "Lance", new Vector3(0.24f, 1.02f, 0.44f), new Vector3(0.06f, 0.08f, 0.68f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
             CreateChildPrimitive(root, PrimitiveType.Sphere, "Engine Core Left", new Vector3(-0.34f, 0.48f, -0.42f), new Vector3(0.12f, 0.12f, 0.12f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
             CreateChildPrimitive(root, PrimitiveType.Sphere, "Engine Core Right", new Vector3(0.34f, 0.48f, -0.42f), new Vector3(0.12f, 0.12f, 0.12f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "RearFinLeft", new Vector3(-0.22f, 0.72f, -0.56f), new Vector3(0.08f, 0.2f, 0.12f), weapon, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "RearFinRight", new Vector3(0.22f, 0.72f, -0.56f), new Vector3(0.08f, 0.2f, 0.12f), weapon, ReadablePrimitiveMaterialUtility.EmissionAccent);
         }
 
         private static void BuildBaseSilhouette(Transform root, Color secondaryColor, Color accentColor)
         {
             CreateChildPrimitive(root, PrimitiveType.Cube, "Foundation", new Vector3(0f, -1.25f, 0f), new Vector3(1.34f, 0.16f, 1.34f), secondaryColor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
             CreateChildPrimitive(root, PrimitiveType.Cylinder, "Core Beacon", new Vector3(0f, 2.02f, 0f), new Vector3(0.14f, 0.54f, 0.14f), accentColor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "BastionNorth", new Vector3(0f, 0.9f, 1.08f), new Vector3(0.92f, 0.24f, 0.14f), secondaryColor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "BastionSouth", new Vector3(0f, 0.9f, -1.08f), new Vector3(0.92f, 0.24f, 0.14f), secondaryColor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "BastionEast", new Vector3(1.08f, 0.9f, 0f), new Vector3(0.14f, 0.24f, 0.92f), secondaryColor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "BastionWest", new Vector3(-1.08f, 0.9f, 0f), new Vector3(0.14f, 0.24f, 0.92f), secondaryColor, ReadablePrimitiveMaterialUtility.EmissionAccent);
         }
 
         private static void BuildProductionSilhouette(Transform root, Color secondaryColor, Color accentColor, bool isSiegeStructure)
         {
             CreateChildPrimitive(root, PrimitiveType.Cube, "Base Plinth", new Vector3(0f, -1.02f, 0f), new Vector3(1.34f, 0.12f, 1.34f), secondaryColor, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
             CreateChildPrimitive(root, PrimitiveType.Cylinder, "Assembly Pad", new Vector3(0f, -0.9f, 0f), new Vector3(1.08f, 0.05f, 1.08f), accentColor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            CreateChildPrimitive(root, PrimitiveType.Cube, "AssemblyLintel", new Vector3(0f, 1.16f, 0f), new Vector3(1.4f, 0.12f, 0.24f), secondaryColor, ReadablePrimitiveMaterialUtility.EmissionAccent);
             if (isSiegeStructure)
             {
                 CreateChildPrimitive(root, PrimitiveType.Cylinder, "Siege Tower", new Vector3(0f, 1.9f, 0f), new Vector3(0.14f, 0.76f, 0.14f), accentColor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            }
+            else
+            {
+                CreateChildPrimitive(root, PrimitiveType.Sphere, "AssemblyOrb", new Vector3(0f, 1.64f, 0f), new Vector3(0.28f, 0.28f, 0.28f), accentColor, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
             }
         }
 
         private static void BuildTurretSilhouette(Transform root, Color accentColor)
         {
             CreateChildPrimitive(root, PrimitiveType.Cube, "Turret Barrel", new Vector3(0f, 0.46f, 0.94f), new Vector3(0.18f, 0.1f, 0.66f), accentColor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            CreateChildPrimitive(root, PrimitiveType.Cylinder, "TurretRing", new Vector3(0f, 0.12f, 0f), new Vector3(0.64f, 0.04f, 0.64f), accentColor, ReadablePrimitiveMaterialUtility.EmissionAccent);
+            CreateChildPrimitive(root, PrimitiveType.Sphere, "TurretLens", new Vector3(0f, 0.54f, 0.56f), new Vector3(0.16f, 0.16f, 0.16f), accentColor, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
         }
 
         private static void BuildUnitFactionSignature(Transform root, UnitArchetype archetype, UnitTeam team, Color bannerColor, Color accentColor)

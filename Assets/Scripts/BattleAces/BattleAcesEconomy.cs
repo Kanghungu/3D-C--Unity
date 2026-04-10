@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Game.BattleAces
 {
     /// <summary>
-    /// Battle Aces ?? ? ?? ? ?? ???·?? ??. ??/??? TrySpend ? ??.
+    /// Handles Battle Aces credits, passive income, and spend helpers for player and enemy teams.
     /// </summary>
     public class BattleAcesEconomy : MonoBehaviour
     {
@@ -14,10 +14,10 @@ namespace Game.BattleAces
         [SerializeField] private float playerIncomePerSecond = 8f;
         [SerializeField] private float enemyIncomePerSecond = 1.68f;
 
-        /// <summary>?? ????? ??? ?? ???? ?? ??? ??</summary>
+        /// <summary>Additional player income granted by upgrades or mission modifiers.</summary>
         private float playerBonusIncomePerSecond;
 
-        /// <summary>??1 ???? ? ? ?? N? ?? ?? ??? ??(?? ??)</summary>
+        /// <summary>Temporary opening boost that adds extra credits per second for a short window.</summary>
         private float openingBoostSecondsRemaining;
         private float openingBoostCreditsPerSecond;
 
@@ -25,7 +25,7 @@ namespace Game.BattleAces
         public float EnemyCredits => enemyCredits;
         public float PlayerTotalIncomePerSecond => playerIncomePerSecond + playerBonusIncomePerSecond;
 
-        /// <summary>??? ??? ?? ?? ??(?? ?? ? ????? ??????? 1??)</summary>
+        /// <summary>Applies income multipliers while clamping values to a safe lower bound.</summary>
         public void ApplyIncomeMultipliers(float playerMult, float enemyMult)
         {
             playerMult = Mathf.Max(0.05f, playerMult);
@@ -34,7 +34,7 @@ namespace Game.BattleAces
             enemyIncomePerSecond *= enemyMult;
         }
 
-        /// <summary>?? ??? ? duration ?? ? ? extraCreditsPerSecond ?? ???? ??? ??</summary>
+        /// <summary>Activates a temporary opening income boost for the player economy.</summary>
         public void ActivateOpeningIncomeBoost(float durationSeconds, float extraCreditsPerSecond)
         {
             if (durationSeconds <= 0f || extraCreditsPerSecond <= 0f)
@@ -54,7 +54,7 @@ namespace Game.BattleAces
             {
                 float step = Mathf.Min(dt, openingBoostSecondsRemaining);
                 playerCredits += openingBoostCreditsPerSecond * step;
-                openingBoostSecondsRemaining -= dt;
+                openingBoostSecondsRemaining -= step;
                 if (openingBoostSecondsRemaining <= 0f)
                 {
                     openingBoostSecondsRemaining = 0f;
@@ -66,7 +66,7 @@ namespace Game.BattleAces
             enemyCredits += enemyIncomePerSecond * dt;
         }
 
-        /// <summary>?? ?????(T ?)?? ??</summary>
+        /// <summary>Adds persistent bonus income to the player economy.</summary>
         public void AddPlayerIncomePerSecond(float delta)
         {
             if (delta > 0f)
@@ -75,7 +75,7 @@ namespace Game.BattleAces
             }
         }
 
-        /// <summary>?? ?? ?? ? ??? ?? ??? ??</summary>
+        /// <summary>Derives a simple training cost estimate from a unit definition.</summary>
         public static int GetTrainCost(UnitDefinition definition)
         {
             if (definition == null)

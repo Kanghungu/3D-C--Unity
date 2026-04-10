@@ -13,6 +13,7 @@ using Game.Prototype;
 using Game.Selection;
 using Game.Settings;
 using Game.Units;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -29,7 +30,8 @@ namespace Game.BattleAces
         [Header("Arena")]
         [SerializeField] private bool createArenaOnPlay = true;
         [SerializeField] private Vector3 groundScale = new(32f, 1f, 32f);
-        [SerializeField] private Color groundTint = new(0.22f, 0.24f, 0.28f);
+        // ClassicDuel 은 Apply 에서 그라데이션 머티리얼로 덮음 — 비클래식·폴백은 팔레트 중간 톤과 맞춤
+        [SerializeField] private Color groundTint = new(0.18f, 0.2f, 0.24f);
         [SerializeField] private string groundObjectName = "Battle Arena Ground";
 
         /// <summary>GameObject.Find 반복 호출 줄이기 — 지면 루트 캐시</summary>
@@ -217,6 +219,7 @@ namespace Game.BattleAces
             if (mission != null)
             {
                 missionFlow = systems.AddComponent<BattleMissionFlow>();
+                systems.AddComponent<BattleAcesResultUgui>();
                 missionFlow.Initialize(mission, match, economy, runStats);
             }
 
@@ -347,6 +350,48 @@ namespace Game.BattleAces
 
             // 챕터2 데모: 카메라가 기본 ±1600 바운드로 허공까지 밀리지 않도록 지면에 맞춤
             ApplyRtsCameraToBattleArena(ResolveBattleGroundObject(), arenaScale);
+            // 브리핑 종료 후 1프레임 — 전장 중심·줌이 한 번에 읽히게(이후 플레이어 자유 시야)
+            StartCoroutine(SnapBattleOverviewWhenGameplayReady(pPos, ePos, missionFlow));
+        }
+
+        /// <summary>작전 시작 후 코어 중점을 보도록 RTS 높이·XZ 를 1회만 맞춤.</summary>
+        private IEnumerator SnapBattleOverviewWhenGameplayReady(
+            Vector3 playerCoreWorld,
+            Vector3 enemyCoreWorld,
+            BattleMissionFlow missionFlow)
+        {
+            if (missionFlow != null)
+            {
+                while (missionFlow != null && !missionFlow.IsGameplayStarted)
+                {
+                    yield return null;
+                }
+            }
+            else
+            {
+                yield return null;
+            }
+
+            yield return null;
+
+            Camera cam = Camera.main;
+            if (cam == null)
+            {
+                yield break;
+            }
+
+            RTSCameraController rts = cam.GetComponent<RTSCameraController>();
+            if (rts == null)
+            {
+                yield break;
+            }
+
+            Vector3 focus = (playerCoreWorld + enemyCoreWorld) * 0.5f;
+            float span = Vector3.Distance(
+                new Vector3(playerCoreWorld.x, 0f, playerCoreWorld.z),
+                new Vector3(enemyCoreWorld.x, 0f, enemyCoreWorld.z));
+            float targetHeight = Mathf.Clamp(span * 0.58f, 46f, 128f);
+            rts.ApplyPresentationView(focus, targetHeight);
         }
 
         /// <summary>지면 Renderer 기준으로 RTS 카메라 XZ·줌 상한 설정(지면이 없으면 groundScale 폴백).</summary>
@@ -374,7 +419,7 @@ namespace Game.BattleAces
                     b.min.z - paddingWorld,
                     b.max.z + paddingWorld);
                 float longest = Mathf.Max(b.size.x, b.size.z);
-                rts.SetHeightClamp(4f, Mathf.Clamp(longest * 0.52f, 52f, 240f));
+                rts.SetHeightClamp(5f, Mathf.Clamp(longest * 0.52f, 52f, 240f));
                 return;
             }
 
@@ -384,7 +429,7 @@ namespace Game.BattleAces
                 halfExtent + paddingWorld,
                 -halfExtent - paddingWorld,
                 halfExtent + paddingWorld);
-            rts.SetHeightClamp(4f, Mathf.Max(halfExtent * 1.05f, 96f));
+            rts.SetHeightClamp(5f, Mathf.Max(halfExtent * 1.05f, 96f));
         }
 
         private void ApplyResultStingMixerRouting()
@@ -410,7 +455,7 @@ namespace Game.BattleAces
             {
                 ProceduralAudioUtility.SetResultStingMixerGroup(groups[0]);
             }
-            else
+            else if (Application.isEditor || Debug.isDebugBuild)
             {
                 Debug.LogWarning(
                     "[BattleAcesSceneBootstrapper] AudioMixer 에 '" + resultStingGroupName + "' 또는 Master 그룹이 없습니다.");
@@ -872,7 +917,8 @@ namespace Game.BattleAces
             Renderer renderer = ground.GetComponent<Renderer>();
             if (renderer != null)
             {
-                renderer.material.color = groundTint;
+                // ClassicDuel 은 Apply 가 그라데이션으로 덮음 — 평면 단색도 팔레트·PBR 베이스 통일
+                ReadablePrimitiveMaterialUtility.Apply(renderer, groundTint, 0f);
             }
 
             // 대기·안개·지면 그라데이션은 BattleAcesDemoStagePresentation.Apply 에서 통일 적용
@@ -888,12 +934,28 @@ namespace Game.BattleAces
             List<NavMeshBuildSource> sources = new List<NavMeshBuildSource>();
             NavMeshBuilder.CollectSources(bounds, ~0, NavMeshCollectGeometry.PhysicsColliders, 0, new List<NavMeshBuildMarkup>(), sources);
 
+            if (sources.Count == 0)
+            {
+                Debug.LogError(
+                    "[BattleAces] NavMesh 수집 소스가 0개입니다. 지면 Plane·장애물에 Physics Collider 가 있는지, " +
+                    "바운드가 씬 밖으로 벗어나지 않았는지 확인하세요. " +
+                    $"center={groundCenter} extent=({planeScale.x * 5f + 40f:0}, {planeScale.z * 5f + 40f:0})");
+                return;
+            }
+
             NavMeshData navMeshData = NavMeshBuilder.BuildNavMeshData(
                 settings, sources, bounds, Vector3.zero, Quaternion.identity);
 
             if (navMeshData != null)
             {
                 NavMesh.AddNavMeshData(navMeshData);
+            }
+            else if (Application.isEditor || Debug.isDebugBuild)
+            {
+                Debug.LogWarning(
+                    "[BattleAces] NavMesh bake 데이터가 null 입니다. Project Settings → Navigation 또는 " +
+                    "콜라이더/레이어 설정을 확인하세요. " +
+                    $"bounds center={groundCenter} sources={sources.Count}");
             }
         }
 

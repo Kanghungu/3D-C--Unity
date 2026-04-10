@@ -1,4 +1,5 @@
 using Game.Campaign.Data;
+using Game.Units;
 using UnityEngine;
 
 namespace Game.BattleAces
@@ -86,7 +87,12 @@ namespace Game.BattleAces
                 Renderer renderer = cube.GetComponent<Renderer>();
                 if (renderer != null)
                 {
-                    renderer.material.color = color;
+                    // 팔레트·발광 상한은 데모 무대와 동일 계열(ReadablePrimitiveMaterialUtility)
+                    Color wall = Color.Lerp(color, BattleAcesArtDirection.AshStone, 0.35f);
+                    ReadablePrimitiveMaterialUtility.Apply(
+                        renderer,
+                        wall,
+                        ReadablePrimitiveMaterialUtility.EmissionSubtleBody * 0.5f);
                 }
 
                 int vis = LayerMask.NameToLayer("VisionObstacle");
@@ -94,9 +100,36 @@ namespace Game.BattleAces
                 {
                     cube.layer = vis;
                 }
+
+                // 상단 얇은 림 — 실루엣만 살림(티얼 외 새 색 없음)
+                Color rimAlbedo = Color.Lerp(color, BattleAcesArtDirection.GunmetalLift, 0.45f);
+                float topY = worldPos.y + scale.y * 0.5f + 0.09f;
+                GameObject rim = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                rim.name = objectName + "_Rim";
+                rim.transform.SetParent(root.transform, false);
+                rim.transform.position = new Vector3(worldPos.x, topY, worldPos.z);
+                rim.transform.localScale = new Vector3(scale.x * 0.96f, 0.14f, scale.z * 0.96f);
+                if (rim.TryGetComponent(out Collider rimCol))
+                {
+                    rimCol.enabled = false;
+                }
+
+                if (rim.TryGetComponent(out Renderer rimR))
+                {
+                    ReadablePrimitiveMaterialUtility.Apply(
+                        rimR,
+                        rimAlbedo,
+                        ReadablePrimitiveMaterialUtility.EmissionSubtleBody * 0.62f);
+                }
+
+                if (vis >= 0)
+                {
+                    rim.layer = vis;
+                }
             }
 
-            Color rock = new Color(0.3f, 0.26f, 0.22f);
+            // 비클래식 레이아웃도 티얼 외 새 악센트 없이 잿빛 석재 축만
+            Color rock = Color.Lerp(BattleAcesArtDirection.ObstacleSlab, BattleAcesArtDirection.TerrainBerm, 0.32f);
             const float y = 1.45f;
 
             if (kind == BattleArenaLayoutKind.CrossroadsSpirit)

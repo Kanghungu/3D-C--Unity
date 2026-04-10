@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Game.Prototype;
 using Game.Settings;
 using Game.UI;
@@ -9,14 +9,14 @@ using UnityEngine.InputSystem;
 namespace Game.BattleAces
 {
     /// <summary>
-    /// FoW: 격자·탐색/가시 + 게임플레이 마스크(지형·미니맵) + 우측 디버그 미리보기(F11).
-    /// 그래픽 Performance 프리셋이면 시야 갱신을 최소 2프레임마다로 완화.
+    /// Battle Aces fog-of-war debug runtime.
+    /// Tracks visible/explored cells, pushes a fog mask texture, and can draw the F11 overlay.
     /// </summary>
     public sealed class BattleAcesFogOfWarDebug : MonoBehaviour
     {
         public static BattleAcesFogOfWarDebug Instance { get; private set; }
 
-        /// <summary>지형 오버레이·전술 맵에 공유 — 가시=투명·탐색=안개·미탐색=어둡게</summary>
+        /// <summary>Shared fog mask used by the world overlay and minimap rendering.</summary>
         public Texture2D FogMaskTexture => fogMaskTexture;
 
         public bool IsWorldVisible(Vector3 worldPosition)
@@ -29,40 +29,40 @@ namespace Game.BattleAces
             return grid.TryGetCell(worldPosition.x, worldPosition.z, out int ix, out int iz) && grid.IsVisible(ix, iz);
         }
 
-        [Header("격자")]
+        [Header("Grid")]
         [SerializeField] private float cellWorldSize = 8f;
 
-        [Tooltip("아군 코어 시야 반경(월드)")]
+        [Tooltip("Vision radius granted by the player command core.")]
         [SerializeField] private float visionRadiusFromPlayerCore = 26f;
 
-        [Tooltip("병종 미매칭 시 아군 유닛 기본 시야 반경")]
+        [Tooltip("Default vision radius applied to standard player units.")]
         [SerializeField] private float defaultUnitVisionRadius = 14f;
 
-        [Tooltip("비행(Definition.IsFlying 또는 공중요새) 시야 반경에 곱함 — 공중 시야 확장")]
+        [Tooltip("Extra multiplier applied to flying-unit vision radius.")]
         [SerializeField] private float flyingVisionRadiusMultiplier = 1.35f;
 
-        [Header("장애물 시야 가림")]
-        [Tooltip("끄면 기존처럼 원형 시야만(레이캐스트 없음)")]
+        [Header("Obstacle Vision Blocking")]
+        [Tooltip("When enabled, line-of-sight raycasts can be blocked by obstacle layers.")]
         [SerializeField] private bool useObstacleVisionBlocking = true;
 
-        [Tooltip("비어 있으면 런타임에 VisionObstacle 레이어로 채움")]
+        [Tooltip("Optional mask for LOS blockers. Falls back to the VisionObstacle layer if empty.")]
         [SerializeField] private LayerMask visionObstacleMask;
 
-        [Tooltip("지상 유닛·코어 눈 높이(피벗 Y 기준 오프셋) — 수평 LOS")]
+        [Tooltip("Eye height used for unit LOS checks.")]
         [SerializeField] private float unitEyeHeightOffset = 1.25f;
 
         [SerializeField] private float coreEyeHeightOffset = 2.65f;
 
-        [Tooltip("레이 시작·끝을 줄여 자기/목표 셀 오인 방지")]
+        [Tooltip("Inset applied to the LOS ray start to reduce self-hit noise.")]
         [SerializeField] private float losRayStartInset = 0.4f;
 
         [SerializeField] private float losRayEndInset = 0.45f;
 
-        [Header("갱신 비용")]
-        [Tooltip("1=매 프레임, 2=격 프레임마다 … (부담 줄이기)")]
+        [Header("Update Cost")]
+        [Tooltip("1 = every frame, 2 = every other frame, etc.")]
         [SerializeField] private int visionUpdateEveryNFrames = 1;
 
-        [Header("디버그 UI")]
+        [Header("Debug UI")]
         [SerializeField] private bool showOverlay = false;
 
         [SerializeField] private int overlayMaxSide = 220;
@@ -73,7 +73,7 @@ namespace Game.BattleAces
         private BattleAcesMatchController matchRef;
         private bool initialized;
 
-        /// <summary>Initialize 시점에 visionObstacleMask 보정 결과</summary>
+        /// <summary>Resolved obstacle mask after initialization.</summary>
         private LayerMask runtimeVisionObstacleMask;
 
         private void OnEnable()
@@ -89,7 +89,7 @@ namespace Game.BattleAces
             }
         }
 
-        /// <summary>미니맵과 동일한 XZ 범위로 초기화</summary>
+        /// <summary>Initializes the grid using the same XZ range as the minimap.</summary>
         public void Initialize(Vector2 worldMin, Vector2 worldMax, BattleAcesMatchController match)
         {
             matchRef = match;
@@ -129,7 +129,7 @@ namespace Game.BattleAces
         }
 
         /// <summary>
-        /// 인스펙터 값에 더해, 저사양(Performance) 프리셋에서는 시야 갱신을 최소 2프레임마다로 완화.
+        /// Enforces a minimum two-frame update interval in Performance mode.
         /// </summary>
         private int GetEffectiveVisionUpdateInterval()
         {
@@ -167,7 +167,7 @@ namespace Game.BattleAces
                 return;
             }
 
-            // 브리핑 중에는 시야를 갱신하지 않음(작전 시작 후 탐색 누적)
+            // Do not update vision during briefing; gameplay start controls the first reveal pass.
             BattleMissionFlow flow = BattleMissionFlow.Instance;
             if (flow != null && !flow.IsGameplayStarted)
             {
@@ -175,7 +175,7 @@ namespace Game.BattleAces
             }
 
             Keyboard kb = Keyboard.current;
-            // F10 은 BattleAcesDevelopmentHud(에디터·개발 빌드)와 겹침 → FoW 미리보기는 F11
+            // F11 toggles the FoW preview. F10 controls the separate development HUD.
             if (kb != null && kb.f11Key.wasPressedThisFrame)
             {
                 showOverlay = !showOverlay;
@@ -214,7 +214,7 @@ namespace Game.BattleAces
             }
         }
 
-        /// <summary>등록된 SelectableUnit 중 아군·생존 유닛만 시야 원 추가</summary>
+        /// <summary>Adds vision for living player-owned selectable units.</summary>
         private void ApplyPlayerUnitsVision()
         {
             IReadOnlyList<SelectableUnit> units = PrototypeRuntimeRegistry.GetSelectableUnits();
@@ -248,7 +248,7 @@ namespace Game.BattleAces
             }
         }
 
-        /// <summary>공중 유닛은 장애물 너머도 보고, 반경만 넓힘(수평 LOS 생략).</summary>
+        /// <summary>Air observers ignore obstacle LOS blocking and use the expanded air radius.</summary>
         private static bool IsAirVisionObserver(SelectableUnit unit)
         {
             if (unit == null)
@@ -271,7 +271,7 @@ namespace Game.BattleAces
                 return defaultUnitVisionRadius;
             }
 
-            // 병종별 살짝만 분리 — 나중에 데이터(ScriptableObject)로 빼기 쉽게
+            // Keep per-archetype tuning local here instead of pushing extra data onto the unit definitions.
             float r = unit.Archetype switch
             {
                 UnitArchetype.Fighter => Mathf.Max(defaultUnitVisionRadius, 19f),
@@ -309,7 +309,7 @@ namespace Game.BattleAces
             {
                 for (int ix = 0; ix < w; ix++)
                 {
-                    // 화면 위쪽이 월드 Z 큰 쪽이 되도록 뒤집기(미니맵 감각과 맞춤)
+                    // Flip rows so world +Z maps upward like the minimap and debug texture expect.
                     int texRow = h - 1 - iz;
                     pixels[texRow * w + ix] = grid.GetDebugCellColor(ix, iz);
                 }
@@ -319,7 +319,7 @@ namespace Game.BattleAces
             debugTexture.Apply(false);
         }
 
-        /// <summary>월드 Z 증가 = 텍스처 v 증가(쿼드 UV·미니맵과 동일)</summary>
+        /// <summary>World +Z maps to texture +V so the fog mask lines up with the ground quad UVs.</summary>
         private void UploadFogMaskTexture()
         {
             if (fogMaskTexture == null || grid == null)
@@ -368,7 +368,7 @@ namespace Game.BattleAces
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(
                 new Rect(x, y + panelH + 20f, panelW, 44f),
-                $"검=미탐색  회청=탐색만  연두=가시\nF11 토글 · 코어+아군 · 장애물LOS{(useObstacleVisionBlocking ? "ON" : "OFF")} · 공중확대 · 시야 {GetEffectiveVisionUpdateInterval()}프레임마다");
+                $"검정=미탐색 · 회색=탐색 완료 · 밝은 테두리=가시 상태\nF11 토글 · 코어+유닛 · 장애물 LOS {(useObstacleVisionBlocking ? "ON" : "OFF")} · 시야 갱신 {GetEffectiveVisionUpdateInterval()}프레임");
 
             GUI.color = Color.white;
             ImGuiGameUi.EndScaledGui();

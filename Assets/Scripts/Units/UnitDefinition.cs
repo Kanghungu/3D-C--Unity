@@ -66,12 +66,12 @@ namespace Game.Units
                 UnitArchetype.ShieldInfantry => "방패병",
                 UnitArchetype.Rifleman => "소총병",
                 UnitArchetype.Fighter => "전투기",
-                UnitArchetype.SpecialWarrior => "특수전사",
-                UnitArchetype.RoyalGuard => "근위대",
+                UnitArchetype.SpecialWarrior => "특수 전사",
+                UnitArchetype.RoyalGuard => "근위병",
                 UnitArchetype.Artillery => "포병",
                 UnitArchetype.MobileFortress => "기동 요새",
                 UnitArchetype.AirborneCitadel => "공중 성채",
-                UnitArchetype.Outrider => "호버 기병",
+                UnitArchetype.Outrider => "선봉 기수",
                 _ => fallback
             };
         }

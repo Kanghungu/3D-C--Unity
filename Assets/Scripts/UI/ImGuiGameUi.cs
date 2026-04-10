@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Audio;
 using Game.BattleAces;
 using Game.Settings;
 using UnityEngine;
@@ -72,6 +73,26 @@ namespace Game.UI
             0.25f);
 
         private static readonly Stack<Matrix4x4> GuiMatrixStack = new Stack<Matrix4x4>(4);
+
+        private static GUIStyle wordWrappedLabelStyle;
+
+        /// <summary>짧은 브리프·아트 한 줄 등 여러 줄 라벨</summary>
+        public static GUIStyle WordWrappedLabelStyle
+        {
+            get
+            {
+                if (wordWrappedLabelStyle == null)
+                {
+                    wordWrappedLabelStyle = new GUIStyle(GUI.skin.label)
+                    {
+                        alignment = TextAnchor.UpperCenter,
+                        wordWrap = true,
+                    };
+                }
+
+                return wordWrappedLabelStyle;
+            }
+        }
 
         public static void BeginScaledGui()
         {
@@ -197,12 +218,38 @@ namespace Game.UI
                 new Color(accent.r, accent.g, accent.b, 0.08f));
             DrawPanelFrame(r, new Color(0f, 0f, 0f, 0f), border, 1.5f);
             DrawCornerBrackets(r, accent, 14f, 2f);
+            // 상단 얇은 하이라이트 — 유리 두께(채도 추가 없음)
+            float innerW = Mathf.Max(0f, r.width - 8f);
+            if (innerW > 1f)
+            {
+                DrawFilledRect(new Rect(r.x + 4f, r.y + 4f, innerW, 1f), new Color(1f, 1f, 1f, 0.06f));
+            }
         }
 
         public static void DrawHorizontalRule(Rect rowRect, Color c, float thickness = 1f)
         {
             float t = Mathf.Max(0.5f, thickness);
             DrawFilledRect(new Rect(rowRect.x, rowRect.y, rowRect.width, t), c);
+        }
+
+        public static void DrawProgressBar(Rect r, float fill01, Color track, Color fill, Color border)
+        {
+            DrawPanelFrame(r, track, border, 1f);
+
+            Rect inner = new Rect(r.x + 2f, r.y + 2f, Mathf.Max(0f, r.width - 4f), Mathf.Max(0f, r.height - 4f));
+            DrawVerticalGradient(inner, track * 1.08f, track * 0.82f, 4);
+
+            float clamped = Mathf.Clamp01(fill01);
+            if (clamped <= 0.001f)
+            {
+                return;
+            }
+
+            Rect fillRect = new Rect(inner.x, inner.y, inner.width * clamped, inner.height);
+            DrawVerticalGradient(fillRect, fill * 1.15f, fill * 0.84f, 6);
+            DrawFilledRect(
+                new Rect(fillRect.x, fillRect.y, fillRect.width, Mathf.Min(3f, fillRect.height)),
+                new Color(1f, 1f, 1f, 0.16f));
         }
 
         public static bool GameMenuButton(Rect r, string text, bool enabled = true)
@@ -244,7 +291,13 @@ namespace Game.UI
                 return false;
             }
 
-            return GUI.Button(r, GUIContent.none, GUIStyle.none);
+            bool pressed = GUI.Button(r, GUIContent.none, GUIStyle.none);
+            if (pressed)
+            {
+                ProceduralAudioUtility.PlayUiMenuAck();
+            }
+
+            return pressed;
         }
     }
 }

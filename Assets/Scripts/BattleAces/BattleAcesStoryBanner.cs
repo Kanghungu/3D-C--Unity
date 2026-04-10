@@ -56,6 +56,11 @@ namespace Game.BattleAces
 
         private void OnGUI()
         {
+            if (BattleAcesHudCaptureMode.SuppressCombatChromeForScreenshot)
+            {
+                return;
+            }
+
             if (string.IsNullOrEmpty(currentLine))
             {
                 return;

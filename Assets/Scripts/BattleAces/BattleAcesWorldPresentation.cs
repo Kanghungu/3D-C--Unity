@@ -44,9 +44,9 @@ namespace Game.BattleAces
                 return;
             }
 
-            // 메뉴는 IMGUI 풀스크린 위에 얹이므로 배경은 차분한 단색(씬에 스카이박스가 있어도 일관되게)
+            // 메뉴는 IMGUI 풀스크린 위에 얹이므로 배경은 차분한 단색 — 전투 클리어(<see cref="BattleAcesArtDirection.CameraBackdrop"/>)와 한 축
             main.clearFlags = CameraClearFlags.SolidColor;
-            main.backgroundColor = new Color(0.1f, 0.12f, 0.16f, 1f);
+            main.backgroundColor = Color.Lerp(BattleAcesArtDirection.GunmetalDark, BattleAcesArtDirection.CameraBackdrop, 0.38f);
         }
 
         /// <summary>설정 패널에서 안개 슬라이더 조작 시 — 현재 ClassicDuel 전투면 즉시 반영</summary>

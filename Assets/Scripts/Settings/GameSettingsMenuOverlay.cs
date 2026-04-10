@@ -1,3 +1,5 @@
+﻿using System;
+using Game.Audio;
 using Game.BattleAces;
 using Game.UI;
 using UnityEngine;
@@ -6,7 +8,8 @@ using UnityEngine.InputSystem;
 namespace Game.Settings
 {
     /// <summary>
-    /// Play 중 O 키로 여는 설정 패널 — 마스터 / 전투 전용 / 화면 섹션으로 구분.
+    /// In-game settings overlay opened with O. Groups master audio, battle visuals,
+    /// graphics presets, and accessibility settings for the Battle Aces demo.
     /// </summary>
     public sealed class GameSettingsMenuOverlay : MonoBehaviour
     {
@@ -14,11 +17,14 @@ namespace Game.Settings
         private const float PanelHeightPreferred = 620f;
         private const float PanelLeft = 24f;
         private const float PanelBottomMargin = 16f;
-        private const float ContentHeightApprox = 820f;
+        private const float ContentHeightApprox = 860f;
 
         private bool panelOpen;
 
-        /// <summary>스크롤뷰 위치 유지(짧은 화면 대비)</summary>
+        /// <summary>Short cooldown that prevents slider tick audio from spamming.</summary>
+        private float lastSettingsSliderAudioUnscaled = -999f;
+
+        /// <summary>Scroll position for the long settings panel content.</summary>
         private Vector2 settingsScrollPos;
 
         private void Update()
@@ -74,9 +80,9 @@ namespace Game.Settings
             {
                 float y = 4f;
 
-                // --- 마스터 ---
+                // --- Master ---
                 DrawSectionTitle(ref y, innerPadX, innerW, "마스터");
-                DrawSectionHint(ref y, innerPadX, innerW, "게임 전체에 적용되는 출력 음량입니다.");
+                DrawSectionHint(ref y, innerPadX, innerW, "게임 전체에 적용되는 출력 볼륨입니다.");
 
                 GUI.skin.label.fontSize = 13;
                 GUI.color = Color.white;
@@ -89,13 +95,14 @@ namespace Game.Settings
                 if (!Mathf.Approximately(vol, GameUserSettings.MasterVolume01))
                 {
                     GameUserSettings.SetMasterVolume01(vol);
+                    TryPlaySettingsSliderTick();
                 }
 
                 y += 38f;
 
-                // --- 전투 전용 ---
+                // --- Battle only ---
                 DrawSectionTitle(ref y, innerPadX, innerW, "전투 전용");
-                DrawSectionHint(ref y, innerPadX, innerW, "전투 씬 믹서 그룹만 조절합니다(BGM·승패 스팅).");
+                DrawSectionHint(ref y, innerPadX, innerW, "전투 중 믹서 그룹만 조절합니다. BGM과 결과 스팅은 별도입니다.");
 
                 GUI.skin.label.fontSize = 13;
                 GUI.color = Color.white;
@@ -108,10 +115,11 @@ namespace Game.Settings
                 if (!Mathf.Approximately(amb, GameUserSettings.BattleAmbientVolume01))
                 {
                     GameUserSettings.SetBattleAmbientVolume01(amb);
+                    TryPlaySettingsSliderTick();
                 }
 
                 y += 36f;
-                GUI.Label(new Rect(innerPadX, y, 170f, 22f), "승·패 스팅");
+                GUI.Label(new Rect(innerPadX, y, 170f, 22f), "결과 스팅");
                 float st = GUI.HorizontalSlider(
                     new Rect(sliderLeft, y + 4f, sliderW, 18f),
                     GameUserSettings.ResultStingVolume01,
@@ -120,13 +128,14 @@ namespace Game.Settings
                 if (!Mathf.Approximately(st, GameUserSettings.ResultStingVolume01))
                 {
                     GameUserSettings.SetResultStingVolume01(st);
+                    TryPlaySettingsSliderTick();
                 }
 
                 y += 38f;
 
-                // --- 전투 안개 (선택) ---
+                // --- Battle fog ---
                 DrawSectionTitle(ref y, innerPadX, innerW, "전투 안개 (선택)");
-                DrawSectionHint(ref y, innerPadX, innerW, "ClassicDuel 평지 데모 전장만. 스샷·유닛 가독성용 — 저장 후 유지됩니다.");
+                DrawSectionHint(ref y, innerPadX, innerW, "Classic Duel 계열 데모 전장에서만 안개·가시감 값을 조정합니다.");
 
                 GUI.skin.label.fontSize = 13;
                 GUI.color = Color.white;
@@ -140,6 +149,7 @@ namespace Game.Settings
                 {
                     GameUserSettings.SetBattleFogDistanceScale(fogDist);
                     BattleAcesWorldPresentation.RefreshBattleFogIfClassicDuelActive();
+                    TryPlaySettingsSliderTick();
                 }
 
                 y += 36f;
@@ -153,13 +163,14 @@ namespace Game.Settings
                 {
                     GameUserSettings.SetBattleFogIntensity01(fogInt);
                     BattleAcesWorldPresentation.RefreshBattleFogIfClassicDuelActive();
+                    TryPlaySettingsSliderTick();
                 }
 
                 y += 40f;
 
-                // --- 화면 ---
+                // --- Screen ---
                 DrawSectionTitle(ref y, innerPadX, innerW, "화면");
-                DrawSectionHint(ref y, innerPadX, innerW, "카메라 감도·창 모드·HUD(IMGUI) 표시 크기입니다.");
+                DrawSectionHint(ref y, innerPadX, innerW, "카메라 감도, 전체 화면, HUD(IMGUI) 표시 크기를 조절합니다.");
 
                 GUI.skin.label.fontSize = 13;
                 GUI.color = Color.white;
@@ -172,6 +183,7 @@ namespace Game.Settings
                 if (!Mathf.Approximately(sens, GameUserSettings.CameraSensitivityMultiplier))
                 {
                     GameUserSettings.SetCameraSensitivity(sens);
+                    TryPlaySettingsSliderTick();
                 }
 
                 y += 36f;
@@ -184,19 +196,38 @@ namespace Game.Settings
 
                 y += 32f;
 
-                // --- 그래픽 (데모 2단) ---
+                // --- Graphics ---
                 DrawSectionTitle(ref y, innerPadX, innerW, "그래픽");
-                DrawSectionHint(ref y, innerPadX, innerW, "저사양: 그림자 끔·거리 단축. 균형: 기본값에 가깝게 복구.");
+                DrawSectionHint(ref y, innerPadX, innerW, DemoPresentationCopy.SettingsGraphicPresetSectionHint);
 
-                bool perf = GameUserSettings.GraphicQualityPreset == DemoGraphicQualityPreset.Performance;
-                bool perfNew = GUI.Toggle(new Rect(innerPadX, y, innerW, 24f), perf, "저사양 프리셋 (성능 우선)");
-                if (perfNew != perf)
+                DemoGraphicQualityPreset[] graphicPresetGridOrder =
                 {
-                    GameUserSettings.SetGraphicQualityPreset(
-                        perfNew ? DemoGraphicQualityPreset.Performance : DemoGraphicQualityPreset.Balanced);
+                    DemoGraphicQualityPreset.Performance,
+                    DemoGraphicQualityPreset.Balanced,
+                    DemoGraphicQualityPreset.High
+                };
+                int graphicGridIndex = Array.IndexOf(graphicPresetGridOrder, GameUserSettings.GraphicQualityPreset);
+                if (graphicGridIndex < 0)
+                {
+                    graphicGridIndex = 1;
                 }
 
-                y += 36f;
+                int prevBtn = GUI.skin.button.fontSize;
+                GUI.skin.button.fontSize = 13;
+                int newGraphicGridIndex = GUI.SelectionGrid(
+                    new Rect(innerPadX, y, innerW, 78f),
+                    graphicGridIndex,
+                    DemoPresentationCopy.SettingsGraphicPresetGridLabels,
+                    1);
+                GUI.skin.button.fontSize = prevBtn;
+                if (newGraphicGridIndex != graphicGridIndex)
+                {
+                    GameUserSettings.SetGraphicQualityPreset(graphicPresetGridOrder[newGraphicGridIndex]);
+                    // Keep fog presentation in sync when the preset changes on a Classic Duel stage.
+                    BattleAcesWorldPresentation.RefreshBattleFogIfClassicDuelActive();
+                }
+
+                y += 82f;
                 GUI.Label(new Rect(innerPadX, y, 160f, 22f), "UI 크기 (IMGUI)");
                 float uiSc = GUI.HorizontalSlider(
                     new Rect(sliderLeft, y + 4f, sliderW, 18f),
@@ -206,26 +237,27 @@ namespace Game.Settings
                 if (!Mathf.Approximately(uiSc, GameUserSettings.UiScale01))
                 {
                     GameUserSettings.SetUiScale01(uiSc);
+                    TryPlaySettingsSliderTick();
                 }
 
                 y += 40f;
 
-                // --- 입력 안내(Battle Aces 범위) ---
+                // --- Input hint ---
                 DrawSectionTitle(ref y, innerPadX, innerW, "입력 안내");
                 DrawSectionHint(ref y, innerPadX, innerW, DemoPresentationCopy.SettingsInputNoRebindHint);
 
                 y += 8f;
 
-                // --- 접근성 ---
+                // --- Accessibility ---
                 DrawSectionTitle(ref y, innerPadX, innerW, "접근성");
                 DrawSectionHint(
                     ref y,
                     innerPadX,
                     innerW,
-                    "미니맵 색약: 아트 팔레트(티얼·앰버)와 같은 축에서 파랑·시안/주황만 더 벌림 — BATTLE_ACES_READABILITY.md. 브리핑 속도는 자막과 동일 슬라이더.");
+                    "미니맵 색약 모드: 아군 티얼 축과 적 앰버 축을 유지하면서 명도와 채도를 더 벌립니다. 자세한 기준은 BATTLE_ACES_READABILITY.md를 참고하십시오.");
 
                 bool cb = GameUserSettings.ColorblindFriendlyMinimap;
-                bool cbNew = GUI.Toggle(new Rect(innerPadX, y, innerW, 24f), cb, "미니맵 색약 (아군 청·시안 / 적 앰버·주황)");
+                bool cbNew = GUI.Toggle(new Rect(innerPadX, y, innerW, 24f), cb, "미니맵 색약 모드 (아군 청록 / 적 앰버 강조)");
                 if (cbNew != cb)
                 {
                     GameUserSettings.SetColorblindFriendlyMinimap(cbNew);
@@ -234,7 +266,7 @@ namespace Game.Settings
                 y += 32f;
                 GUI.skin.label.fontSize = 13;
                 GUI.color = Color.white;
-                GUI.Label(new Rect(innerPadX, y, 200f, 22f), "브리핑·대사 속도 (글자/초)");
+                GUI.Label(new Rect(innerPadX, y, 200f, 22f), "브리핑/결과 대화 속도 (글자/초)");
                 float dCps = GUI.HorizontalSlider(
                     new Rect(sliderLeft, y + 4f, sliderW, 18f),
                     GameUserSettings.DialogueRevealCharsPerSecond,
@@ -243,12 +275,14 @@ namespace Game.Settings
                 if (!Mathf.Approximately(dCps, GameUserSettings.DialogueRevealCharsPerSecond))
                 {
                     GameUserSettings.SetDialogueRevealCharsPerSecond(dCps);
+                    TryPlaySettingsSliderTick();
                 }
 
                 y += 38f;
                 if (GUI.Button(new Rect(innerPadX, y, 168f, 28f), "설정 저장"))
                 {
                     GameUserSettings.Save();
+                    ProceduralAudioUtility.PlayUiMenuAck();
                 }
             }
             finally
@@ -261,7 +295,20 @@ namespace Game.Settings
             ImGuiGameUi.EndScaledGui();
         }
 
-        /// <summary>섹션 제목 — 금색 강조</summary>
+        /// <summary>Plays a restrained slider tick so rapid dragging does not spam audio.</summary>
+        private void TryPlaySettingsSliderTick()
+        {
+            const float cooldownUnscaled = 0.05f;
+            if (Time.unscaledTime - lastSettingsSliderAudioUnscaled < cooldownUnscaled)
+            {
+                return;
+            }
+
+            lastSettingsSliderAudioUnscaled = Time.unscaledTime;
+            ProceduralAudioUtility.PlayUiSliderTick();
+        }
+
+        /// <summary>Draws a compact section title with accent color.</summary>
         private static void DrawSectionTitle(ref float y, float padX, float innerW, string title)
         {
             GUI.skin.label.fontSize = 15;
@@ -270,7 +317,7 @@ namespace Game.Settings
             y += 22f;
         }
 
-        /// <summary>섹션 설명 한 줄 — 회색</summary>
+        /// <summary>Draws the muted helper line shown under each section title.</summary>
         private static void DrawSectionHint(ref float y, float padX, float innerW, string hint)
         {
             GUI.skin.label.fontSize = 12;

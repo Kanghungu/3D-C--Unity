@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Game.BattleAces
 {
     /// <summary>
-    /// Battle Aces 한 판 통계 — 생산·격파·손실·플레이 시간(승패 카드 한 줄용).
+    /// Collects simple Battle Aces match statistics for result cards and first-play guidance.
     /// </summary>
     public sealed class BattleAcesRunStats : MonoBehaviour
     {
@@ -17,22 +17,22 @@ namespace Game.BattleAces
         private int enemyUnitsKilled;
         private int playerUnitsLost;
 
-        /// <summary>작전 시작(브리핑 종료 후) 시각 — unscaled</summary>
+        /// <summary>Unscaled time when the playable battle actually begins.</summary>
         private float battleClockStartUnscaled = -1f;
 
-        /// <summary>매치 종료 시점에 고정한 플레이 초(승패 화면·스커미시 오버레이 공통)</summary>
+        /// <summary>Frozen play time captured when the match ends.</summary>
         private float frozenPlaySecondsUnscaled = -1f;
+
+        private BattleAcesMatchController subscribedMatch;
 
         private void Awake()
         {
             Instance = this;
         }
 
-        private BattleAcesMatchController subscribedMatch;
-
         private void Start()
         {
-            // 부트 순서상 MatchController 가 이미 있을 때 구독
+            // MatchController may already exist by the time this component starts.
             if (BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController m))
             {
                 subscribedMatch = m;
@@ -71,7 +71,7 @@ namespace Game.BattleAces
                 : 0f;
         }
 
-        /// <summary>BattleMissionFlow 가 작전 시작할 때 호출</summary>
+        /// <summary>Called when gameplay control begins after briefing or intro flow.</summary>
         public void MarkBattleClockStart()
         {
             if (battleClockStartUnscaled < 0f)
@@ -80,13 +80,13 @@ namespace Game.BattleAces
             }
         }
 
-        /// <summary>종료 후 저장된 길이 — 없으면 0</summary>
+        /// <summary>Returns the frozen end-of-match play length, or 0 when unavailable.</summary>
         public float GetFrozenPlaySecondsUnscaled()
         {
             return frozenPlaySecondsUnscaled >= 0f ? frozenPlaySecondsUnscaled : 0f;
         }
 
-        /// <summary>분:초 — 결과 카드 한 줄용</summary>
+        /// <summary>Formats a result-card time string as mm:ss.</summary>
         public static string FormatPlayTimeMmSs(float secondsUnscaled)
         {
             if (secondsUnscaled < 0f)
@@ -100,14 +100,14 @@ namespace Game.BattleAces
             return mm.ToString(CultureInfo.InvariantCulture) + ":" + ss.ToString("00", CultureInfo.InvariantCulture);
         }
 
-        /// <summary>플레이 시간·자원·생산·격파·손실을 한 줄로(데모 승패 인상용)</summary>
+        /// <summary>Builds a short Korean summary used by result cards and dev notes.</summary>
         public string BuildFullResultSummaryLine(float playSecondsUnscaled, int endCredits)
         {
             string t = FormatPlayTimeMmSs(playSecondsUnscaled);
-            string head = $"플레이 {t} · 종료 시 자원 {endCredits}";
+            string head = $"플레이 {t} · 종료 자원 {endCredits}";
             if (TryGetMostProducedArchetype(out UnitArchetype arch, out int n) && n > 0)
             {
-                return $"{head} · 생산 최다 {FormatArchetypeShortKo(arch)}×{n} · 적 격파 {enemyUnitsKilled} · 아군 손실 {playerUnitsLost}";
+                return $"{head} · 생산 최다 {FormatArchetypeShortKo(arch)} x{n} · 적 격파 {enemyUnitsKilled} · 아군 손실 {playerUnitsLost}";
             }
 
             return $"{head} · 적 격파 {enemyUnitsKilled} · 아군 손실 {playerUnitsLost}";
@@ -124,9 +124,9 @@ namespace Game.BattleAces
                 UnitArchetype.Fighter => "전투기",
                 UnitArchetype.SpecialWarrior => "특전",
                 UnitArchetype.RoyalGuard => "근위",
-                UnitArchetype.Outrider => "호버",
+                UnitArchetype.Outrider => "기수",
                 UnitArchetype.MobileFortress => "요새",
-                UnitArchetype.AirborneCitadel => "공성",
+                UnitArchetype.AirborneCitadel => "성채",
                 _ => archetype.ToString()
             };
         }
@@ -143,7 +143,7 @@ namespace Game.BattleAces
             }
         }
 
-        /// <summary>아군 코어에서 생산 완료 시 호출</summary>
+        /// <summary>Called when the player core finishes producing a unit.</summary>
         public void RegisterPlayerUnitProduced(UnitArchetype archetype)
         {
             playerProductionCount.TryGetValue(archetype, out int n);
@@ -164,7 +164,7 @@ namespace Game.BattleAces
             return c;
         }
 
-        /// <summary>생산 완료 누계 — 첫 미션 온보딩 체크용</summary>
+        /// <summary>Total number of units produced by the player during the match.</summary>
         public int GetTotalPlayerUnitsProduced()
         {
             int sum = 0;
@@ -199,4 +199,3 @@ namespace Game.BattleAces
         public int TotalPlayerUnitsLost => playerUnitsLost;
     }
 }
-

@@ -6,11 +6,11 @@ using UnityEngine;
 
 namespace Game.Editor
 {
-    /// <summary>빌드 전 씬 경로·존재 여부 스모크 검사(A-6 보조).</summary>
+    /// <summary>빌드 씬 경로와 존재 여부를 빠르게 점검하는 보조 메뉴입니다.</summary>
     public static class ProjectSmokeChecks
     {
-        /// <summary>Game/Campaign/Verify Chapter 1 과 동일 목록 — 회귀 시 한 번에 확인.</summary>
-        [MenuItem("Tools/프로젝트/챕터1 씬 (CampaignBuildMenu 와 동일)")]
+        /// <summary>CampaignBuildMenu와 동일한 Chapter 1 씬 목록을 검증합니다.</summary>
+        [MenuItem("Tools/Project/Verify Chapter 1 Build Scenes")]
         public static void VerifyChapter1PathsMatchCampaignMenu()
         {
             string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
@@ -21,19 +21,19 @@ namespace Game.Editor
                 string fullPath = Path.GetFullPath(Path.Combine(projectRoot, rel));
                 if (!File.Exists(fullPath))
                 {
-                    Debug.LogError($"[Chapter1·스모크] 파일 없음: {rel}");
+                    Debug.LogError($"[Chapter1 Demo] Missing file: {rel}");
                     allOk = false;
                 }
                 else
                 {
-                    Debug.Log($"[Chapter1·스모크 OK] {rel}");
+                    Debug.Log($"[Chapter1 Demo OK] {rel}");
                 }
             }
 
             EditorBuildSettingsScene[] scenes = EditorBuildSettings.scenes;
             if (scenes == null || scenes.Length == 0)
             {
-                Debug.LogError("[Chapter1·스모크] Build Settings 씬 목록 비어 있음 — Register Campaign Scenes In Build 권장.");
+                Debug.LogError("[Chapter1 Demo] Build Settings scene list is empty. Run Register Campaign Scenes In Build.");
                 allOk = false;
             }
             else
@@ -60,18 +60,18 @@ namespace Game.Editor
 
                     if (!foundEnabled)
                     {
-                        Debug.LogError($"[Chapter1·스모크] 빌드에 없거나 비활성: {required}");
+                        Debug.LogError($"[Chapter1 Demo] Scene missing or disabled in build settings: {required}");
                         allOk = false;
                     }
                 }
             }
 
             Debug.Log(allOk
-                ? "[Chapter1·스모크] CampaignChapter1BuildPaths 기준 검사 통과."
-                : "[Chapter1·스모크] 위 오류를 해결한 뒤 Game/Campaign/Verify Chapter 1 Build Scenes 로 재확인하세요.");
+                ? "[Chapter1 Demo] CampaignChapter1BuildPaths verification passed."
+                : "[Chapter1 Demo] Fix the errors above, then rerun Game/Campaign/Verify Chapter 1 Build Scenes.");
         }
 
-        [MenuItem("Tools/프로젝트/빌드 씬 목록 검사")]
+        [MenuItem("Tools/Project/Verify Build Scene List")]
         public static void LogBuildScenesHealth()
         {
             int ok = 0;

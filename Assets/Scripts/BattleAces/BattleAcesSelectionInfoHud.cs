@@ -1,4 +1,4 @@
-using Game.Prototype;
+﻿using Game.Prototype;
 using Game.Selection;
 using Game.Settings;
 using Game.UI;
@@ -34,20 +34,35 @@ namespace Game.BattleAces
                 return;
             }
 
+            if (BattleAcesHudCaptureMode.SuppressCombatChromeForScreenshot)
+            {
+                return;
+            }
+
             ImGuiGameUi.BeginScaledGui();
 
-            const float h = 74f;
-            float w = Mathf.Min(460f, Screen.width - 24f);
-            float x = (Screen.width - w) * 0.5f;
-            float y = Screen.height - h - 16f;
-            Rect panel = new Rect(x, y, w, h);
+            bool compactH = Screen.height <= 720;
+            float panelWidth = Mathf.Min(620f, Screen.width - 24f);
+            // If five chips get too cramped, split them into two rows on smaller layouts.
+            float innerForChips = panelWidth - 24f;
+            bool narrowFiveChips = (innerForChips - 12f) / 5f < 76f;
+
+            PrototypeSelectionController selection = PrototypeSelectionController.Instance;
+            bool singleUnit = selection != null && selection.SelectedUnits.Count == 1;
+            bool tallChipBlock = singleUnit && narrowFiveChips;
+            float panelHeight = compactH ? (tallChipBlock ? 128f : 110f) : (tallChipBlock ? 136f : 118f);
+
+            float x = (Screen.width - panelWidth) * 0.5f;
+            // Leave extra room so the panel does not fight the minimap on low-height screens.
+            float bottomPad = compactH ? 24f : 16f;
+            float y = Screen.height - panelHeight - bottomPad;
+            Rect panel = new Rect(x, y, panelWidth, panelHeight);
 
             ImGuiGameUi.DrawGlassPanel(panel, ImGuiGameUi.PanelBgHud, ImGuiGameUi.BorderCool, ImGuiGameUi.AccentCyan);
             ImGuiGameUi.DrawFilledRect(
-                new Rect(panel.x, panel.y, panel.width, 20f),
+                new Rect(panel.x, panel.y, panel.width, 22f),
                 new Color(ImGuiGameUi.AccentCyan.r, ImGuiGameUi.AccentCyan.g, ImGuiGameUi.AccentCyan.b, 0.08f));
 
-            PrototypeSelectionController selection = PrototypeSelectionController.Instance;
             if (selection != null && selection.SelectedUnits.Count == 1)
             {
                 DrawSingleUnit(panel, selection.SelectedUnits[0]);
@@ -63,38 +78,60 @@ namespace Game.BattleAces
         private void DrawCoreOnly(Rect panel)
         {
             UnitHealth health = playerCore.Health;
+            float health01 = health != null && health.MaxHealth > 0.01f ? health.Normalized : 0f;
+            BattleAcesReadability.CoreHpBand band = health != null
+                ? BattleAcesReadability.GetPlayerCoreBand(health01)
+                : BattleAcesReadability.CoreHpBand.Stable;
+            Color hpColor = BattleAcesReadability.GetPlayerCoreHudHpColor(band);
+
+            string title = IsKorean ? "지휘 코어" : "Command Core";
             string hpLine = health != null
-                ? (IsKorean
-                    ? $"아군 코어  {health.CurrentHealth:0} / {health.MaxHealth:0}"
-                    : $"Command Core  {health.CurrentHealth:0} / {health.MaxHealth:0}")
-                : (IsKorean ? "아군 코어" : "Command Core");
+                ? $"{title}  {health.CurrentHealth:0} / {health.MaxHealth:0}"
+                : title;
 
             GUI.skin.label.fontSize = 10;
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(
                 new Rect(panel.x + 12f, panel.y + 4f, panel.width - 24f, 14f),
-                IsKorean ? "유닛 선택 시 상세 정보 표시" : "Detailed unit info appears when one unit is selected");
+                IsKorean ? "유닛 1기를 선택하면 상세 전투 정보가 표시됩니다" : "Select one unit to inspect detailed combat data");
 
-            GUI.skin.label.fontSize = 16;
-            if (health != null)
-            {
-                BattleAcesReadability.CoreHpBand band = BattleAcesReadability.GetPlayerCoreBand(health.Normalized);
-                GUI.color = BattleAcesReadability.GetPlayerCoreHudHpColor(band);
-            }
-            else
-            {
-                GUI.color = ImGuiGameUi.TextTitle;
-            }
+            GUI.skin.label.fontSize = 18;
+            GUI.color = hpColor;
+            GUI.Label(new Rect(panel.x + 12f, panel.y + 24f, panel.width - 24f, 24f), hpLine);
 
-            GUI.Label(new Rect(panel.x + 12f, panel.y + 24f, panel.width - 24f, 22f), hpLine);
+            ImGuiGameUi.DrawProgressBar(
+                new Rect(panel.x + 12f, panel.y + 52f, panel.width - 24f, 12f),
+                health01,
+                new Color(0.05f, 0.06f, 0.08f, 0.94f),
+                hpColor,
+                ImGuiGameUi.BorderCool);
 
             GUI.skin.label.fontSize = 11;
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(
-                new Rect(panel.x + 12f, panel.y + 49f, panel.width - 24f, 18f),
+                new Rect(panel.x + 12f, panel.y + 72f, panel.width - 24f, 18f),
                 IsKorean
-                    ? "상단 목표 바, 우하단 지도, 조작은 F1에서 확인"
-                    : "Use the top objective bar, lower-right map, and F1 guide for control help");
+                    ? "상단 목표 바, 전술 지도, F1 가이드를 함께 보면서 전열을 관리하십시오"
+                    : "Use the top objective strip, tactical map, and F1 guide together while managing the frontline");
+
+            if (economy != null)
+            {
+                DrawStatChip(
+                    new Rect(panel.x + 12f, panel.y + 92f, 138f, 18f),
+                    IsKorean ? "자원" : "Credits",
+                    $"{economy.PlayerCredits:0}",
+                    ImGuiGameUi.AccentGold);
+                DrawStatChip(
+                    new Rect(panel.x + 156f, panel.y + 92f, 154f, 18f),
+                    IsKorean ? "수입" : "Income",
+                    $"+{economy.PlayerTotalIncomePerSecond:0.#}/s",
+                    ImGuiGameUi.AccentCyan);
+                DrawStatChip(
+                    new Rect(panel.x + 316f, panel.y + 92f, 138f, 18f),
+                    IsKorean ? "적 비축" : "Enemy",
+                    $"{economy.EnemyCredits:0}",
+                    Color.Lerp(ImGuiGameUi.AccentGold, ImGuiGameUi.AccentCyan, 0.2f));
+            }
         }
 
         private void DrawSingleUnit(Rect panel, SelectableUnit unit)
@@ -111,6 +148,7 @@ namespace Game.BattleAces
             string title = definition != null
                 ? definition.DisplayName
                 : UnitDefinition.ResolveDisplayName(unit.Archetype);
+            float hp01 = health != null && health.MaxHealth > 0.01f ? health.Normalized : 0f;
             string hpText = health != null
                 ? $"HP {health.CurrentHealth:0}/{health.MaxHealth:0}"
                 : "HP --";
@@ -119,21 +157,108 @@ namespace Game.BattleAces
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(
                 new Rect(panel.x + 12f, panel.y + 4f, panel.width - 24f, 14f),
-                IsKorean ? "선택된 전력" : "Selected unit");
+                IsKorean ? "선택 유닛" : "Selected unit");
 
-            GUI.skin.label.fontSize = 16;
+            GUI.skin.label.fontSize = 18;
             GUI.color = ImGuiGameUi.AccentGold;
             GUI.Label(new Rect(panel.x + 12f, panel.y + 22f, panel.width - 24f, 22f), title);
+
+            ImGuiGameUi.DrawProgressBar(
+                new Rect(panel.x + 12f, panel.y + 48f, panel.width - 24f, 10f),
+                hp01,
+                new Color(0.05f, 0.06f, 0.08f, 0.94f),
+                Color.Lerp(ImGuiGameUi.AccentCyan, ImGuiGameUi.AccentGold, 1f - hp01),
+                ImGuiGameUi.BorderCool);
 
             GUI.skin.label.fontSize = 12;
             GUI.color = ImGuiGameUi.TextTitle;
             GUI.Label(
-                new Rect(panel.x + 12f, panel.y + 46f, panel.width - 24f, 18f),
+                new Rect(panel.x + 12f, panel.y + 62f, panel.width - 24f, 18f),
                 economy != null
                     ? (IsKorean
                         ? $"{hpText} · 생산비 {cost} · 보유 자원 {economy.PlayerCredits:0}"
                         : $"{hpText} · Cost {cost} · Credits {economy.PlayerCredits:0}")
                     : (IsKorean ? $"{hpText} · 생산비 {cost}" : $"{hpText} · Cost {cost}"));
+
+            LayoutSingleUnitStatChips(panel, definition, unit);
+        }
+
+        /// <summary>Uses a 3+2 layout on narrow screens so chips stay readable at 720p.</summary>
+        private void LayoutSingleUnitStatChips(Rect panel, UnitDefinition definition, SelectableUnit unit)
+        {
+            const float chipH = 18f;
+            const float gap = 3f;
+            float innerX = panel.x + 12f;
+            float innerW = panel.width - 24f;
+            bool useTwoRows = (innerW - gap * 4f) / 5f < 76f;
+
+            if (!useTwoRows)
+            {
+                float chipW = (innerW - gap * 4f) / 5f;
+                float cy = panel.y + 90f;
+                float cx = innerX;
+                DrawStatChip(new Rect(cx, cy, chipW, chipH), "DMG", definition != null ? $"{definition.AttackDamage:0}" : "--", ImGuiGameUi.AccentGold);
+                cx += chipW + gap;
+                DrawStatChip(new Rect(cx, cy, chipW, chipH), "RNG", definition != null ? $"{definition.AttackRange:0.#}" : "--", ImGuiGameUi.AccentCyan);
+                cx += chipW + gap;
+                DrawStatChip(
+                    new Rect(cx, cy, chipW, chipH),
+                    "SPD",
+                    definition != null ? $"{definition.MoveSpeed:0.#}" : "--",
+                    Color.Lerp(ImGuiGameUi.AccentCyan, Color.white, 0.2f));
+                cx += chipW + gap;
+                DrawStatChip(
+                    new Rect(cx, cy, chipW, chipH),
+                    IsKorean ? "유형" : "Type",
+                    definition != null
+                        ? (definition.IsFlying ? (IsKorean ? "비행" : "Air") : (IsKorean ? "지상" : "Ground"))
+                        : "--",
+                    Color.Lerp(ImGuiGameUi.AccentGold, ImGuiGameUi.AccentCyan, 0.24f));
+                cx += chipW + gap;
+                DrawStatChip(new Rect(cx, cy, chipW, chipH), IsKorean ? "명령" : "Order", unit.OrderLabel, ImGuiGameUi.AccentGold);
+                return;
+            }
+
+            float w3 = (innerW - gap * 2f) / 3f;
+            float y0 = panel.y + 84f;
+            float cx0 = innerX;
+            DrawStatChip(new Rect(cx0, y0, w3, chipH), "DMG", definition != null ? $"{definition.AttackDamage:0}" : "--", ImGuiGameUi.AccentGold);
+            cx0 += w3 + gap;
+            DrawStatChip(new Rect(cx0, y0, w3, chipH), "RNG", definition != null ? $"{definition.AttackRange:0.#}" : "--", ImGuiGameUi.AccentCyan);
+            cx0 += w3 + gap;
+            DrawStatChip(
+                new Rect(cx0, y0, w3, chipH),
+                "SPD",
+                definition != null ? $"{definition.MoveSpeed:0.#}" : "--",
+                Color.Lerp(ImGuiGameUi.AccentCyan, Color.white, 0.2f));
+
+            float y1 = y0 + chipH + gap;
+            float w2 = (innerW - gap) / 2f;
+            DrawStatChip(
+                new Rect(innerX, y1, w2, chipH),
+                IsKorean ? "유형" : "Type",
+                definition != null
+                    ? (definition.IsFlying ? (IsKorean ? "비행" : "Air") : (IsKorean ? "지상" : "Ground"))
+                    : "--",
+                Color.Lerp(ImGuiGameUi.AccentGold, ImGuiGameUi.AccentCyan, 0.24f));
+            DrawStatChip(
+                new Rect(innerX + w2 + gap, y1, w2, chipH),
+                IsKorean ? "명령" : "Order",
+                unit.OrderLabel,
+                ImGuiGameUi.AccentGold);
+        }
+
+        private static void DrawStatChip(Rect rect, string label, string value, Color accent)
+        {
+            ImGuiGameUi.DrawHudCardWithLeftStripe(rect, ImGuiGameUi.PanelBgHudCard, ImGuiGameUi.BorderCool, accent, 2f);
+
+            GUI.skin.label.fontSize = 9;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(rect.x + 7f, rect.y + 2f, rect.width - 14f, 10f), label);
+
+            GUI.skin.label.fontSize = 11;
+            GUI.color = ImGuiGameUi.TextTitle;
+            GUI.Label(new Rect(rect.x + 7f, rect.y + 8f, rect.width - 14f, 10f), value);
         }
     }
 }

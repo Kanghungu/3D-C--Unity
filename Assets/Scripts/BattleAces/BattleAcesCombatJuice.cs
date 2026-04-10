@@ -79,10 +79,10 @@ namespace Game.BattleAces
             SpawnDeathPop(worldPoint, c);
         }
 
-        /// <summary>승패 스팅과 동시에 강한 쉐이크(오디오는 기존 경로)</summary>
+        /// <summary>승패 스팅과 동시 짧은 쉐이크 — 승리 카메라 당김(<c>BattleAcesVictoryPresentation</c>)과 겹쳐도 과하지 않게 절제</summary>
         public static void NotifyMatchResult(bool victory)
         {
-            ImpulseCamera(victory ? 0.58f : 0.48f);
+            ImpulseCamera(victory ? 0.42f : 0.38f);
         }
 
         private static bool IsBattleAcesMatchActive()

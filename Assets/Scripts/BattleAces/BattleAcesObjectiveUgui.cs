@@ -16,6 +16,7 @@ namespace Game.BattleAces
         private MissionDefinition mission;
         private BattleMissionFlow flow;
         private Canvas rootCanvas;
+        private CanvasScaler canvasScaler;
         private Text textDemoTitle;
         private Text textObjective;
         private Text textAuxiliary;
@@ -61,8 +62,14 @@ namespace Game.BattleAces
                 return;
             }
 
+            // 설정에서 UI 크기 변경 시 IMGUI 와 동일 비율로 UGUI 상단 바 맞춤
+            if (canvasScaler != null)
+            {
+                BattleAcesUguiScaleUtility.ApplyUserUiScale(canvasScaler);
+            }
+
             bool show = flow == null || flow.IsGameplayStarted;
-            // 승패 결과 IMGUI와 겹치지 않도록 전투 종료 시 상단 목표 바 숨김
+            // 승패 결과 UGUI/IMGUI와 겹치지 않도록 전투 종료 시 상단 목표 바 숨김
             if (BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController matchCtrl) && matchCtrl.IsFinished)
             {
                 show = false;
@@ -89,6 +96,8 @@ namespace Game.BattleAces
                 Destroy(rootCanvas.gameObject);
                 rootCanvas = null;
             }
+
+            canvasScaler = null;
         }
 
         private void BuildUi()
@@ -107,6 +116,8 @@ namespace Game.BattleAces
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0.5f;
+            canvasScaler = scaler;
+            BattleAcesUguiScaleUtility.ApplyUserUiScale(canvasScaler);
 
             root.AddComponent<GraphicRaycaster>();
 
@@ -120,8 +131,32 @@ namespace Game.BattleAces
             panelRt.anchoredPosition = new Vector2(0f, -TopMargin);
 
             Image bg = panel.AddComponent<Image>();
-            bg.color = new Color(ImGuiGameUi.PanelBgHud.r, ImGuiGameUi.PanelBgHud.g, ImGuiGameUi.PanelBgHud.b, 0.96f);
+            bg.color = new Color(ImGuiGameUi.PanelBgHud.r, ImGuiGameUi.PanelBgHud.g, ImGuiGameUi.PanelBgHud.b, 0.97f);
             bg.raycastTarget = false;
+
+            GameObject topGloss = new GameObject("TopGloss");
+            topGloss.transform.SetParent(panel.transform, false);
+            RectTransform glossRt = topGloss.AddComponent<RectTransform>();
+            glossRt.anchorMin = new Vector2(0f, 1f);
+            glossRt.anchorMax = new Vector2(1f, 1f);
+            glossRt.pivot = new Vector2(0.5f, 1f);
+            glossRt.sizeDelta = new Vector2(-8f, 2f);
+            glossRt.anchoredPosition = new Vector2(0f, -4f);
+            Image glossImg = topGloss.AddComponent<Image>();
+            glossImg.color = new Color(1f, 1f, 1f, 0.07f);
+            glossImg.raycastTarget = false;
+
+            GameObject bottomRule = new GameObject("BottomRule");
+            bottomRule.transform.SetParent(panel.transform, false);
+            RectTransform ruleRt = bottomRule.AddComponent<RectTransform>();
+            ruleRt.anchorMin = new Vector2(0f, 0f);
+            ruleRt.anchorMax = new Vector2(1f, 0f);
+            ruleRt.pivot = new Vector2(0.5f, 0f);
+            ruleRt.sizeDelta = new Vector2(-12f, 1f);
+            ruleRt.anchoredPosition = new Vector2(0f, 2f);
+            Image ruleImg = bottomRule.AddComponent<Image>();
+            ruleImg.color = new Color(ImGuiGameUi.BorderCool.r, ImGuiGameUi.BorderCool.g, ImGuiGameUi.BorderCool.b, 0.75f);
+            ruleImg.raycastTarget = false;
 
             GameObject leftStripe = new GameObject("LeftStripe");
             leftStripe.transform.SetParent(panel.transform, false);

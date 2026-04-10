@@ -38,11 +38,11 @@ namespace Game.CameraSystem
 
         public bool IsRightDragPanning => _rightDragPanning;
 
-        [Header("전투 주스 — 카메라 쉐이크")]
-        [Tooltip("Impulse 누적에 곱해지는 XZ 최대 오프셋(월드 단위, 한 프레임)")]
-        [SerializeField] private float combatShakeMaxWorldOffset = 1.12f;
+        [Header("Combat Camera Shake")]
+        [Tooltip("Maximum XZ world-space offset added by accumulated combat shake impulses.")]
+        [SerializeField] private float combatShakeMaxWorldOffset = 0.92f;
 
-        [Tooltip("unscaled — 값이 클수록 빠르게 진동이 가라앉음")]
+        [Tooltip("Higher values make combat shake settle faster in unscaled time.")]
         [SerializeField] private float combatShakeDecayPerSecond = 3.8f;
 
         private float combatShakeStrength;
@@ -444,6 +444,17 @@ namespace Game.CameraSystem
             delta.y = 0f;
             transform.position += delta;
             ClampPosition();
+        }
+
+        /// <summary>
+        /// 스토어 캡처·연출용 — 높이를 먼저 맞춘 뒤 화면 중앙이 월드 초점을 보도록 이동.
+        /// </summary>
+        public void ApplyPresentationView(Vector3 worldFocusPoint, float cameraHeightWorldY)
+        {
+            Vector3 pos = transform.position;
+            pos.y = Mathf.Clamp(cameraHeightWorldY, minHeight, maxHeight);
+            transform.position = pos;
+            CenterViewOnWorldPoint(worldFocusPoint, 0f);
         }
 
         /// <summary>월드 XZ 평면상 델타만큼 카메라 이동</summary>

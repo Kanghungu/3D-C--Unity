@@ -17,5 +17,8 @@ namespace Game.BattleAces
 
         /// <summary>미니맵 클릭 링·톤 — 시야 이동은 매번, 소리/링 추가만 쿨다운</summary>
         public const float MinimapClickAudioRippleCooldownUnscaled = 0.12f;
+
+        /// <summary>유닛 선택 수 변경 틱음 — 드래그 박스·미니맵 연속 선택 시 스팸 완화</summary>
+        public const float SelectionChangeAudioCooldownUnscaled = 0.085f;
     }
 }

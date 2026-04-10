@@ -400,6 +400,12 @@ namespace Game.Audio
             PlayClip(BuildTone(660f, 0.08f), 0.45f, ProceduralAudioPriority.High);
         }
 
+        /// <summary>메뉴·결과 화면 IMGUI 버튼 — 확인음보다 얇고 짧게(연타 시에도 덜 피로)</summary>
+        public static void PlayUiMenuAck()
+        {
+            PlayClip(BuildTone(580f, 0.042f, 0.032f), 0.24f, ProceduralAudioPriority.High);
+        }
+
         /// <summary>명령 불가(지형 미적중·우선 목표 없음 등) — 짧고 낮은 톤</summary>
         public static void PlayUiCommandRejected()
         {
@@ -424,6 +430,30 @@ namespace Game.Audio
         public static void PlayUiMinimapPing()
         {
             PlayClip(BuildTone(780f, 0.05f, 0.035f), 0.22f, ProceduralAudioPriority.Normal);
+        }
+
+        /// <summary>미니맵 배율(Shift+M) 단계 변경 — 시야 핑보다 낮고 짧게</summary>
+        public static void PlayUiMinimapZoomStep()
+        {
+            PlayClip(BuildTone(540f, 0.028f, 0.022f), 0.12f, ProceduralAudioPriority.Normal);
+        }
+
+        /// <summary>아군 선택 대상 수가 바뀔 때(추가·박스·미니맵)</summary>
+        public static void PlayUiSelectionTick()
+        {
+            PlayClip(BuildTone(680f, 0.032f, 0.026f), 0.12f, ProceduralAudioPriority.Normal);
+        }
+
+        /// <summary>선택 해제(빈 땅 클릭 등) — 낮은 짧은 톤</summary>
+        public static void PlayUiSelectionCleared()
+        {
+            PlayClip(BuildTone(280f, 0.045f, 0.034f), 0.09f, ProceduralAudioPriority.Normal);
+        }
+
+        /// <summary>설정 슬라이더 등 연속 값 변경 — 아주 짧게(스팸은 호출부 쿨다운)</summary>
+        public static void PlayUiSliderTick()
+        {
+            PlayClip(BuildTone(620f, 0.018f, 0.014f), 0.078f, ProceduralAudioPriority.Normal);
         }
 
         /// <summary>생산 완료(아군 유닛 스폰)</summary>
@@ -472,7 +502,10 @@ namespace Game.Audio
             PlayClip(BuildTone(990f, 0.055f, 0.035f), 0.2f, ProceduralAudioPriority.High);
         }
 
-        /// <summary>승리/패배 스팅 — 짧은 화음 레이어(믹서 그룹 시 동일 라우팅)</summary>
+        /// <summary>
+        /// 승리/패배 스팅 — 짧은 화음 레이어(믹서 그룹 시 동일 라우팅).
+        /// 아트 톤(차가운 의식·금속)에 맞춰 승리는 중저역 화음 위주, 패배는 낮고 짧게 — 티얼 UI와 주파수 대역이 겹치지 않게 고역은 억제.
+        /// </summary>
         public static void PlayResultSting(bool victory)
         {
             // 얕은 전투 비프가 스팅과 뭉치지 않게 짧은 구간만 억제(전용 소스 레이어는 그대로)
@@ -481,16 +514,16 @@ namespace Game.Audio
             {
                 if (victory)
                 {
-                    PlayResultStingOneShot(BuildTone(523f, 0.09f, 0.07f), 0.4f);
-                    PlayResultStingOneShot(BuildTone(659f, 0.1f, 0.075f), 0.42f);
-                    PlayResultStingOneShot(BuildTone(784f, 0.14f, 0.1f), 0.48f);
-                    PlayResultStingOneShot(BuildTone(990f, 0.09f, 0.065f), 0.38f);
+                    PlayResultStingOneShot(BuildTone(523f, 0.09f, 0.07f), 0.43f);
+                    PlayResultStingOneShot(BuildTone(659f, 0.1f, 0.075f), 0.43f);
+                    PlayResultStingOneShot(BuildTone(784f, 0.14f, 0.1f), 0.5f);
+                    PlayResultStingOneShot(BuildTone(990f, 0.09f, 0.065f), 0.36f);
                 }
                 else
                 {
-                    PlayResultStingOneShot(BuildTone(155f, 0.16f, 0.12f), 0.42f);
-                    PlayResultStingOneShot(BuildTone(98f, 0.22f, 0.16f), 0.38f);
-                    PlayResultStingOneShot(BuildNoiseBlip(0.12f, 0.45f), 0.28f);
+                    PlayResultStingOneShot(BuildTone(155f, 0.16f, 0.12f), 0.4f);
+                    PlayResultStingOneShot(BuildTone(98f, 0.22f, 0.16f), 0.36f);
+                    PlayResultStingOneShot(BuildNoiseBlip(0.12f, 0.45f), 0.26f);
                 }
             }
             catch (System.Exception e)
@@ -503,12 +536,17 @@ namespace Game.Audio
             }
         }
 
+        /// <summary>앰비언트·UI 와 겹칠 때 스팅이 튀지 않게 전역 배율(믹서 슬라이더와 별개)</summary>
+        private const float ResultStingLinearVolumeMul = 0.92f;
+
         private static void PlayResultStingOneShot(AudioClip clip, float volumeLinear)
         {
             if (clip == null)
             {
                 return;
             }
+
+            volumeLinear = Mathf.Clamp01(volumeLinear * ResultStingLinearVolumeMul);
 
             if (resultStingMixerGroup != null)
             {

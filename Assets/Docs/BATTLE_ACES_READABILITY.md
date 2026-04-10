@@ -65,6 +65,19 @@
 
 ---
 
+## 7. 720p·색약 회귀 체크리스트 (Battle Aces)
+
+Game 뷰를 **1280×720**으로 맞춘 뒤 한 판 분량 확인합니다. 1080p만 보면 놓치기 쉬운 항목입니다.
+
+- [ ] 좌측 전술 패널이 화면 밖으로 잘리지 않음(`BattleAcesHudOverlay` — 가로 `Screen.width` 클램프).
+- [ ] 자원 숫자·덱 그리드가 패널 안에 읽힘(세로 720 이하에서 폰트·밀도 완화).
+- [ ] 하단 선택 정보 패널이 미니맵·토스트와 심하게 겹치지 않음(`BattleAcesSelectionInfoHud` — 좁은 가로에서 칩 레이아웃).
+- [ ] 우하단 전술 지도 크기·여백이 720에서도 클릭 가능(`BattleAcesMinimap`).
+- [ ] 설정(O)에서 **색약 친화 미니맵** 켠 뒤, 범례 4줄·코어/유닛 점이 혼동 없이 구분됨(`BattleAcesArtDirection.MinimapColorblind*`).
+- [ ] `weekly_compare_1920x1080.png` / `weekly_compare_1280x720.png` 갱신 후 지면·HUD·미니맵 프레임이 팔레트에서 벗어나지 않는지 비교(`WEEKLY_CAPTURE.md`).
+
+---
+
 ## 마무리 체크리스트 — 소비 파일
 
 | 규칙 | 주요 파일 |

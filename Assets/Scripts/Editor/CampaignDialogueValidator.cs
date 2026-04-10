@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Game.EditorTools
 {
     /// <summary>
-    /// CampaignDialogue_KR? ????? ?? ID? ???? ????.
+    /// Verifies that mission and field dialogue ids exist in CampaignDialogue_KR.
     /// </summary>
     public static class CampaignDialogueValidator
     {
@@ -19,7 +19,7 @@ namespace Game.EditorTools
             DialogueTable table = AssetDatabase.LoadAssetAtPath<DialogueTable>(DialoguePath);
             if (table == null)
             {
-                EditorUtility.DisplayDialog("Dialogue", "CampaignDialogue_KR.asset? ?? ? ????.", "??");
+                EditorUtility.DisplayDialog("Dialogue", "CampaignDialogue_KR.asset 을 찾을 수 없습니다.", "확인");
                 return;
             }
 
@@ -64,7 +64,7 @@ namespace Game.EditorTools
                 Check(m.VictoryDialogueId, "win");
                 Check(m.DefeatDialogueId, "lose");
 
-                // ?? ??: ???? *_air ?? ??? ????? ??? ?
+                // Air-focus missions expect matching *_air dialogue variants.
                 if (m.AirborneCitadelFocus)
                 {
                     if (!string.IsNullOrEmpty(m.BriefingDialogueId))
@@ -131,14 +131,14 @@ namespace Game.EditorTools
 
             if (missing.Count == 0)
             {
-                EditorUtility.DisplayDialog("Dialogue Check", "??? ?? ID? ????.", "OK");
+                EditorUtility.DisplayDialog("Dialogue Check", "누락된 대화 ID가 없습니다.", "OK");
                 return;
             }
 
-            Debug.LogWarning("[CampaignDialogueValidator] ??:\n" + string.Join("\n", missing));
+            Debug.LogWarning("[CampaignDialogueValidator] Missing dialogue ids:\n" + string.Join("\n", missing));
             EditorUtility.DisplayDialog(
                 "Dialogue Check",
-                "?? " + missing.Count + "?. ?? ??? ?????.",
+                "누락된 대화 ID가 " + missing.Count + "개 있습니다. 콘솔 로그를 확인하세요.",
                 "OK");
         }
     }

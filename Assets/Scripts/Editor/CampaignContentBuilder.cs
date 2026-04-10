@@ -11,10 +11,10 @@ using UnityEngine;
 
 namespace Game.EditorTools
 {
-    /// <summary>
-    /// ???ы??쨌誘몄?? 4醫?쨌移??濡?洹??앹????CampaignMenu ?ъ???곌껐.
-    /// ?댁??? <c>Assets/Campaign/Content</c> ???ㅼ? ?먯??(????룸???YAML)怨?留?異???
-    /// </summary>
+        /// <summary>
+        /// Generates a compact Korean campaign content set and wires it into CampaignMenu.
+        /// Assets are created under <c>Assets/Campaign/Content</c> as editable ScriptableObjects.
+        /// </summary>
     public static class CampaignContentBuilder
     {
         private const string ContentFolder = "Assets/Campaign/Content";
@@ -22,7 +22,7 @@ namespace Game.EditorTools
         private const string CatalogPath = ContentFolder + "/CampaignMissionCatalog.asset";
         private const string ScenePath = "Assets/Scenes/CampaignMenu.unity";
 
-        /// <summary>CampaignDialogue_KR.asset 怨?????臾멸뎄 ???좉? ?앹?????먮??ъ??</summary>
+        /// <summary>Seed dialogue strings used when generating CampaignDialogue_KR.asset.</summary>
         private static class DialogueKr
         {
             public const string M01Brief =
@@ -72,11 +72,11 @@ namespace Game.EditorTools
             WireScene(dialogue);
             EditorUtility.DisplayDialog(
                 "Campaign Content",
-                "?앹?굿?곌껐 ??猷?.\n" + DialoguePath + "\n誘몄?? 5醫?+ 移댄??濡?洹???CampaignMenu",
+                "캠페인 데모 콘텐츠 생성을 완료했습니다.\n" + DialoguePath + "\n미션 5종과 카탈로그가 CampaignMenu에 연결됩니다.",
                 "확인");
         }
 
-        /// <summary>湲곗〈 ???ы????m04 ??????ID留?異??(????濡??앺????洹???????.</summary>
+        /// <summary>Adds missing late-mission dialogue ids without overwriting existing text.</summary>
         [MenuItem("Game/Campaign/Append Missing KR Dialogue Entries")]
         private static void AppendMissingKrDialogue()
         {
@@ -85,7 +85,7 @@ namespace Game.EditorTools
             {
                 EditorUtility.DisplayDialog(
                     "Campaign",
-                    "???ы??媛? ???????\nGame/Campaign/Generate Campaign Demo Content (KR) 瑜?癒쇱? ?ㅽ???????",
+                    "대화 자산이 없습니다.\nGame/Campaign/Generate Campaign Demo Content (KR)를 먼저 실행하세요.",
                     "확인");
                 return;
             }
@@ -129,7 +129,7 @@ namespace Game.EditorTools
             EditorUtility.DisplayDialog("Campaign", "누락된 KR 대화 항목을 추가했습니다. (기존 값 유지)", "확인");
         }
 
-        [MenuItem("Game/Campaign/Set Play Mode Start Scene ??CampaignMenu")]
+        [MenuItem("Game/Campaign/Set Play Mode Start Scene -> CampaignMenu")]
         private static void SetPlayModeStart()
         {
             SceneAsset scene = AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath);

@@ -46,7 +46,7 @@ namespace Game.Campaign.Data
         [Tooltip("같은 맵 레이아웃을 미러·자원만 바꿔 재사용할 때 체크")]
         [SerializeField] private bool mirroredLayoutVariant;
 
-        [Tooltip("체크 시 브리핑/승패 대사 키에 _air 접미사, 덱·적 패턴이 공중 요새 위주로 조정됨")]
+        [Tooltip("체크 시 브리핑/결과/데크 표시를 공중 성채 중심 공격형 변형으로 맞춥니다.")]
         [SerializeField] private bool airborneCitadelFocus;
 
         [Tooltip("브리핑 본문이 길 때만 체크 — 폰트 15·카드 높이를 조금 늘려 잘림을 줄임")]
@@ -301,14 +301,14 @@ namespace Game.Campaign.Data
             }
         }
 
-        /// <summary>데모 메뉴 IMGUI 두 번째 줄 — 상수와 항상 동기화됨</summary>
+        /// <summary>데모 메뉴 IMGUI 버튼에서 난이도 수치 요약을 표시합니다.</summary>
         public static string BuildSkirmishDemoMenuStatsLine()
         {
             return
-                "수치(보통=1.0): 쉬움 생산×" + SkNum(SkirmishEasyThinkMul) + "·부스트 " + SkNum(SkirmishEasyBoostSec) + "초×" + SkNum(SkirmishEasyBoostMul) +
-                " | 보통 ×" + SkNum(SkirmishNormalThinkMul) + "·" + SkNum(SkirmishNormalBoostSec) + "×" + SkNum(SkirmishNormalBoostMul) +
-                " | 어려움 ×" + SkNum(SkirmishHardThinkMul) + "·" + SkNum(SkirmishHardBoostSec) + "×" + SkNum(SkirmishHardBoostMul) +
-                " ·적 패턴: 쉬움=느긋한 집결 / 보통=기본 / 어려움=압박 물결";
+                "수치(보통=1.0): 쉬움 생산x" + SkNum(SkirmishEasyThinkMul) + " · 부스트 " + SkNum(SkirmishEasyBoostSec) + "초 x" + SkNum(SkirmishEasyBoostMul) +
+                " | 보통 x" + SkNum(SkirmishNormalThinkMul) + " · " + SkNum(SkirmishNormalBoostSec) + "초 x" + SkNum(SkirmishNormalBoostMul) +
+                " | 어려움 x" + SkNum(SkirmishHardThinkMul) + " · " + SkNum(SkirmishHardBoostSec) + "초 x" + SkNum(SkirmishHardBoostMul) +
+                " · 적 패턴: 쉬움=약공세 / 보통=기본 / 어려움=강공세";
         }
 
         private static string SkNum(float x) => x.ToString("0.##", CultureInfo.InvariantCulture);

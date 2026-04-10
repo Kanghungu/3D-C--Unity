@@ -76,7 +76,7 @@ namespace Game.Editor
             string date = DateTime.Now.ToString("yyyy-MM-dd");
             string git = TryGetShortGitHash();
             string memo = string.IsNullOrWhiteSpace(memoFallback)
-                ? (string.IsNullOrEmpty(git) ? "—" : "git " + git)
+                ? (string.IsNullOrEmpty(git) ? "--" : "git " + git)
                 : memoFallback;
             const string result = "PASS";
             const string note = "수동 기록";

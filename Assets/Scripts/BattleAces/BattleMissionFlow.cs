@@ -27,6 +27,9 @@ namespace Game.BattleAces
         private BattleAcesEconomy economyRef;
         private BattleAcesRunStats runStatsRef;
 
+        /// <summary>승패 결과 UGUI — 없으면 IMGUI 폴백</summary>
+        private BattleAcesResultUgui resultUgui;
+
         /// <summary>이번 판 보조 목표 달성 여부(결과 카드 표시)</summary>
         private bool bonusMetThisRound;
 
@@ -94,6 +97,8 @@ namespace Game.BattleAces
                 match.MatchEnded += OnMatchEnded;
             }
 
+            resultUgui = GetComponent<BattleAcesResultUgui>();
+
             RtsTimeControl rtc = RtsTimeControl.Instance;
             if (rtc != null)
             {
@@ -124,6 +129,11 @@ namespace Game.BattleAces
             if (match != null)
             {
                 match.MatchEnded -= OnMatchEnded;
+            }
+
+            if (resultUgui != null)
+            {
+                resultUgui.Hide();
             }
 
             Time.timeScale = 1f;
@@ -320,21 +330,17 @@ namespace Game.BattleAces
             return fullText.Substring(0, visible);
         }
 
-        private void DrawResultScreen(PersistentGameCore core)
+        /// <summary>승패 카드에 쓸 문자열·플래그만 수집 — UGUI/IMGUI 공통</summary>
+        private bool TryBuildResultCardPresentation(PersistentGameCore core, out BattleResultCardPresentation presentation)
         {
-            ImGuiGameUi.BeginScaledGui();
-            ImGuiGameUi.DrawFilledRect(new Rect(0f, 0f, Screen.width, Screen.height), ImGuiGameUi.DimFullscreen);
-
+            presentation = default;
             if (mission == null || match == null)
             {
-                ImGuiGameUi.EndScaledGui();
-                return;
+                return false;
             }
 
             bool skirmishPractice = !mission.CountsForCampaignProgress;
-            // 에디터에서 전투 씬만 연 폴백 데모 — 문구를 스커미시(메뉴 데모)와 구분
             bool isFallbackOneMatchDemo = mission.IsOneMatchBattleDemo;
-
             bool won = match.State == BattleAcesMatchController.MatchState.Victory;
             string did = won ? mission.EffectiveVictoryDialogueId : mission.EffectiveDefeatDialogueId;
             string body = core != null && !string.IsNullOrEmpty(did) ? core.TryGetDialogue(did) : null;
@@ -351,91 +357,30 @@ namespace Game.BattleAces
                     : DemoPresentationCopy.ResultBodyFallbackCampaign(won);
             }
 
-            float cardW = Mathf.Min(700f, Screen.width - 40f);
-            bool veryLowRes = Screen.height < 520 || Screen.width < 720;
-            // 해상도별로 본문·통계·버튼이 붙지 않게 카드 높이(최소 높이는 본문+푸터가 들어갈 만큼)
-            float cardH = Mathf.Clamp(Screen.height * (veryLowRes ? 0.62f : 0.56f), veryLowRes ? 340f : 392f, 600f);
-            cardH = Mathf.Min(cardH, Mathf.Max(veryLowRes ? 300f : 320f, Screen.height - (veryLowRes ? 36f : 48f)));
-            float cardY = (Screen.height - cardH) * 0.5f;
-            if (veryLowRes)
-            {
-                cardY = Mathf.Clamp(cardY, 8f, Mathf.Max(8f, Screen.height - cardH - 8f));
-            }
-
-            Rect card = new Rect((Screen.width - cardW) * 0.5f, cardY, cardW, cardH);
-            ImGuiGameUi.DrawPanelFrame(card, ImGuiGameUi.PanelBgLift, won ? ImGuiGameUi.BorderAccent : ImGuiGameUi.BorderCool, 2f);
-
-            const float padX = 24f;
-            float innerW = card.width - padX * 2f;
-            float y = card.y + 18f;
-
-            // 순서: 스팅(오디오) → 카드 → 본문 → 통계 → 다음 단계·입력 안내 → 버튼 (스팅은 OnMatchEnded 에서 먼저 재생됨)
             string title = DemoPresentationCopy.GetResultScreenTitle(won);
-            GUI.skin.label.fontSize = 26;
-            GUI.color = won ? ImGuiGameUi.VictoryTint : ImGuiGameUi.DefeatTint;
-            GUI.Label(new Rect(card.x + padX, y, innerW, 40f), title);
-            y += 44f;
-
-            string endReasonLine = match != null
-                ? FormatMatchEndReasonLine(match.LastEndReason, won)
-                : string.Empty;
-            if (!string.IsNullOrEmpty(endReasonLine))
+            string endReasonLine = FormatMatchEndReasonLine(match.LastEndReason, won);
+            string defeatRetryHint = string.Empty;
+            if (!won && core != null)
             {
-                GUI.skin.label.fontSize = 14;
-                GUI.color = ImGuiGameUi.TextMuted;
-                GUI.Label(new Rect(card.x + padX, y, innerW, 24f), endReasonLine);
-                GUI.color = Color.white;
-                y += 28f;
+                defeatRetryHint = ResolveDefeatRetryHintText(core, mission, match.LastEndReason) ?? string.Empty;
             }
 
-            if (!won && core != null && match != null)
-            {
-                string retryHint = ResolveDefeatRetryHintText(core, mission, match.LastEndReason);
-                if (!string.IsNullOrEmpty(retryHint))
-                {
-                    GUI.skin.label.fontSize = 14;
-                    GUI.color = ImGuiGameUi.AccentCyan;
-                    GUI.Label(new Rect(card.x + padX, y, innerW, 40f), retryHint);
-                    y += 44f;
-                }
-            }
-
-            // 하단: 통계·보조목표·다음 단계·R/Esc·개발 메모·버튼
-            float footerBlock = veryLowRes ? 292f : 304f;
-            if (mission != null && !string.IsNullOrEmpty(mission.OptionalBonusObjectiveId))
-            {
-                footerBlock += 44f;
-            }
-            float bodyH = Mathf.Clamp(card.yMax - y - footerBlock, 40f, 900f);
-            GUIStyle bodyStyle = GetOrCreateResultBodyLabelStyle();
-            GUI.Label(new Rect(card.x + padX, y, innerW, bodyH), body, bodyStyle);
-
-            float afterBody = y + bodyH + 10f;
-            GUI.skin.label.fontSize = 14;
-            GUI.color = ImGuiGameUi.TextMuted;
-            // 통계 한 줄 — RunStats(생산·격파·손실) + 플레이 시간 mm:ss
             string statsOneLine = runStatsRef != null
                 ? runStatsRef.BuildFullResultSummaryLine(resultPlaySeconds, resultPlayerCredits)
                 : (IsKoreanLang
                     ? $"플레이 {BattleAcesRunStats.FormatPlayTimeMmSs(resultPlaySeconds)} · 종료 시 자원 {resultPlayerCredits}"
                     : $"Play {BattleAcesRunStats.FormatPlayTimeMmSs(resultPlaySeconds)} · credits at end {resultPlayerCredits}");
-            GUI.Label(new Rect(card.x + padX, afterBody, innerW, 36f), statsOneLine);
 
-            float extraY = afterBody + 34f;
-
-            if (mission != null && !string.IsNullOrEmpty(mission.OptionalBonusObjectiveId))
+            bool hasBonus = !string.IsNullOrEmpty(mission.OptionalBonusObjectiveId);
+            string bonusLine = string.Empty;
+            bool bonusGold = false;
+            if (hasBonus)
             {
-                GUI.skin.label.fontSize = 13;
                 string desc = BattleAcesMissionBonusEvaluator.DescribeBonusForUi(mission.OptionalBonusObjectiveId);
-                string bonusText = won
-                    ? (bonusMetThisRound
-                        ? $"보조 목표: 달성 — {desc}"
-                        : $"보조 목표: 미달성 — {desc}")
+                bonusLine = won
+                    ? (bonusMetThisRound ? $"보조 목표: 달성 — {desc}" : $"보조 목표: 미달성 — {desc}")
                     : $"보조 목표: 패배로 미적용 — {desc}";
-                GUI.color = bonusMetThisRound && won ? ImGuiGameUi.AccentGold : ImGuiGameUi.TextMuted;
-                GUI.Label(new Rect(card.x + padX, extraY, innerW, 40f), bonusText);
-                GUI.color = ImGuiGameUi.TextMuted;
-                extraY += 42f;
+                bonusGold = bonusMetThisRound && won;
             }
 
             string nextCampaignLine;
@@ -445,67 +390,201 @@ namespace Game.BattleAces
             }
             else
             {
-                nextCampaignLine = core != null
-                    ? core.TryGetDialogue(ResultCampaignNextHintDialogueId)
-                    : null;
+                nextCampaignLine = core != null ? core.TryGetDialogue(ResultCampaignNextHintDialogueId) : null;
                 if (string.IsNullOrEmpty(nextCampaignLine))
                 {
                     nextCampaignLine = DemoPresentationCopy.ResultNextStepCampaignDefaultKo;
                 }
             }
 
-            GUIStyle nextStepStyle = GetOrCreateResultNextStepHintStyle();
-            float nextStepH = nextStepStyle.CalcHeight(new GUIContent(nextCampaignLine), innerW);
-            nextStepH = Mathf.Clamp(nextStepH, 22f, 72f);
-            GUI.skin.label.fontSize = 13;
-            GUI.Label(new Rect(card.x + padX, extraY, innerW, nextStepH), nextCampaignLine, nextStepStyle);
-            extraY += nextStepH + 10f;
-
-            GUI.skin.label.fontSize = 17;
-            GUI.color = ImGuiGameUi.AccentGold;
-            GUI.Label(
-                new Rect(card.x + padX, extraY, innerW, 28f),
-                DemoPresentationCopy.ResultScreenRKeyLine(isFallbackOneMatchDemo, skirmishPractice));
-            extraY += 28f;
-
-            GUI.skin.label.fontSize = 15;
-            GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(
-                new Rect(card.x + padX, extraY, innerW, 26f),
-                DemoPresentationCopy.ResultScreenEscLine(skirmishPractice));
-            GUI.color = Color.white;
-            extraY += 30f;
-
-            GUI.skin.label.fontSize = 12;
-            GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(new Rect(card.x + padX, extraY, innerW, 34f), DemoPresentationCopy.ResultScreenFooterDevNoteKo);
-            GUI.color = Color.white;
-            GUI.skin.label.fontSize = 14;
-
-            float btnY = card.yMax - 72f;
-            float btnW = (card.width - 64f) * 0.5f;
-            Rect retry = new Rect(card.x + 24f, btnY, btnW - 8f, 48f);
-            Rect menu = new Rect(card.x + 32f + btnW, btnY, btnW - 8f, 48f);
+            string rKeyLine = DemoPresentationCopy.ResultScreenRKeyLine(isFallbackOneMatchDemo, skirmishPractice);
+            string escLine = DemoPresentationCopy.ResultScreenEscLine(skirmishPractice);
+            string footer = DemoPresentationCopy.ResultScreenFooterDevNoteKo;
 
             string retryLabel = isFallbackOneMatchDemo
                 ? (IsKoreanLang ? "같은 데모 재시작" : "Restart demo")
                 : skirmishPractice
                     ? (IsKoreanLang ? "같은 스커미시 재시작" : "Restart skirmish")
                     : (IsKoreanLang ? "같은 미션 재시작" : "Restart mission");
-            if (ImGuiGameUi.GameMenuButton(retry, retryLabel))
+
+            string menuButtonLabel = skirmishPractice
+                ? (IsKoreanLang ? "메인 메뉴로" : "Main menu")
+                : (IsKoreanLang ? "캠페인 메뉴로" : "Campaign menu");
+
+            string menuScene = core != null ? core.CampaignMenuSceneName : null;
+            if (string.IsNullOrEmpty(menuScene))
+            {
+                menuScene = "CampaignMenu";
+            }
+
+            presentation = new BattleResultCardPresentation(
+                won,
+                title,
+                endReasonLine,
+                defeatRetryHint,
+                body,
+                statsOneLine,
+                hasBonus,
+                bonusLine,
+                bonusGold,
+                nextCampaignLine,
+                rKeyLine,
+                escLine,
+                footer,
+                retryLabel,
+                menuButtonLabel,
+                menuScene);
+
+            return true;
+        }
+
+        private void DrawResultScreen(PersistentGameCore core)
+        {
+            if (!TryBuildResultCardPresentation(core, out BattleResultCardPresentation pres))
+            {
+                ImGuiGameUi.BeginScaledGui();
+                ImGuiGameUi.DrawFilledRect(new Rect(0f, 0f, Screen.width, Screen.height), ImGuiGameUi.DimFullscreen);
+                ImGuiGameUi.EndScaledGui();
+                return;
+            }
+
+            if (resultUgui != null)
+            {
+                // OnGUI 가 매 프레임 호출되므로 본문·스크롤 위치가 매번 리셋되지 않게 최초 1회만 Show
+                if (!resultUgui.IsResultCardVisible)
+                {
+                    resultUgui.Show(pres);
+                }
+
+                return;
+            }
+
+            DrawResultScreenImGui(in pres);
+        }
+
+        /// <summary>UGUI 미부착 시 폴백 — 레이아웃만 IMGUI</summary>
+        private void DrawResultScreenImGui(in BattleResultCardPresentation pres)
+        {
+            ImGuiGameUi.BeginScaledGui();
+            ImGuiGameUi.DrawFilledRect(new Rect(0f, 0f, Screen.width, Screen.height), ImGuiGameUi.DimFullscreen);
+
+            float cardW = Mathf.Min(700f, Screen.width - 40f);
+            bool veryLowRes = Screen.height < 520 || Screen.width < 720;
+            float cardH = Mathf.Clamp(Screen.height * (veryLowRes ? 0.62f : 0.56f), veryLowRes ? 340f : 392f, 600f);
+            cardH = Mathf.Min(cardH, Mathf.Max(veryLowRes ? 300f : 320f, Screen.height - (veryLowRes ? 36f : 48f)));
+            float cardY = (Screen.height - cardH) * 0.5f;
+            if (veryLowRes)
+            {
+                cardY = Mathf.Clamp(cardY, 8f, Mathf.Max(8f, Screen.height - cardH - 8f));
+            }
+
+            Rect card = new Rect((Screen.width - cardW) * 0.5f, cardY, cardW, cardH);
+            ImGuiGameUi.DrawPanelFrame(card, ImGuiGameUi.PanelBgLift, pres.Won ? ImGuiGameUi.BorderAccent : ImGuiGameUi.BorderCool, 2f);
+
+            const float padX = 24f;
+            float innerW = card.width - padX * 2f;
+            float y = card.y + 18f;
+
+            GUI.skin.label.fontSize = 26;
+            GUI.color = pres.Won ? ImGuiGameUi.VictoryTint : ImGuiGameUi.DefeatTint;
+            GUI.Label(new Rect(card.x + padX, y, innerW, 40f), pres.Title);
+            y += 44f;
+
+            ImGuiGameUi.DrawHorizontalRule(
+                new Rect(card.x + padX, y, innerW, 1f),
+                new Color(0.18f, 0.22f, 0.28f, 0.58f));
+            y += 8f;
+
+            if (!string.IsNullOrEmpty(pres.EndReasonLine))
+            {
+                GUI.skin.label.fontSize = 14;
+                GUI.color = ImGuiGameUi.TextMuted;
+                GUI.Label(new Rect(card.x + padX, y, innerW, 24f), pres.EndReasonLine);
+                GUI.color = Color.white;
+                y += 28f;
+            }
+
+            if (!string.IsNullOrEmpty(pres.DefeatRetryHint))
+            {
+                GUI.skin.label.fontSize = 14;
+                GUI.color = ImGuiGameUi.AccentCyan;
+                GUI.Label(new Rect(card.x + padX, y, innerW, 40f), pres.DefeatRetryHint);
+                y += 44f;
+            }
+
+            float footerBlock = veryLowRes ? 292f : 304f;
+            if (pres.HasBonusLine)
+            {
+                footerBlock += 44f;
+            }
+
+            float bodyH = Mathf.Clamp(card.yMax - y - footerBlock, 40f, 900f);
+            GUIStyle bodyStyle = GetOrCreateResultBodyLabelStyle();
+            GUI.Label(new Rect(card.x + padX, y, innerW, bodyH), pres.Body, bodyStyle);
+
+            ImGuiGameUi.DrawHorizontalRule(
+                new Rect(card.x + padX, y + bodyH + 4f, innerW, 1f),
+                new Color(0.17f, 0.21f, 0.26f, 0.52f));
+
+            float afterBody = y + bodyH + 12f;
+            GUI.skin.label.fontSize = 14;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(card.x + padX, afterBody, innerW, 36f), pres.StatsOneLine);
+
+            float extraY = afterBody + 34f;
+
+            if (pres.HasBonusLine)
+            {
+                GUI.skin.label.fontSize = 13;
+                GUI.color = pres.BonusLineUseGold ? ImGuiGameUi.AccentGold : ImGuiGameUi.TextMuted;
+                GUI.Label(new Rect(card.x + padX, extraY, innerW, 40f), pres.BonusLine);
+                GUI.color = ImGuiGameUi.TextMuted;
+                extraY += 42f;
+            }
+
+            GUIStyle nextStepStyle = GetOrCreateResultNextStepHintStyle();
+            float nextStepH = nextStepStyle.CalcHeight(new GUIContent(pres.NextStepLine), innerW);
+            nextStepH = Mathf.Clamp(nextStepH, 22f, 72f);
+            GUI.skin.label.fontSize = 13;
+            GUI.Label(new Rect(card.x + padX, extraY, innerW, nextStepH), pres.NextStepLine, nextStepStyle);
+            extraY += nextStepH + 10f;
+
+            GUI.skin.label.fontSize = 17;
+            GUI.color = ImGuiGameUi.AccentGold;
+            GUI.Label(new Rect(card.x + padX, extraY, innerW, 28f), pres.RKeyLine);
+            extraY += 28f;
+
+            GUI.skin.label.fontSize = 15;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(card.x + padX, extraY, innerW, 26f), pres.EscLine);
+            GUI.color = Color.white;
+            extraY += 30f;
+
+            GUI.skin.label.fontSize = 12;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(card.x + padX, extraY, innerW, 34f), pres.FooterDevNote);
+            GUI.color = Color.white;
+            GUI.skin.label.fontSize = 14;
+
+            float btnY = card.yMax - 72f;
+            ImGuiGameUi.DrawHorizontalRule(
+                new Rect(card.x + padX, btnY - 14f, innerW, 1f),
+                new Color(0.17f, 0.21f, 0.26f, 0.45f));
+
+            float btnW = (card.width - 64f) * 0.5f;
+            Rect retry = new Rect(card.x + 24f, btnY, btnW - 8f, 48f);
+            Rect menu = new Rect(card.x + 32f + btnW, btnY, btnW - 8f, 48f);
+
+            if (ImGuiGameUi.GameMenuButton(retry, pres.RetryLabel))
             {
                 Time.timeScale = 1f;
                 SceneManager.LoadScene(SceneManager.GetActiveScene().path);
             }
 
-            string menuButtonLabel = skirmishPractice
-                ? (IsKoreanLang ? "메인 메뉴로" : "Main menu")
-                : (IsKoreanLang ? "캠페인 메뉴로" : "Campaign menu");
-            if (ImGuiGameUi.GameMenuButton(menu, menuButtonLabel))
+            if (ImGuiGameUi.GameMenuButton(menu, pres.MenuButtonLabel))
             {
                 Time.timeScale = 1f;
-                string menuScene = core != null ? core.CampaignMenuSceneName : "CampaignMenu";
-                CampaignSceneLoadUtility.TryLoadSceneByName(menuScene, "결과 화면에서 메뉴 복귀");
+                CampaignSceneLoadUtility.TryLoadSceneByName(pres.MenuSceneName, "결과 화면에서 메뉴 복귀");
             }
 
             ImGuiGameUi.EndScaledGui();

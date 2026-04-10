@@ -1,3 +1,4 @@
+using Game.Audio;
 using Game.BattleAces;
 using Game.Campaign.Core;
 using Game.Campaign.Data;
@@ -26,6 +27,13 @@ namespace Game.Campaign
         private MainMenuLayer currentLayer = MainMenuLayer.Root;
         private float menuOpenedUnscaled;
 
+        /// <summary>앱(에디터 플레이) 세션당 1회 — 메인 메뉴 짧은 부트 오버레이</summary>
+        private const float MenuSessionBootOverlaySeconds = 2.45f;
+
+        private static bool menuSessionBootOverlayFinished;
+
+        private static float menuSessionBootOverlayStartUnscaled;
+
         private void OnEnable()
         {
             menuOpenedUnscaled = Time.unscaledTime;
@@ -35,13 +43,31 @@ namespace Game.Campaign
 
         private void Update()
         {
+            if (!menuSessionBootOverlayFinished && currentLayer == MainMenuLayer.Root)
+            {
+                Keyboard keyboard = Keyboard.current;
+                if (keyboard != null && keyboard.anyKey.wasPressedThisFrame)
+                {
+                    ProceduralAudioUtility.PlayUiMenuAck();
+                    menuSessionBootOverlayFinished = true;
+                }
+
+                Mouse mouse = Mouse.current;
+                if (mouse != null &&
+                    (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame))
+                {
+                    ProceduralAudioUtility.PlayUiMenuAck();
+                    menuSessionBootOverlayFinished = true;
+                }
+            }
+
             if (currentLayer == MainMenuLayer.Root)
             {
                 return;
             }
 
-            Keyboard keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+            Keyboard kb = Keyboard.current;
+            if (kb != null && kb.escapeKey.wasPressedThisFrame)
             {
                 currentLayer = MainMenuLayer.Root;
             }
@@ -50,6 +76,12 @@ namespace Game.Campaign
         private void OnGUI()
         {
             ImGuiGameUi.BeginScaledGui();
+            if (currentLayer == MainMenuLayer.Root && TryDrawMenuSessionBootOverlay())
+            {
+                ImGuiGameUi.EndScaledGui();
+                return;
+            }
+
             DrawMenuBackground();
             DrawLanguageToggle();
 
@@ -121,15 +153,91 @@ namespace Game.Campaign
 
             if (!korean && GUI.Button(koRect, GUIContent.none, GUIStyle.none))
             {
+                ProceduralAudioUtility.PlayUiMenuAck();
                 GameUserSettings.SetLanguage(GameLanguage.Korean);
                 GameUserSettings.Save();
             }
 
             if (korean && GUI.Button(enRect, GUIContent.none, GUIStyle.none))
             {
+                ProceduralAudioUtility.PlayUiMenuAck();
                 GameUserSettings.SetLanguage(GameLanguage.English);
                 GameUserSettings.Save();
             }
+        }
+
+        /// <summary>세션 첫 메인 화면 — 짧은 타이틀·아트 한 줄(건너뛰기 가능)</summary>
+        private bool TryDrawMenuSessionBootOverlay()
+        {
+            if (menuSessionBootOverlayFinished)
+            {
+                return false;
+            }
+
+            if (menuSessionBootOverlayStartUnscaled <= 0f)
+            {
+                menuSessionBootOverlayStartUnscaled = Time.unscaledTime;
+            }
+
+            float elapsed = Time.unscaledTime - menuSessionBootOverlayStartUnscaled;
+            if (elapsed >= MenuSessionBootOverlaySeconds)
+            {
+                menuSessionBootOverlayFinished = true;
+                return false;
+            }
+
+            DrawMenuSessionBootOverlay(elapsed);
+            return true;
+        }
+
+        private static void DrawMenuSessionBootOverlay(float elapsed)
+        {
+            Rect full = new Rect(0f, 0f, Screen.width, Screen.height);
+            float fadeIn = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / 0.42f));
+            float fadeOut = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((MenuSessionBootOverlaySeconds - elapsed) / 0.42f));
+            float a = Mathf.Min(fadeIn, fadeOut);
+            ImGuiGameUi.DrawFilledRect(full, new Color(0.012f, 0.016f, 0.03f, 0.92f * a + 0.06f));
+            ImGuiGameUi.DrawVerticalGradient(full, new Color(0.05f, 0.1f, 0.16f, 0.35f * a), new Color(0.01f, 0.02f, 0.04f, 0.08f * a), 22);
+
+            float pulse = 0.22f + Mathf.Sin(Time.unscaledTime * 1.15f) * 0.06f;
+            ImGuiGameUi.DrawFilledRect(new Rect(Screen.width * 0.12f, Screen.height * 0.42f, Screen.width * 0.76f, 2f), new Color(ImGuiGameUi.AccentCyan.r, ImGuiGameUi.AccentCyan.g, ImGuiGameUi.AccentCyan.b, pulse * a));
+
+            GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = GameUserSettings.Language == GameLanguage.Korean ? 38 : 40,
+            };
+            GUI.color = new Color(ImGuiGameUi.TextTitle.r, ImGuiGameUi.TextTitle.g, ImGuiGameUi.TextTitle.b, a);
+            GUI.Label(new Rect(0f, Screen.height * 0.34f, Screen.width, 52f), L("오비탈 커맨드", "Orbital Command"), titleStyle);
+
+            GUIStyle tagStyle = new GUIStyle(ImGuiGameUi.WordWrappedLabelStyle)
+            {
+                fontSize = 15,
+                alignment = TextAnchor.UpperCenter,
+            };
+            GUI.color = new Color(ImGuiGameUi.TextMuted.r, ImGuiGameUi.TextMuted.g, ImGuiGameUi.TextMuted.b, 0.85f * a);
+            string tagline = GameUserSettings.Language == GameLanguage.Korean
+                ? BattleAcesArtDirection.OneLinerKorean
+                : BattleAcesArtDirection.OneLinerEnglish;
+            GUI.Label(new Rect(Screen.width * 0.14f, Screen.height * 0.46f, Screen.width * 0.72f, 120f), tagline, tagStyle);
+
+            GUIStyle skipStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 12,
+            };
+            GUI.color = new Color(ImGuiGameUi.AccentCyan.r, ImGuiGameUi.AccentCyan.g, ImGuiGameUi.AccentCyan.b, 0.75f * a);
+            GUI.Label(
+                new Rect(0f, Screen.height * 0.78f, Screen.width, 28f),
+                L("클릭 또는 아무 키 — 건너뛰기", "Click or any key — skip"),
+                skipStyle);
+
+            if (GUI.Button(full, GUIContent.none, GUIStyle.none))
+            {
+                menuSessionBootOverlayFinished = true;
+            }
+
+            GUI.color = Color.white;
         }
 
         private void DrawRootLayer()
@@ -189,7 +297,7 @@ namespace Game.Campaign
 
             GUI.skin.label.fontSize = GameUserSettings.Language == GameLanguage.Korean ? 24 : 26;
             GUI.color = ImGuiGameUi.TextTitle;
-            GUI.Label(new Rect(rect.x + 22f, rect.y + 44f, rect.width - 44f, 34f), L("다음 출격을 선택하세요", "Choose your next deployment"));
+            GUI.Label(new Rect(rect.x + 22f, rect.y + 44f, rect.width - 44f, 34f), L("다음 출격지를 선택하세요", "Choose your next deployment"));
 
             GUI.skin.label.fontSize = 12;
             GUI.color = ImGuiGameUi.TextMuted;
@@ -353,12 +461,12 @@ namespace Game.Campaign
                 StartSkirmishVsAi(SkirmishDifficultyTier.Easy);
             }
 
-            if (ImGuiGameUi.GameMenuButton(new Rect(left.x + 24f, btnY + btnH + btnGap, btnW, btnH), L("보통 스커미시\n밸런스 확인용 기본 추천값", "Normal Skirmish\nRecommended baseline for balance checks"), demoEnabled))
+            if (ImGuiGameUi.GameMenuButton(new Rect(left.x + 24f, btnY + btnH + btnGap, btnW, btnH), L("보통 스커미시\n밸런스 확인용 기본 추천", "Normal Skirmish\nRecommended baseline for balance checks"), demoEnabled))
             {
                 StartSkirmishVsAi(SkirmishDifficultyTier.Normal);
             }
 
-            if (ImGuiGameUi.GameMenuButton(new Rect(left.x + 24f, btnY + (btnH + btnGap) * 2f, btnW, btnH), L("어려움 스커미시\n압박 테스트용 고강도", "Hard Skirmish\nHigher pressure for stress testing"), demoEnabled))
+            if (ImGuiGameUi.GameMenuButton(new Rect(left.x + 24f, btnY + (btnH + btnGap) * 2f, btnW, btnH), L("어려움 스커미시\n고압 테스트용", "Hard Skirmish\nHigher pressure for stress testing"), demoEnabled))
             {
                 StartSkirmishVsAi(SkirmishDifficultyTier.Hard);
             }
@@ -444,7 +552,8 @@ namespace Game.Campaign
             ImGuiGameUi.DrawVerticalGradient(new Rect(0f, 0f, Screen.width * 0.48f, Screen.height), new Color(0.05f, 0.08f, 0.14f, 0.24f), new Color(0.01f, 0.03f, 0.06f, 0.02f), 18);
             ImGuiGameUi.DrawFilledRect(new Rect(Screen.width * 0.44f, 0f, 2f, Screen.height), new Color(0.16f, 0.2f, 0.28f, 0.14f));
             ImGuiGameUi.DrawScanLines(full, new Color(0.65f, 0.78f, 0.95f, 0.03f), 26f, 1f);
-            ImGuiGameUi.DrawGrid(new Rect(Screen.width * 0.52f, 0f, Screen.width * 0.48f, Screen.height), new Color(0.35f, 0.5f, 0.7f, 0.08f), 64f, 48f, 1f);
+            // 우측 그리드는 약하게 — 패널·타이포가 앞으로 읽히게
+            ImGuiGameUi.DrawGrid(new Rect(Screen.width * 0.52f, 0f, Screen.width * 0.48f, Screen.height), new Color(0.35f, 0.5f, 0.7f, 0.055f), 64f, 48f, 1f);
 
             float pulse = 0.045f + Mathf.Sin(Time.unscaledTime * 1.3f) * 0.012f;
             ImGuiGameUi.DrawFilledRect(new Rect(Screen.width * 0.08f, 96f, Screen.width * 0.34f, 1f), new Color(0.42f, 0.76f, 0.88f, pulse));
@@ -510,8 +619,8 @@ namespace Game.Campaign
             float w = (area.width - gap * 2f) / 3f;
             float h = 56f;
 
-            DrawArenaMapOption(new Rect(area.x, rowY, w, h), BattleArenaLayoutKind.ClassicDuel, L("평지\n클래식", "Open\nclassic"));
-            DrawArenaMapOption(new Rect(area.x + w + gap, rowY, w, h), BattleArenaLayoutKind.CrossroadsSpirit, L("십자\n투혼식", "Cross\nSpirit-style"));
+            DrawArenaMapOption(new Rect(area.x, rowY, w, h), BattleArenaLayoutKind.ClassicDuel, L("개방\n클래식", "Open\nclassic"));
+            DrawArenaMapOption(new Rect(area.x + w + gap, rowY, w, h), BattleArenaLayoutKind.CrossroadsSpirit, L("교차\n스피릿풍", "Cross\nSpirit-style"));
             DrawArenaMapOption(new Rect(area.x + (w + gap) * 2f, rowY, w, h), BattleArenaLayoutKind.NarrowMidChoke, L("중앙\n초크", "Mid\nchoke"));
             GUI.color = Color.white;
         }
@@ -533,6 +642,11 @@ namespace Game.Campaign
             GUI.Label(new Rect(r.x + 6f, r.y + 8f, r.width - 12f, r.height - 16f), multilineLabel);
             if (GUI.Button(r, GUIContent.none, GUIStyle.none))
             {
+                if (demoSelectedArenaLayout != kind)
+                {
+                    ProceduralAudioUtility.PlayUiMenuAck();
+                }
+
                 demoSelectedArenaLayout = kind;
             }
 
@@ -542,9 +656,9 @@ namespace Game.Campaign
         private static string FormatArenaLayoutLabelKo(BattleArenaLayoutKind k) =>
             k switch
             {
-                BattleArenaLayoutKind.CrossroadsSpirit => "십자 (투혼식)",
+                BattleArenaLayoutKind.CrossroadsSpirit => "교차 (스피릿풍)",
                 BattleArenaLayoutKind.NarrowMidChoke => "중앙 초크",
-                _ => "평지 클래식"
+                _ => "개방 클래식"
             };
 
         private static string FormatArenaLayoutLabelEn(BattleArenaLayoutKind k) =>

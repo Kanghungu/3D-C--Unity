@@ -103,16 +103,17 @@ namespace Game.BattleAces
                 return false;
             }
 
-            // BattleAcesDemoStageTone.shader 와 근접: 비네팅 + 살짝 대비/노출
+            // BattleAcesDemoStageTone.shader 와 근접: 비네팅 + 살짝 대비/노출 — 비네팅 색은 순정 검정 대신 쿨 건메탈(팔레트 일치)
             TrySetVolumeParameter(vignette, "active", true);
-            TrySetNestedColor(vignette, "color", Color.black);
-            TrySetNestedFloat(vignette, "intensity", 0.32f);
-            TrySetNestedFloat(vignette, "smoothness", 0.42f);
+            Color vignetteColor = Color.Lerp(Color.black, BattleAcesArtDirection.GunmetalDark, 0.42f);
+            TrySetNestedColor(vignette, "color", vignetteColor);
+            TrySetNestedFloat(vignette, "intensity", 0.34f);
+            TrySetNestedFloat(vignette, "smoothness", 0.44f);
             TrySetNestedBool(vignette, "rounded", false);
 
             TrySetVolumeParameter(colorAdj, "active", true);
-            TrySetNestedFloat(colorAdj, "postExposure", 0.12f);
-            TrySetNestedFloat(colorAdj, "contrast", 6f);
+            TrySetNestedFloat(colorAdj, "postExposure", 0.125f);
+            TrySetNestedFloat(colorAdj, "contrast", 6.5f);
 
             GameObject root = new GameObject(VolumeChildName);
             root.transform.SetParent(main.transform, false);

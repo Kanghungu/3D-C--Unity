@@ -14,7 +14,8 @@ namespace Game.BattleAces
 {
     public class BattleAcesMinimap : MonoBehaviour
     {
-        private const float MapPixelSizeBase = 208f;
+        // 기본 한 변 픽셀 — 저해상에서 추가로 OnGUI 에서 배율 적용
+        private const float MapPixelSizeBase = 200f;
         private const float Margin = 14f;
 
         private Vector2 worldMin;
@@ -110,12 +111,24 @@ namespace Game.BattleAces
             float next = cur < 0.92f ? 1f : cur < 1.08f ? 1.22f : 0.85f;
             GameUserSettings.SetMinimapScale(next);
             GameUserSettings.Save();
+            ProceduralAudioUtility.PlayUiMinimapZoomStep();
         }
 
         private void OnGUI()
         {
+            if (BattleAcesHudCaptureMode.SuppressCombatChromeForScreenshot)
+            {
+                return;
+            }
+
             ImGuiGameUi.BeginScaledGui();
             float mapPx = MapPixelSize;
+            // 저세로 해상도에서 선택 패널·하단 UI와 겹침 완화
+            if (Screen.height <= 720)
+            {
+                mapPx *= 0.86f;
+            }
+
             mapRect = new Rect(Screen.width - mapPx - Margin, Screen.height - mapPx - Margin, mapPx, mapPx);
 
             float w = worldMax.x - worldMin.x;
@@ -126,7 +139,7 @@ namespace Game.BattleAces
                 HandleMinimapPanAndClick(w, h, legendRect);
             }
 
-            ImGuiGameUi.DrawFilledRect(mapRect, ImGuiGameUi.PanelBgHud);
+            DrawMinimapBackgroundAndGrid(mapRect);
 
             // FoW — 전장과 동일 마스크(유닛 점은 그 위에 그림)
             Texture2D fogMask = BattleAcesFogOfWarDebug.Instance != null
@@ -139,7 +152,7 @@ namespace Game.BattleAces
                 GUI.DrawTexture(mapRect, fogMask, ScaleMode.StretchToFill, true);
             }
 
-            DrawBorder(mapRect, ImGuiGameUi.BorderCool);
+            DrawMinimapDoubleFrame(mapRect);
 
             GUI.skin.label.fontSize = 10;
             GUI.color = ImGuiGameUi.TextMuted;
@@ -751,6 +764,62 @@ namespace Game.BattleAces
         {
             Vector2 p = WorldToMapPixels(world, worldW, worldH);
             DrawFilledRect(new Rect(p.x - sizePx * 0.5f, p.y - sizePx * 0.5f, sizePx, sizePx), color);
+        }
+
+        /// <summary>저대비 그라데이션 + 얇은 그리드 — 유닛·코어 점이 주연을 유지</summary>
+        private static void DrawMinimapBackgroundAndGrid(Rect r)
+        {
+            Color baseCol = ImGuiGameUi.PanelBgHud;
+            ImGuiGameUi.DrawVerticalGradient(r, baseCol * 1.06f, baseCol * 0.84f, 20);
+            Color grid = new Color(1f, 1f, 1f, 0.038f);
+            const int div = 8;
+            for (int i = 1; i < div; i++)
+            {
+                float fx = r.x + (r.width * i) / div;
+                float fy = r.y + (r.height * i) / div;
+                ImGuiGameUi.DrawFilledRect(new Rect(fx, r.y, 1f, r.height), grid);
+                ImGuiGameUi.DrawFilledRect(new Rect(r.x, fy, r.width, 1f), grid);
+            }
+        }
+
+        /// <summary>외곽 쿨 테두리 + 안쪽 티얼 1px 느낌(아트 방향 유지)</summary>
+        private static void DrawMinimapDoubleFrame(Rect r)
+        {
+            Color outer = new Color(
+                ImGuiGameUi.BorderCool.r,
+                ImGuiGameUi.BorderCool.g,
+                ImGuiGameUi.BorderCool.b,
+                0.96f);
+            DrawBorder(r, outer);
+            const float inset = 3f;
+            const float t = 1f;
+            Rect inner = new Rect(r.x + inset, r.y + inset, r.width - 2f * inset, r.height - 2f * inset);
+            if (inner.width < 4f || inner.height < 4f)
+            {
+                return;
+            }
+
+            Color teal = new Color(
+                ImGuiGameUi.AccentCyan.r,
+                ImGuiGameUi.AccentCyan.g,
+                ImGuiGameUi.AccentCyan.b,
+                0.52f);
+            DrawFilledRect(new Rect(inner.x, inner.y, inner.width, t), teal);
+            DrawFilledRect(new Rect(inner.x, inner.yMax - t, inner.width, t), teal);
+            DrawFilledRect(new Rect(inner.x, inner.y, t, inner.height), teal);
+            DrawFilledRect(new Rect(inner.xMax - t, inner.y, t, inner.height), teal);
+
+            // 코너만 살짝 밝게 — 유리 프레임 느낌
+            const float c = 5f;
+            Color corner = new Color(1f, 1f, 1f, 0.07f);
+            DrawFilledRect(new Rect(r.x + 1f, r.y + 1f, c, 1f), corner);
+            DrawFilledRect(new Rect(r.x + 1f, r.y + 1f, 1f, c), corner);
+            DrawFilledRect(new Rect(r.xMax - 1f - c, r.y + 1f, c, 1f), corner);
+            DrawFilledRect(new Rect(r.xMax - 2f, r.y + 1f, 1f, c), corner);
+            DrawFilledRect(new Rect(r.x + 1f, r.yMax - 2f, c, 1f), corner);
+            DrawFilledRect(new Rect(r.x + 1f, r.yMax - 1f - c, 1f, c), corner);
+            DrawFilledRect(new Rect(r.xMax - 1f - c, r.yMax - 2f, c, 1f), corner);
+            DrawFilledRect(new Rect(r.xMax - 2f, r.yMax - 1f - c, 1f, c), corner);
         }
 
         private static void DrawBorder(Rect r, Color c)

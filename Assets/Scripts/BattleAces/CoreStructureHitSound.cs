@@ -38,6 +38,12 @@ namespace Game.BattleAces
                 return;
             }
 
+            // 승패 직후 스팅·결과 UI 와 코어 타격음이 겹치지 않게
+            if (BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController matchCtrl) && matchCtrl.IsFinished)
+            {
+                return;
+            }
+
             float i01 = Mathf.Clamp01(amount / 140f);
 
             // 적 코어 — 가벼운 타격음(유닛·아군 코어와 무게 구분)

@@ -79,6 +79,9 @@ namespace Game.Selection
         private float lastCommandRejectFeedbackUnscaledTime = -100f;
         private const float CommandRejectFeedbackCooldown = 0.42f;
 
+        /// <summary>선택 변경 틱음 스팸 방지 — BattleAcesFeedbackTiming.SelectionChangeAudioCooldownUnscaled</summary>
+        private float lastSelectionChangeAudioUnscaled = -999f;
+
         public static PrototypeSelectionController Instance { get; private set; }
         public IReadOnlyList<SelectableUnit> SelectedUnits => selectedUnits;
         public bool HasVisibleMoveMarker => moveMarker != null && moveMarker.activeSelf;

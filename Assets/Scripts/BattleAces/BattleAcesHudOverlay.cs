@@ -91,6 +91,11 @@ namespace Game.BattleAces
 
         private void OnGUI()
         {
+            if (BattleAcesHudCaptureMode.SuppressCombatChromeForScreenshot)
+            {
+                return;
+            }
+
             ImGuiGameUi.BeginScaledGui();
             DrawPracticeRoundIntentToast();
             DrawLeftCommandPanel();
@@ -121,18 +126,25 @@ namespace Game.BattleAces
             float y = topReserve + 10f;
             float width = Mathf.Min(438f, Screen.width * 0.29f);
             width = Mathf.Max(width, 356f);
+            // 좁은 가로(720p 등)에서 화면 밖으로 밀리지 않게
+            width = Mathf.Min(width, Screen.width - PanelPad * 2f - 8f);
 
-            Rect shell = new Rect(x, y, width, 276f);
+            // 짧은 세로(720p 이하) — 하단·미니맵과 겹침 완화
+            bool compactVertical = Screen.height <= 768;
+            float shellH = compactVertical ? 304f : 332f;
+            Rect shell = new Rect(x, y, width, shellH);
             ImGuiGameUi.DrawGlassPanel(shell, ImGuiGameUi.PanelBgHud, ImGuiGameUi.BorderCool, ImGuiGameUi.AccentCyan);
             ImGuiGameUi.DrawFilledRect(
                 new Rect(shell.x, shell.y, shell.width, 26f),
                 new Color(ImGuiGameUi.AccentCyan.r, ImGuiGameUi.AccentCyan.g, ImGuiGameUi.AccentCyan.b, 0.08f));
+            // 헤더·본문 구분 — 티얼 한 방울만 섞어 한 줄이 읽힘
             ImGuiGameUi.DrawHorizontalRule(
                 new Rect(shell.x + 16f, shell.y + 36f, shell.width - 32f, 1f),
-                new Color(0.17f, 0.21f, 0.26f, 0.9f));
+                Color.Lerp(new Color(0.17f, 0.21f, 0.26f, 0.92f), ImGuiGameUi.AccentCyan, 0.12f));
 
             DrawOperationSummary(shell);
             DrawEconomyStrip(shell);
+            DrawStatusChipRow(shell);
             DrawDeckGrid(shell);
             DrawProductionAndUpgradeLines(shell);
             DrawInputHints(shell);
@@ -187,14 +199,16 @@ namespace Game.BattleAces
                 return;
             }
 
-            Rect strip = new Rect(shell.x + 18f, shell.y + 98f, shell.width - 36f, 36f);
+            Rect strip = new Rect(shell.x + 18f, shell.y + 98f, shell.width - 36f, 44f);
             ImGuiGameUi.DrawPanelFrame(
                 strip,
                 ImGuiGameUi.EconomyStripPanelBg,
                 ImGuiGameUi.EconomyStripBorder,
                 1f);
 
-            GUI.skin.label.fontSize = 27;
+            // 저해상에서 자원 숫자 한 단계 축소 — 패널 밀도만 완화
+            int creditFont = Screen.height < 720 ? 24 : 27;
+            GUI.skin.label.fontSize = creditFont;
             GUI.color = ImGuiGameUi.ResourceHighlight;
             GUI.Label(new Rect(strip.x + 10f, strip.y + 1f, 84f, 32f), $"{economy.PlayerCredits:0}");
 
@@ -206,6 +220,68 @@ namespace Game.BattleAces
             GUI.Label(
                 new Rect(strip.x + 92f, strip.y + 18f, strip.width - 102f, 16f),
                 IsKorean ? $"적 전력 추정 {economy.EnemyCredits:0}" : $"Enemy reserve {economy.EnemyCredits:0}");
+
+            float totalReserve = Mathf.Max(1f, economy.PlayerCredits + economy.EnemyCredits);
+            float playerShare = economy.PlayerCredits / totalReserve;
+            ImGuiGameUi.DrawProgressBar(
+                new Rect(strip.x + 10f, strip.y + 30f, strip.width - 20f, 8f),
+                playerShare,
+                new Color(0.06f, 0.07f, 0.09f, 0.92f),
+                ImGuiGameUi.AccentCyan,
+                ImGuiGameUi.EconomyStripBorder);
+
+            // 자원 스트립과 상태 칩 사이 시각적 구분(밀도만 올리고 정보는 동일)
+            ImGuiGameUi.DrawHorizontalRule(
+                new Rect(shell.x + 16f, shell.y + 146f, shell.width - 32f, 1f),
+                new Color(0.17f, 0.21f, 0.26f, 0.5f));
+        }
+
+        private void DrawStatusChipRow(Rect shell)
+        {
+            if (playerCore == null)
+            {
+                return;
+            }
+
+            float x = shell.x + 18f;
+            float y = shell.y + 150f;
+            float width = shell.width - 36f;
+            const float gap = 6f;
+            float chipWidth = (width - gap * 3f) / 4f;
+
+            DrawStatusChip(
+                new Rect(x, y, chipWidth, 28f),
+                IsKorean ? "큐" : "Queue",
+                $"{playerCore.QueueCount}/14",
+                ImGuiGameUi.AccentGold);
+            DrawStatusChip(
+                new Rect(x + (chipWidth + gap), y, chipWidth, 28f),
+                "T",
+                $"{playerCore.ProductionUpgradeTier + 1}/4",
+                ImGuiGameUi.AccentCyan);
+            DrawStatusChip(
+                new Rect(x + (chipWidth + gap) * 2f, y, chipWidth, 28f),
+                "Y",
+                $"{playerCore.HullUpgradeTier + 1}/4",
+                Color.Lerp(ImGuiGameUi.AccentCyan, Color.white, 0.16f));
+            DrawStatusChip(
+                new Rect(x + (chipWidth + gap) * 3f, y, chipWidth, 28f),
+                "U",
+                $"{playerCore.IncomeUpgradeTier + 1}/4",
+                Color.Lerp(ImGuiGameUi.AccentGold, ImGuiGameUi.AccentCyan, 0.24f));
+        }
+
+        private static void DrawStatusChip(Rect rect, string eyebrow, string value, Color accent)
+        {
+            ImGuiGameUi.DrawHudCardWithLeftStripe(rect, ImGuiGameUi.PanelBgHudCard, ImGuiGameUi.BorderCool, accent, 2f);
+
+            GUI.skin.label.fontSize = 9;
+            GUI.color = ImGuiGameUi.TextMuted;
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 3f, rect.width - 16f, 10f), eyebrow);
+
+            GUI.skin.label.fontSize = 12;
+            GUI.color = ImGuiGameUi.TextTitle;
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 12f, rect.width - 16f, 14f), value);
         }
 
         private void DrawDeckGrid(Rect shell)
@@ -216,11 +292,13 @@ namespace Game.BattleAces
             }
 
             float x = shell.x + 18f;
-            float y = shell.y + 148f;
+            float y = shell.y + 188f;
             float width = shell.width - 36f;
             const float gap = 4f;
             float cellW = (width - gap * 3f) / 4f;
             const float cellH = 22f;
+
+            bool hasPreview = playerCore.TryGetNextProductionPreview(out UnitArchetype nextArchetype, out _);
 
             GUI.skin.label.fontSize = 10;
             GUI.color = ImGuiGameUi.TextMuted;
@@ -231,11 +309,18 @@ namespace Game.BattleAces
                 int row = i / 4;
                 int col = i % 4;
                 Rect cell = new Rect(x + col * (cellW + gap), y + row * (cellH + gap), cellW, cellH);
-                ImGuiGameUi.DrawPanelFrame(cell, ImGuiGameUi.PanelBgHudCard, ImGuiGameUi.BorderCool, 1f);
+                UnitArchetype slot = playerCore.GetDeckSlot(i);
+                bool queued = hasPreview && slot == nextArchetype;
+                ImGuiGameUi.DrawHudCardWithLeftStripe(
+                    cell,
+                    ImGuiGameUi.PanelBgHudCard,
+                    queued ? ImGuiGameUi.AccentCyan : ImGuiGameUi.BorderCool,
+                    queued ? ImGuiGameUi.AccentGold : ImGuiGameUi.AccentCyan,
+                    queued ? 3f : 2f);
                 GUI.color = ImGuiGameUi.AccentGold;
                 GUI.Label(new Rect(cell.x + 4f, cell.y + 1f, 14f, cellH), BattleAcesCore.GetDeckHotkeyLabel(i));
                 GUI.color = ImGuiGameUi.TextTitle;
-                GUI.Label(new Rect(cell.x + 18f, cell.y + 1f, cell.width - 22f, cellH), GetShortName(playerCore.GetDeckSlot(i)));
+                GUI.Label(new Rect(cell.x + 18f, cell.y + 1f, cell.width - 22f, cellH), GetShortName(slot));
             }
         }
 
@@ -248,7 +333,7 @@ namespace Game.BattleAces
 
             float x = shell.x + 18f;
             float width = shell.width - 36f;
-            float y = shell.y + 212f;
+            float y = shell.y + 252f;
 
             GUI.skin.label.fontSize = 11;
             GUI.color = ImGuiGameUi.TextTitle;
@@ -257,13 +342,21 @@ namespace Game.BattleAces
             GUI.skin.label.fontSize = 10;
             GUI.color = ImGuiGameUi.TextMuted;
             GUI.Label(new Rect(x, y + 18f, width, 16f), BuildUpgradeLine());
+
+            float queueRatio = playerCore != null ? Mathf.Clamp01(playerCore.QueueCount / 14f) : 0f;
+            ImGuiGameUi.DrawProgressBar(
+                new Rect(x, y + 40f, width, 10f),
+                queueRatio,
+                new Color(0.06f, 0.07f, 0.09f, 0.94f),
+                ImGuiGameUi.AccentGold,
+                ImGuiGameUi.BorderCool);
         }
 
         private void DrawInputHints(Rect shell)
         {
             float x = shell.x + 18f;
             float width = shell.width - 36f;
-            float y = shell.y + shell.height - 38f;
+            float y = shell.y + shell.height - 42f;
 
             GUI.skin.label.fontSize = 10;
             GUI.color = ImGuiGameUi.TextMuted;
@@ -280,7 +373,7 @@ namespace Game.BattleAces
 
             GUI.skin.label.fontSize = 10;
             GUI.color = ImGuiGameUi.TextMuted;
-            GUI.Label(new Rect(shell.x + 18f, shell.y + shell.height - 20f, shell.width - 36f, 14f), rtc.GetHudTimeStatusLine());
+            GUI.Label(new Rect(shell.x + 18f, shell.y + shell.height - 22f, shell.width - 36f, 14f), rtc.GetHudTimeStatusLine());
         }
 
         private void DrawSkirmishResultOverlay()
@@ -298,7 +391,7 @@ namespace Game.BattleAces
                 ? BattleAcesRunStats.Instance.BuildFullResultSummaryLine(playSec, credits)
                 : $"{BattleAcesRunStats.FormatPlayTimeMmSs(playSec)} · {credits}";
 
-            float boxW = Mathf.Min(520f, Screen.width - 32f);
+            float boxW = Mathf.Min(520f, Screen.width - 48f);
             Rect box = new Rect((Screen.width - boxW) * 0.5f, Screen.height * 0.34f, boxW, 152f);
             ImGuiGameUi.DrawGlassPanel(box, ImGuiGameUi.PanelBgLift, ImGuiGameUi.BorderAccent, ImGuiGameUi.AccentGold);
 
@@ -490,7 +583,8 @@ namespace Game.BattleAces
 
         private static void DrawTransientBar(float y, float width, Color accent, string msg)
         {
-            float barW = Mathf.Min(width, Screen.width - 32f);
+            // 좁은 창·노치 대비 좌우 여유(울트라와이드는 중앙 정렬 유지)
+            float barW = Mathf.Min(width, Screen.width - 48f);
             Rect bar = new Rect((Screen.width - barW) * 0.5f, y, barW, 28f);
             ImGuiGameUi.DrawGlassPanel(bar, ImGuiGameUi.PanelBgDeep, ImGuiGameUi.BorderCool, accent);
             GUI.skin.label.fontSize = 12;

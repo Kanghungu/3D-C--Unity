@@ -3,11 +3,12 @@ using UnityEngine;
 
 namespace Game.Settings
 {
-    /// <summary>데모용 그래픽 2단 — Steam 빌드에서 저사양 옵션</summary>
+    /// <summary>데모용 그래픽 3단 — PlayerPrefs 정수 호환: 0·1·2</summary>
     public enum DemoGraphicQualityPreset
     {
         Balanced = 0,
-        Performance = 1
+        Performance = 1,
+        High = 2
     }
 
     public enum GameLanguage
@@ -34,6 +35,13 @@ namespace Game.Settings
         private const string KeyLanguage = "gs_language";
         private const string KeyBattleFogDistanceScale = "gs_ba_fog_dist_scale";
         private const string KeyBattleFogIntensity01 = "gs_ba_fog_intensity";
+
+        /// <summary>그래픽 프리셋별 그림자 거리 — <c>ApplyGraphicQualityPreset</c> 단일 출처</summary>
+        private const float GraphicShadowDistancePerformance = 18f;
+
+        private const float GraphicShadowDistanceBalanced = 120f;
+
+        private const float GraphicShadowDistanceHigh = 168f;
 
         public const float DefaultMasterVolume = 0.82f;
         public const float DefaultCameraSensitivity = 1f;
@@ -123,7 +131,7 @@ namespace Game.Settings
                 PlayerPrefs.GetFloat(KeyDialogueCps, 96f),
                 28f,
                 280f);
-            GraphicQualityPreset = (DemoGraphicQualityPreset)Mathf.Clamp(PlayerPrefs.GetInt(KeyGraphicPreset, 0), 0, 1);
+            GraphicQualityPreset = (DemoGraphicQualityPreset)Mathf.Clamp(PlayerPrefs.GetInt(KeyGraphicPreset, 0), 0, 2);
             Language = (GameLanguage)Mathf.Clamp(PlayerPrefs.GetInt(KeyLanguage, 0), 0, 1);
             BattleFogDistanceScale = Mathf.Clamp(
                 PlayerPrefs.GetFloat(KeyBattleFogDistanceScale, DefaultBattleFogDistanceScale),
@@ -221,20 +229,30 @@ namespace Game.Settings
             BattleFogIntensity01 = Mathf.Clamp01(intensity01);
         }
 
-        /// <summary>그림자·거리만 조절(URP/HDRP 에셋은 건드리지 않음)</summary>
+        /// <summary>
+        /// 그림자·거리만 조절(URP/HDRP 에셋은 건드리지 않음).
+        /// 전투 중 O 패널에서 프리셋을 바꾼 뒤 안개 동기화는 <c>GameSettingsMenuOverlay</c>에서
+        /// <c>BattleAcesWorldPresentation.RefreshBattleFogIfClassicDuelActive</c> 호출로 처리.
+        /// </summary>
         public static void ApplyGraphicQualityPreset(DemoGraphicQualityPreset preset)
         {
             switch (preset)
             {
                 case DemoGraphicQualityPreset.Performance:
                     QualitySettings.shadows = ShadowQuality.Disable;
-                    QualitySettings.shadowDistance = 18f;
+                    QualitySettings.shadowDistance = GraphicShadowDistancePerformance;
                     QualitySettings.softParticles = false;
                     QualitySettings.skinWeights = SkinWeights.OneBone;
                     break;
+                case DemoGraphicQualityPreset.High:
+                    QualitySettings.shadows = ShadowQuality.All;
+                    QualitySettings.shadowDistance = GraphicShadowDistanceHigh;
+                    QualitySettings.softParticles = true;
+                    QualitySettings.skinWeights = SkinWeights.FourBones;
+                    break;
                 default:
                     QualitySettings.shadows = ShadowQuality.All;
-                    QualitySettings.shadowDistance = 120f;
+                    QualitySettings.shadowDistance = GraphicShadowDistanceBalanced;
                     QualitySettings.softParticles = true;
                     QualitySettings.skinWeights = SkinWeights.FourBones;
                     break;

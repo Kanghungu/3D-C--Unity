@@ -1,4 +1,6 @@
-﻿using Game.Prototype;
+﻿using Game.Audio;
+using Game.BattleAces;
+using Game.Prototype;
 using Game.UI;
 using Game.Units;
 using System.Collections.Generic;
@@ -126,7 +128,8 @@ namespace Game.Selection
 
         private void SetSelection(IEnumerable<SelectableUnit> units)
         {
-            ClearSelection();
+            int previousCount = selectedUnits.Count;
+            ClearSelectionSilently();
 
             foreach (SelectableUnit unit in units)
             {
@@ -138,9 +141,12 @@ namespace Game.Selection
                 selectedUnits.Add(unit);
                 unit.SetSelected(true);
             }
+
+            TryPlaySelectionDeltaAudio(previousCount);
         }
 
-        private void ClearSelection()
+        /// <summary>선택만 비우고 음향 없음 — <see cref="SetSelection"/> 내부용</summary>
+        private void ClearSelectionSilently()
         {
             foreach (SelectableUnit selectedUnit in selectedUnits)
             {
@@ -151,6 +157,43 @@ namespace Game.Selection
             }
 
             selectedUnits.Clear();
+        }
+
+        private void ClearSelection()
+        {
+            int previousCount = selectedUnits.Count;
+            ClearSelectionSilently();
+            TryPlaySelectionDeltaAudio(previousCount);
+        }
+
+        /// <summary>선택 개수가 실제로 바뀐 경우에만 짧은 틱/해제음(쿨다운)</summary>
+        private void TryPlaySelectionDeltaAudio(int previousCount)
+        {
+            int nextCount = selectedUnits.Count;
+            if (nextCount == previousCount)
+            {
+                return;
+            }
+
+            if (Time.unscaledTime - lastSelectionChangeAudioUnscaled <
+                BattleAcesFeedbackTiming.SelectionChangeAudioCooldownUnscaled)
+            {
+                return;
+            }
+
+            lastSelectionChangeAudioUnscaled = Time.unscaledTime;
+
+            if (nextCount == 0)
+            {
+                if (previousCount > 0)
+                {
+                    ProceduralAudioUtility.PlayUiSelectionCleared();
+                }
+
+                return;
+            }
+
+            ProceduralAudioUtility.PlayUiSelectionTick();
         }
 
         /// <summary>
