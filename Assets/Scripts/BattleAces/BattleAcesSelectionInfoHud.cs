@@ -81,7 +81,7 @@ namespace Game.BattleAces
             float health01 = health != null && health.MaxHealth > 0.01f ? health.Normalized : 0f;
             BattleAcesReadability.CoreHpBand band = health != null
                 ? BattleAcesReadability.GetPlayerCoreBand(health01)
-                : BattleAcesReadability.CoreHpBand.Stable;
+                : BattleAcesReadability.CoreHpBand.Ok;
             Color hpColor = BattleAcesReadability.GetPlayerCoreHudHpColor(band);
 
             string title = IsKorean ? "지휘 코어" : "Command Core";

@@ -2,6 +2,7 @@
 // [Scripts 위치: Battle Aces]
 // - 캠페인 메뉴·전투 씬 공통: 첫 씬 로드 후 Player.log 한 줄 [DemoBoot](스모크·버전 비교).
 // =============================================================================
+using System;
 using System.Globalization;
 using Game.Campaign.Core;
 using Game.Campaign.Data;
@@ -37,7 +38,7 @@ namespace Game.BattleAces
             }
 
             bool battleAcesScene =
-                Object.FindAnyObjectByType<BattleAcesSceneBootstrapper>(FindObjectsInactive.Include) != null;
+                UnityEngine.Object.FindAnyObjectByType<BattleAcesSceneBootstrapper>(FindObjectsInactive.Include) != null;
             string battleFields = string.Empty;
             if (battleAcesScene)
             {

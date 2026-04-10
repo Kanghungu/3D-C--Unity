@@ -34,15 +34,30 @@ namespace Game.BattleAces
 
         private void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
-            if (source == null || destination == null)
+            if (source == null)
             {
+                Graphics.Blit(Texture2D.blackTexture, destination);
                 return;
             }
 
-            if (toneMaterial != null && toneMaterial.shader != null && toneMaterial.shader.isSupported)
+            try
             {
-                Graphics.Blit(source, destination, toneMaterial);
-                return;
+                if (toneMaterial != null && toneMaterial.shader != null && toneMaterial.shader.isSupported)
+                {
+                    Graphics.Blit(source, destination, toneMaterial);
+                    return;
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[BattleAces] Demo stage screen tone disabled after render failure: {ex.Message}", this);
+                if (toneMaterial != null)
+                {
+                    Destroy(toneMaterial);
+                    toneMaterial = null;
+                }
+
+                enabled = false;
             }
 
             Graphics.Blit(source, destination);

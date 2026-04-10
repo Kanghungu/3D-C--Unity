@@ -1,5 +1,5 @@
 using Game.Audio;
-using Game.Campaign.Scene;
+using Game.Campaign;
 using Game.UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
