@@ -1,3 +1,4 @@
+using Game.BattleAces;
 using Game.Units;
 using UnityEngine;
 using UnityEngine.AI;
@@ -57,6 +58,19 @@ namespace Game.Prototype
             unit.AddComponent<UnitAbilityState>();
             SimpleUnitMover mover = unit.AddComponent<SimpleUnitMover>();
             mover.Configure(PrototypeUnitBalanceUtility.GetAdjustedMoveSpeed(team, definition), 540f, definition.StoppingDistance);
+            MoveProfileData moveProfile = definition.MoveProfile;
+            mover.ApplyMoveProfileNav(moveProfile);
+
+            if (definition.OptionalAnimatorController != null)
+            {
+                Animator animator = unit.GetComponent<Animator>();
+                if (animator == null)
+                {
+                    animator = unit.AddComponent<Animator>();
+                }
+
+                animator.runtimeAnimatorController = definition.OptionalAnimatorController;
+            }
 
             UnitHealth health = unit.AddComponent<UnitHealth>();
             health.Configure(PrototypeUnitBalanceUtility.GetAdjustedMaxHealth(team, definition), true, new Vector3(0f, 1.9f, 0f));
@@ -82,6 +96,21 @@ namespace Game.Prototype
             selectableUnit.Initialize(team, definition, mover, combat);
             PrototypeEntityVisualFactory.BuildUnitSilhouette(unit.transform, definition, team);
             combat.Initialize(combatTarget, health);
+
+            unit.AddComponent<BattleAcesUnitCombatReadout>();
+
+            UnitAnimationDriver animDriver = unit.AddComponent<UnitAnimationDriver>();
+            animDriver.InitializeAfterSpawn(selectableUnit);
+            if (definition.AnimCombatProfile.useAnimDrivenStrike && definition.OptionalAnimatorController != null)
+            {
+                unit.AddComponent<UnitCombatStrikeBridge>();
+            }
+
+            if (moveProfile.enableCrowdSeparation)
+            {
+                UnitCrowdSeparation sep = unit.AddComponent<UnitCrowdSeparation>();
+                sep.Configure(moveProfile.separationRadius, moveProfile.separationPushPerSecond);
+            }
 
             if (definition.Archetype == UnitArchetype.MobileFortress)
             {

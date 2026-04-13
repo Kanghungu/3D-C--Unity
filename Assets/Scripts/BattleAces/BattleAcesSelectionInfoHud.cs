@@ -40,6 +40,8 @@ namespace Game.BattleAces
             }
 
             ImGuiGameUi.BeginScaledGui();
+            Color previousGuiColor = GUI.color;
+            int previousLabelFontSize = GUI.skin.label.fontSize;
 
             bool compactH = Screen.height <= 720;
             float panelWidth = Mathf.Min(620f, Screen.width - 24f);
@@ -50,7 +52,12 @@ namespace Game.BattleAces
             PrototypeSelectionController selection = PrototypeSelectionController.Instance;
             bool singleUnit = selection != null && selection.SelectedUnits.Count == 1;
             bool tallChipBlock = singleUnit && narrowFiveChips;
+            const float combatReadoutExtraHeight = 22f;
             float panelHeight = compactH ? (tallChipBlock ? 128f : 110f) : (tallChipBlock ? 136f : 118f);
+            if (singleUnit)
+            {
+                panelHeight += combatReadoutExtraHeight;
+            }
 
             float x = (Screen.width - panelWidth) * 0.5f;
             // Leave extra room so the panel does not fight the minimap on low-height screens.
@@ -65,13 +72,15 @@ namespace Game.BattleAces
 
             if (selection != null && selection.SelectedUnits.Count == 1)
             {
-                DrawSingleUnit(panel, selection.SelectedUnits[0]);
+                DrawSingleUnit(panel, selection.SelectedUnits[0], narrowFiveChips);
             }
             else
             {
                 DrawCoreOnly(panel);
             }
 
+            GUI.skin.label.fontSize = previousLabelFontSize;
+            GUI.color = previousGuiColor;
             ImGuiGameUi.EndScaledGui();
         }
 
@@ -134,7 +143,7 @@ namespace Game.BattleAces
             }
         }
 
-        private void DrawSingleUnit(Rect panel, SelectableUnit unit)
+        private void DrawSingleUnit(Rect panel, SelectableUnit unit, bool narrowFiveChips)
         {
             if (unit == null || database == null)
             {
@@ -180,11 +189,74 @@ namespace Game.BattleAces
                         : $"{hpText} · Cost {cost} · Credits {economy.PlayerCredits:0}")
                     : (IsKorean ? $"{hpText} · 생산비 {cost}" : $"{hpText} · Cost {cost}"));
 
-            LayoutSingleUnitStatChips(panel, definition, unit);
+            DrawCombatReadoutLine(panel, unit);
+
+            float chipFirstRowTop = panel.yMax - (narrowFiveChips ? 49f : 28f);
+            LayoutSingleUnitStatChips(panel, definition, unit, chipFirstRowTop);
+        }
+
+        /// <summary>선택 유닛 교전·최근 피해 스냅샷</summary>
+        private void DrawCombatReadoutLine(Rect panel, SelectableUnit unit)
+        {
+            BattleAcesUnitCombatReadout readout = unit.GetComponent<BattleAcesUnitCombatReadout>();
+            UnitCombat combat = unit.GetComponent<UnitCombat>();
+            string targetLabel = IsKorean ? "표적 없음" : "No target";
+            SelectableUnit hostile = null;
+            if (combat != null && combat.CurrentTarget != null && combat.CurrentTarget.IsAlive)
+            {
+                hostile = combat.CurrentTarget.GetComponent<SelectableUnit>();
+                if (hostile != null && database != null)
+                {
+                    UnitDefinition td = database.GetDefinition(hostile.Archetype);
+                    targetLabel = td != null
+                        ? td.DisplayName
+                        : UnitDefinition.ResolveDisplayName(hostile.Archetype);
+                }
+                else
+                {
+                    targetLabel = IsKorean ? "적" : "Hostile";
+                }
+            }
+
+            string engage = readout != null && readout.IsEngagingHostile()
+                ? (IsKorean ? "교전" : "Engaged")
+                : (IsKorean ? "대기" : "Idle");
+
+            string dpsPart = string.Empty;
+            if (readout != null && readout.TryGetRecentDamagePerSecond(out float dps) && dps > 0.05f)
+            {
+                dpsPart = IsKorean
+                    ? $" · 최근 피해 {dps:0.#}/s"
+                    : $" · Recent {dps:0.#}/s";
+            }
+
+            // 표적이 가하는 피해 기준 상성(받는 피해 배율) — 기호만
+            string trianglePart = string.Empty;
+            if (hostile != null)
+            {
+                bool enemyProjectile = hostile.Definition != null && hostile.Definition.UsesProjectile;
+                CombatTriangleRules.IncomingDamageBand band = CombatTriangleRules.GetIncomingDamageBand(
+                    hostile.Archetype,
+                    unit.Archetype,
+                    enemyProjectile);
+                trianglePart = band switch
+                {
+                    CombatTriangleRules.IncomingDamageBand.Reduced => IsKorean ? " · 상성 유리" : " · favor",
+                    CombatTriangleRules.IncomingDamageBand.Increased => IsKorean ? " · 상성 불리" : " · weak",
+                    _ => string.Empty,
+                };
+            }
+
+            GUI.skin.label.fontSize = 11;
+            GUI.color = new Color(ImGuiGameUi.TextTitle.r, ImGuiGameUi.TextTitle.g, ImGuiGameUi.TextTitle.b, 0.92f);
+            string line = IsKorean
+                ? $"{engage} · 표적 {targetLabel}{trianglePart}{dpsPart}"
+                : $"{engage} · Target {targetLabel}{trianglePart}{dpsPart}";
+            GUI.Label(new Rect(panel.x + 12f, panel.y + 80f, panel.width - 24f, 18f), line);
         }
 
         /// <summary>Uses a 3+2 layout on narrow screens so chips stay readable at 720p.</summary>
-        private void LayoutSingleUnitStatChips(Rect panel, UnitDefinition definition, SelectableUnit unit)
+        private void LayoutSingleUnitStatChips(Rect panel, UnitDefinition definition, SelectableUnit unit, float chipRowTopY)
         {
             const float chipH = 18f;
             const float gap = 3f;
@@ -195,7 +267,7 @@ namespace Game.BattleAces
             if (!useTwoRows)
             {
                 float chipW = (innerW - gap * 4f) / 5f;
-                float cy = panel.y + 90f;
+                float cy = chipRowTopY;
                 float cx = innerX;
                 DrawStatChip(new Rect(cx, cy, chipW, chipH), "DMG", definition != null ? $"{definition.AttackDamage:0}" : "--", ImGuiGameUi.AccentGold);
                 cx += chipW + gap;
@@ -220,7 +292,7 @@ namespace Game.BattleAces
             }
 
             float w3 = (innerW - gap * 2f) / 3f;
-            float y0 = panel.y + 84f;
+            float y0 = chipRowTopY;
             float cx0 = innerX;
             DrawStatChip(new Rect(cx0, y0, w3, chipH), "DMG", definition != null ? $"{definition.AttackDamage:0}" : "--", ImGuiGameUi.AccentGold);
             cx0 += w3 + gap;

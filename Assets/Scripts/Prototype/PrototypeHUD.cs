@@ -819,7 +819,7 @@ namespace Game.Prototype
             GUI.Label(new Rect(overlay.x + 24f, overlay.y + 108f, 360f, 20f), "R 키로 전투를 다시 시작합니다.", labelStyle);
         }
 
-        // ── 팔레트 (StarCraft 기반) ────────────────────────────────────────────
+        // ── 팔레트: SampleScene 구형 HUD — Battle Aces와 동일 계열(티얼·앰버) ──
         private static readonly Color ColPanelBg    = new(0.02f, 0.02f, 0.05f, 0.97f);
         private static readonly Color ColOverlayBg  = new(0.01f, 0.01f, 0.04f, 0.98f);
         private static readonly Color ColBorder     = new(0.22f, 0.52f, 0.78f, 0.95f);
@@ -827,8 +827,8 @@ namespace Game.Prototype
         private static readonly Color ColTitle      = new(0.72f, 0.88f, 1.00f, 1.00f);
         private static readonly Color ColLabel      = new(0.84f, 0.90f, 0.94f, 1.00f);
         private static readonly Color ColMuted      = new(0.48f, 0.56f, 0.66f, 1.00f);
-        private static readonly Color ColPlayer     = new(0.00f, 0.88f, 0.60f, 1.00f);  // SC 테란 그린
-        private static readonly Color ColEnemy      = new(0.95f, 0.20f, 0.18f, 1.00f);  // SC 저그 레드
+        private static readonly Color ColPlayer     = Game.BattleAces.BattleAcesArtDirection.PointTeal;
+        private static readonly Color ColEnemy      = Game.BattleAces.BattleAcesArtDirection.EnemyEmber;
         private static readonly Color ColBarBg      = new(0.08f, 0.10f, 0.14f, 0.92f);
 
         private void EnsureStyles()

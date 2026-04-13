@@ -231,7 +231,7 @@ namespace Game.Selection
                 }
             }
 
-            BattleAcesCombatJuice.NotifyAttackMoveOrder(targetPoint);
+            BattleAcesCombatJuice.NotifyMoveOrder(targetPoint);
             BattleAcesFirstPlayGuide.NotifyGroundCommandIssued();
         }
 

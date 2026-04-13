@@ -45,7 +45,25 @@ namespace Game.CameraSystem
         [Tooltip("Higher values make combat shake settle faster in unscaled time.")]
         [SerializeField] private float combatShakeDecayPerSecond = 3.8f;
 
+        [Tooltip("Perlin 주파수 배율 — 값이 클수록 '날카로운' 흔들림")]
+        [SerializeField] private float combatShakeFrequencyBase = 38.7f;
+
         private float combatShakeStrength;
+
+        /// <summary>1보다 크면 고주파 쉐이크 비중 증가</summary>
+        private float combatShakeSharpnessMul = 1f;
+
+        [Header("Combat micro hitstop (Battle Aces)")]
+        [Tooltip("큰 피격 시 아주 짧게 timeScale 만 dip — 끄면 요청 무시")]
+        [SerializeField] private bool enableCombatMicroHitstop = true;
+
+        private float resumeTimeScaleAtRealtime = -1f;
+
+        private float storedTimeScaleBeforeHitstop = 1f;
+
+        private bool microHitstopActive;
+
+        private float nextMicroHitstopAllowedUnscaled = -999f;
 
         [Header("Bounds")]
         [SerializeField] private Vector2 xBounds = new(-1600f, 1600f);
@@ -104,6 +122,16 @@ namespace Game.CameraSystem
             _zoomVelocity = 0f;
         }
 
+        private void OnDisable()
+        {
+            if (microHitstopActive)
+            {
+                Time.timeScale = storedTimeScaleBeforeHitstop > 0.01f ? storedTimeScaleBeforeHitstop : 1f;
+                microHitstopActive = false;
+                resumeTimeScaleAtRealtime = -1f;
+            }
+        }
+
         private void Update()
         {
             if (Keyboard.current == null || Mouse.current == null)
@@ -114,6 +142,7 @@ namespace Game.CameraSystem
             sensitivityMul = Mathf.Clamp(GameUserSettings.CameraSensitivityMultiplier, 0.35f, 2.5f);
 
             HandleQuickFocusHotkeys();
+            TryRestoreCombatTimescale();
             HandleRightDragPan();
             HandleMovement();
             HandleZoom();
@@ -122,14 +151,74 @@ namespace Game.CameraSystem
         }
 
         /// <summary>명중·명령·승패 등 — 0~1 impulse, LateUpdate 에서 XZ 노이즈로 소모</summary>
-        public void AddCombatShake(float impulse01)
+        /// <param name="shakeSharpnessMul">1 초과 시 주파수·진폭 살짝 상승(강타 구분)</param>
+        public void AddCombatShake(float impulse01, float shakeSharpnessMul = 1f)
         {
             impulse01 = Mathf.Clamp01(impulse01);
             combatShakeStrength = Mathf.Clamp01(combatShakeStrength + impulse01 * 0.92f);
+            combatShakeSharpnessMul = Mathf.Max(
+                combatShakeSharpnessMul,
+                Mathf.Clamp(shakeSharpnessMul, 0.55f, 3.2f));
+        }
+
+        /// <summary>Battle Aces — 보수적 히트스톱(일시정지·슬로모와 충돌 시 스킵)</summary>
+        public void TryCombatMicroHitstop(float severity01)
+        {
+            if (!enableCombatMicroHitstop)
+            {
+                return;
+            }
+
+            severity01 = Mathf.Clamp01(severity01);
+            if (severity01 < 0.22f)
+            {
+                return;
+            }
+
+            if (!BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController m) || m.IsFinished)
+            {
+                return;
+            }
+
+            if (Time.unscaledTime < nextMicroHitstopAllowedUnscaled)
+            {
+                return;
+            }
+
+            // 이미 슬로우/일시정지면 건드리지 않음
+            if (Time.timeScale < 0.82f)
+            {
+                return;
+            }
+
+            nextMicroHitstopAllowedUnscaled = Time.unscaledTime + 0.32f;
+            microHitstopActive = true;
+            storedTimeScaleBeforeHitstop = Time.timeScale;
+            float dip = Mathf.Lerp(0.52f, 0.38f, severity01);
+            Time.timeScale = Mathf.Max(0.28f, Time.timeScale * dip);
+            resumeTimeScaleAtRealtime = Time.realtimeSinceStartup + Mathf.Lerp(0.012f, 0.024f, severity01);
+        }
+
+        private void TryRestoreCombatTimescale()
+        {
+            if (!microHitstopActive || resumeTimeScaleAtRealtime < 0f)
+            {
+                return;
+            }
+
+            if (Time.realtimeSinceStartup < resumeTimeScaleAtRealtime)
+            {
+                return;
+            }
+
+            Time.timeScale = storedTimeScaleBeforeHitstop > 0.01f ? storedTimeScaleBeforeHitstop : 1f;
+            microHitstopActive = false;
+            resumeTimeScaleAtRealtime = -1f;
         }
 
         private void LateUpdate()
         {
+            TryRestoreCombatTimescale();
             ApplyCombatShakeFrame();
         }
 
@@ -140,15 +229,19 @@ namespace Game.CameraSystem
                 return;
             }
 
-            float w = combatShakeStrength * combatShakeMaxWorldOffset;
-            float n1 = Mathf.PerlinNoise(Time.unscaledTime * 38.7f, 1.718f) - 0.5f;
-            float n2 = Mathf.PerlinNoise(2.31f, Time.unscaledTime * 38.7f) - 0.5f;
+            // 카메라가 높을수록 월드 단위 쉐이크가 화면에서 거의 안 보이므로 높이에 비례해 키움
+            float camY = Mathf.Abs(transform.position.y);
+            float heightShakeMul = Mathf.Lerp(0.95f, 2.45f, Mathf.InverseLerp(5.5f, 95f, camY));
+            float sharp = combatShakeSharpnessMul;
+            float w = combatShakeStrength * combatShakeMaxWorldOffset * heightShakeMul * Mathf.Lerp(0.92f, 1.18f, Mathf.Clamp01(sharp - 1f)));
+            float freq = combatShakeFrequencyBase * sharp;
+            float n1 = Mathf.PerlinNoise(Time.unscaledTime * freq, 1.718f) - 0.5f;
+            float n2 = Mathf.PerlinNoise(2.31f, Time.unscaledTime * freq) - 0.5f;
             transform.position += new Vector3(n1 * 2f * w, 0f, n2 * 2f * w);
             ClampPosition();
-            combatShakeStrength = Mathf.MoveTowards(
-                combatShakeStrength,
-                0f,
-                Time.unscaledDeltaTime * combatShakeDecayPerSecond);
+            float decay = combatShakeDecayPerSecond * Mathf.Lerp(1f, 1.12f, sharp - 1f);
+            combatShakeStrength = Mathf.MoveTowards(combatShakeStrength, 0f, Time.unscaledDeltaTime * decay);
+            combatShakeSharpnessMul = Mathf.MoveTowards(combatShakeSharpnessMul, 1f, Time.unscaledDeltaTime * 2.6f);
         }
 
         private void HandleRightDragPan()

@@ -1,4 +1,5 @@
-﻿using Game.BattleAces;
+﻿using Game.Audio;
+using Game.BattleAces;
 using Game.Prototype;
 using UnityEngine;
 
@@ -60,6 +61,12 @@ namespace Game.Units
 
         /// <summary>Battle Aces — 저체력 후퇴 재시도 간격</summary>
         private float battleAcesRetreatThrottle;
+
+        /// <summary>아군 공격 휘두르기/발사음 스팸 방지 (언스케일)</summary>
+        private float nextAttackWindupSoundUnscaled = -999f;
+
+        /// <summary>애니 선딜에서 이미 휘두르기음 낸 뒤 실제 타격에서 중복 방지</summary>
+        private bool suppressAttackWindupOnce;
 
         public CombatTarget CurrentTarget => currentTarget;
         public bool HasAttackMoveDestination => hasAttackMoveDestination;
@@ -196,23 +203,26 @@ namespace Game.Units
             mover.Stop();
             FaceTarget(targetPosition);
 
+            if (awaitingAnimStrike && distance > effectiveAttackRange * 1.28f)
+            {
+                awaitingAnimStrike = false;
+                animStrikeVictim = null;
+                animStrikeTimeoutRemainingUnscaled = 0f;
+                mover?.SetExternalSpeedMultiplier(1f);
+            }
+
+            TickAnimStrikeFallback();
+            if (awaitingAnimStrike)
+            {
+                return;
+            }
+
             if (cooldownTimer > 0f)
             {
                 return;
             }
 
-            if (usesProjectile)
-            {
-                LaunchProjectile(currentTarget);
-            }
-            else
-            {
-                ApplyDirectDamage(currentTarget);
-            }
-
-            recentAttackPulse = 1f;
-            float cooldownMultiplier = abilityState != null ? abilityState.GetAttackCooldownMultiplier() : 1f;
-            cooldownTimer = attackCooldown * cooldownMultiplier;
+            TryPerformAttackWhenReady();
         }
 
         public void Configure(
@@ -269,7 +279,7 @@ namespace Game.Units
             currentTarget = target;
             pursuitDestination = target.transform.position;
             hasPursuitDestination = true;
-            engagementBeamTimer = 1.8f;
+            engagementBeamTimer = 2.35f;
         }
 
         public void SetAttackMoveDestination(Vector3 destination)
@@ -309,9 +319,16 @@ namespace Game.Units
             mover.Stop();
         }
 
-        public static void SpawnImpactEffect(Vector3 position, float scale, Color color)
+        public static void SpawnImpactEffect(
+            Vector3 position,
+            float scale,
+            Color color,
+            float scaleMul = 1f,
+            float lifeMul = 1f,
+            bool directMelee = false)
         {
-            float effectScale = Mathf.Max(0.2f, scale);
+            float meleeBoost = directMelee ? 1.12f : 1f;
+            float effectScale = Mathf.Max(0.2f, scale) * Mathf.Max(0.5f, scaleMul) * meleeBoost;
 
             GameObject root = new("Impact Effect");
             root.transform.position = position;
@@ -344,16 +361,17 @@ namespace Game.Units
             Renderer ringRenderer = ring.GetComponent<Renderer>();
             ringRenderer.material.color = new Color(color.r, color.g, color.b, 0.85f);
 
-            for (int i = 0; i < 4; i++)
+            int sparkCount = directMelee ? 7 : 4;
+            for (int i = 0; i < sparkCount; i++)
             {
-                float angle = i * 90f;
+                float angle = (i / (float)sparkCount) * 360f;
                 float radians = angle * Mathf.Deg2Rad;
                 GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 spark.name = $"Spark {i + 1}";
                 spark.transform.SetParent(root.transform);
                 spark.transform.localPosition = new Vector3(Mathf.Cos(radians) * effectScale * 0.24f, 0f, Mathf.Sin(radians) * effectScale * 0.24f);
                 spark.transform.localRotation = Quaternion.Euler(0f, angle, 24f);
-                spark.transform.localScale = new Vector3(0.08f, 0.08f, effectScale * 0.65f);
+                spark.transform.localScale = new Vector3(0.08f, 0.08f, effectScale * (directMelee ? 0.78f : 0.65f));
                 Collider sparkCollider = spark.GetComponent<Collider>();
                 if (sparkCollider != null)
                 {
@@ -364,7 +382,52 @@ namespace Game.Units
                 sparkRenderer.material.color = Color.Lerp(color, Color.white, 0.18f);
             }
 
-            Destroy(root, 0.24f);
+            if (directMelee)
+            {
+                GameObject ring2 = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                ring2.name = "Shock Ring Outer";
+                ring2.transform.SetParent(root.transform);
+                ring2.transform.localPosition = new Vector3(0f, -0.1f, 0f);
+                ring2.transform.localScale = new Vector3(effectScale * 1.85f, 0.02f, effectScale * 1.85f);
+                Collider ring2c = ring2.GetComponent<Collider>();
+                if (ring2c != null)
+                {
+                    ring2c.enabled = false;
+                }
+
+                Renderer ring2r = ring2.GetComponent<Renderer>();
+                ring2r.material.color = new Color(color.r, color.g, color.b, 0.45f);
+            }
+
+            Destroy(root, 0.24f * Mathf.Max(0.4f, lifeMul));
+        }
+
+        /// <summary>Battle Aces 아군만 — 공격 직전 짧은 음으로 히트와 레이어 분리</summary>
+        private void TryPlayAttackWindupFeedback()
+        {
+            if (owner == null || owner.Team != UnitTeam.Player)
+            {
+                return;
+            }
+
+            if (!BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController match) || match.IsFinished)
+            {
+                return;
+            }
+
+            if (suppressAttackWindupOnce)
+            {
+                suppressAttackWindupOnce = false;
+                return;
+            }
+
+            if (Time.unscaledTime < nextAttackWindupSoundUnscaled)
+            {
+                return;
+            }
+
+            nextAttackWindupSoundUnscaled = Time.unscaledTime + 0.052f;
+            ProceduralAudioUtility.PlayWeaponAttackWindup(usesProjectile, 1f);
         }
 
         private void ApplyDirectDamage(CombatTarget target)
@@ -374,11 +437,20 @@ namespace Game.Units
                 return;
             }
 
+            TryPlayAttackWindupFeedback();
             float damageMultiplier = abilityState != null ? abilityState.GetAttackDamageMultiplier() : 1f;
             damageMultiplier *= roleController != null ? roleController.GetPassiveAttackDamageMultiplier() : 1f;
             float resolvedDamage = CombatTriangleRules.ResolveDamage(GetArchetype(), target, attackDamage * damageMultiplier, false);
-            target.Health.ApplyDamage(resolvedDamage);
-            SpawnImpactEffect(target.transform.position + Vector3.up * 0.6f, impactEffectScale, GetAttackColor());
+            target.Health.ApplyDamage(resolvedDamage, transform.position, fromProjectile: false);
+            bool battleAcesActive = BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController baHit) && !baHit.IsFinished;
+            float impactScaleMul = battleAcesActive ? 1.28f : 1f;
+            float impactLifeMul = battleAcesActive ? 1.22f : 1f;
+            Vector3 impactPos = target.transform.position + Vector3.up * 0.6f;
+            SpawnImpactEffect(impactPos, impactEffectScale, GetAttackColor(), impactScaleMul, impactLifeMul, directMelee: true);
+            if (battleAcesActive)
+            {
+                BattleAcesCombatJuice.NotifyImpactAccentRing(impactPos, owner.Team, 1.08f);
+            }
         }
 
         private void LaunchProjectile(CombatTarget target)
@@ -388,6 +460,7 @@ namespace Game.Units
                 return;
             }
 
+            TryPlayAttackWindupFeedback();
             float damageMultiplier = abilityState != null ? abilityState.GetAttackDamageMultiplier() : 1f;
             damageMultiplier *= roleController != null ? roleController.GetPassiveAttackDamageMultiplier() : 1f;
             float distance = Vector3.Distance(transform.position, target.transform.position);

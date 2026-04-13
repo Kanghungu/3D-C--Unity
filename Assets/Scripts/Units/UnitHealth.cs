@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using Game.Audio;
 using Game.BattleAces;
 using Game.Prototype;
+using Game.Selection;
 using Game.UI;
 using UnityEngine;
 
@@ -180,7 +182,9 @@ namespace Game.Units
             return false;
         }
 
-        public void ApplyDamage(float damage)
+        /// <param name="damageSourceWorld">피격 연출 방향용(공격자·발사 원점 등). 없으면 방사형 스파크</param>
+        /// <param name="fromProjectile">원거리 탄 피해 여부(히트음 레이어)</param>
+        public void ApplyDamage(float damage, Vector3? damageSourceWorld = null, bool fromProjectile = false)
         {
             if (!IsAlive) return;
 
@@ -203,9 +207,10 @@ namespace Game.Units
             if (damage > 0f)
             {
                 Damaged?.Invoke(damage);
-                TryPlayHitFeedback(damage);
+                TryPlayHitFeedback(damage, damageSourceWorld, fromProjectile);
                 TryNotifyPlayerHitFlash(damage);
                 TryBeginHitFlashForUnit();
+                TryEnqueueBattleAcesDamageNumber(damage);
             }
 
             if (currentHealth <= 0f)
@@ -260,7 +265,7 @@ namespace Game.Units
         }
 
         /// <summary>Light hit sound + Battle Aces combat juice (cooldown).</summary>
-        private void TryPlayHitFeedback(float damageAmount)
+        private void TryPlayHitFeedback(float damageAmount, Vector3? damageSourceWorld, bool fromProjectile)
         {
             if (selectableUnit == null || combatTarget == null || damageAmount <= 0f)
             {
@@ -272,17 +277,56 @@ namespace Game.Units
                 return;
             }
 
-            nextHitSoundUnscaledTime = Time.unscaledTime + BattleAcesFeedbackTiming.UnitHitSoundCooldownUnscaled;
+            bool selectedNow = selectableUnit != null && selectableUnit.IsSelected;
+            bool playerTeam = combatTarget.Team == UnitTeam.Player;
+            float hitSoundCooldown = selectedNow
+                ? BattleAcesFeedbackTiming.UnitHitSoundCooldownSelectedUnscaled
+                : playerTeam
+                    ? BattleAcesFeedbackTiming.UnitHitSoundCooldownPlayerAllyUnscaled
+                    : BattleAcesFeedbackTiming.UnitHitSoundCooldownUnscaled;
+            nextHitSoundUnscaledTime = Time.unscaledTime + hitSoundCooldown;
             float norm = damageAmount / Mathf.Max(1f, maxHealth);
             UnitArchetype arch = selectableUnit != null ? selectableUnit.Archetype : UnitArchetype.Spearman;
-            ProceduralAudioUtility.PlayUnitHitLight(Mathf.Clamp01(norm * 3.5f), arch);
+            ProceduralAudioUtility.PlayUnitHitLight(
+                Mathf.Clamp01(norm * 3.5f),
+                arch,
+                combatTarget.Team,
+                fromProjectile);
 
             // Juice only during an active BA match (command core skips this path).
             if (BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController baHit) && !baHit.IsFinished)
             {
                 float damageNorm01 = Mathf.Clamp01(norm);
-                BattleAcesCombatJuice.NotifyUnitHit(transform.position, damageNorm01, combatTarget.Team);
+                bool unitIsSelected = selectableUnit != null && selectableUnit.IsSelected;
+                BattleAcesCombatJuice.NotifyUnitHit(
+                    transform.position,
+                    damageNorm01,
+                    combatTarget.Team,
+                    unitIsSelected,
+                    damageSourceWorld);
             }
+        }
+
+        /// <summary>Battle Aces — 코어 제외, 플로팅 피해 숫자</summary>
+        private void TryEnqueueBattleAcesDamageNumber(float damageAmount)
+        {
+            if (GetComponent<BattleAcesCore>() != null || combatTarget == null)
+            {
+                return;
+            }
+
+            if (BattleAcesWorldDamageNumbers.Instance == null)
+            {
+                return;
+            }
+
+            if (!BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController ba) || ba.IsFinished)
+            {
+                return;
+            }
+
+            bool victimIsEnemy = combatTarget.Team == UnitTeam.Enemy;
+            BattleAcesWorldDamageNumbers.Instance.EnqueueWorldDamage(transform.position, damageAmount, victimIsEnemy);
         }
 
         /// <summary>Full-screen flash for player-owned units (not command core).</summary>
@@ -392,8 +436,85 @@ namespace Game.Units
             }
 
             OnUnitDied?.Invoke(team, archetype);
+            UnitAnimationDriver animDriver = GetComponent<UnitAnimationDriver>();
+            animDriver?.NotifyDeath();
+
+            if (animDriver != null &&
+                animDriver.TryGetDeferredDeathDestroyDelay(out float holdUnscaled) &&
+                GetComponent<BattleAcesCore>() == null)
+            {
+                StartCoroutine(DieAfterDeathAnimationRoutine(holdUnscaled));
+                return;
+            }
+
             SpawnDeathRemains();
             Destroy(gameObject);
+        }
+
+        /// <summary>사망 애니 재생 시간 확보 후 잔해·파괴</summary>
+        private IEnumerator DieAfterDeathAnimationRoutine(float holdUnscaled)
+        {
+            DisableUnitForDeathSequence();
+            float end = Time.unscaledTime + Mathf.Clamp(holdUnscaled, 0.05f, 2.5f);
+            while (Time.unscaledTime < end)
+            {
+                yield return null;
+            }
+
+            SpawnDeathRemains();
+            Destroy(gameObject);
+        }
+
+        /// <summary>죽는 동안 명령·충돌·선택 정리</summary>
+        private void DisableUnitForDeathSequence()
+        {
+            if (selectableUnit != null)
+            {
+                PrototypeSelectionController sel = PrototypeSelectionController.Instance;
+                if (sel != null)
+                {
+                    sel.DeselectUnit(selectableUnit);
+                }
+                else
+                {
+                    selectableUnit.SetSelected(false);
+                }
+            }
+
+            UnitCombat combat = GetComponent<UnitCombat>();
+            if (combat != null)
+            {
+                combat.enabled = false;
+            }
+
+            SimpleUnitMover mover = GetComponent<SimpleUnitMover>();
+            if (mover != null)
+            {
+                mover.Stop();
+                mover.enabled = false;
+            }
+
+            UnityEngine.AI.NavMeshAgent agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (agent != null)
+            {
+                agent.isStopped = true;
+                agent.enabled = false;
+            }
+
+            UnitCrowdSeparation sep = GetComponent<UnitCrowdSeparation>();
+            if (sep != null)
+            {
+                sep.enabled = false;
+            }
+
+            Collider[] cols = GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < cols.Length; i++)
+            {
+                if (cols[i] != null)
+                {
+                    cols[i].enabled = false;
+                }
+            }
         }
 
         private void SpawnDeathRemains()

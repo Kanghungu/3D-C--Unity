@@ -8,7 +8,7 @@ using UnityEngine.InputSystem;
 
 namespace Game.BattleAces
 {
-    /// <summary>???앹궛 ???ㅽ뙣 ?먯씤 ??HUD ??以??덈궡??/summary>
+    /// <summary>덱 생산 대기 큐 삽입 실패 사유. HUD 힌트에도 사용.</summary>
     public enum DeckEnqueueFailReason
     {
         None = 0,
@@ -21,7 +21,7 @@ namespace Game.BattleAces
         InsufficientCredits
     }
 
-    /// <summary>T/Y/U 肄붿뼱 媛뺥솕 ?ㅽ뙣 ???앹궛 嫄곗젅怨??숈씪 HUD 留됰?</summary>
+    /// <summary>T/Y/U 코어 강화 구매 실패 사유. 생산 큐와 동일한 HUD 피드백.</summary>
     public enum UpgradePurchaseFailReason
     {
         None = 0,
@@ -34,7 +34,7 @@ namespace Game.BattleAces
     }
 
     /// <summary>
-    /// ?⑥씪 肄붿뼱: ??8?щ’ 以??좏깮???좊떅留??앹궛 ?먯뿉 ?ｋ뒗?? 利앹썝? ??嫄대Ъ ?섎굹?먯꽌留?
+    /// 단일 코어: 8슬롯 중 선택한 유닛만 생산 큐에 넣음. 자원·강화도 이 코어 한 곳에서만 처리.
     /// </summary>
     public class BattleAcesCore : MonoBehaviour
     {
@@ -49,26 +49,26 @@ namespace Game.BattleAces
         private Transform unitsParent;
         private Vector3 rallyWorldPosition;
 
-        /// <summary>?붾뱶 ?좊━ 吏?????앹궛 ?꾨즺 ?좊떅??癒쇱? ?ν븿(?뚮젅?댁뼱??Alt+?고겢由?쑝濡??ㅼ젙)</summary>
+        /// <summary>덱 랠리 위치. 생산 완료 유닛이 먼저 이동(플레이어: Alt+지면 우클릭으로 설정)</summary>
         private GameObject rallyWorldPing;
         private UnitHealth health;
         private float productionTimeRemaining;
         private bool isProducing;
         private UnitArchetype currentProductionArchetype;
 
-        // ?뚮젅?댁뼱 肄붿뼱留??ъ슜 ???앹궛 媛???κ컩/?먯썝 (?곗뼱 0~3, 理쒕? 3??媛뺥솕)
+        // 플레이어 코어 전용 생산 속도·장갑·수입 (티어 0~3, 최대 3단계 강화)
         private int productionUpgradeTier;
         private int hullUpgradeTier;
         private int incomeUpgradeTier;
 
-        /// <summary>?⑹뀡 洹쒖튃 ???앹궛 ?쒓컙??怨깊븿(1 誘몃쭔?대㈃ 鍮좊Ⅸ ?앹궛)</summary>
+        /// <summary>팩션 규칙에 따른 생산 시간 배율(1 미만이면 더 빠른 생산)</summary>
         private float factionProductionDurationMultiplier = 1f;
 
-        /// <summary>?굿룰컯??嫄곗젅 ?뚰듃 ?ㅽ뙵 諛⑹?(媛숈? 荑⑤떎??怨듭쑀)</summary>
+        /// <summary>플레이어 경제 거절 힌트 스팸 방지(짧은 쿨다운 공유)</summary>
         private static float lastPlayerEconomyRejectUnscaled = -999f;
         private const float PlayerEconomyRejectCooldownSeconds = 0.38f;
 
-        /// <summary>T/Y/U 嫄곗젅 ??以꾩뿉 遺숇뒗 吏㏃? 瑗щ━???쑣룹쁺)</summary>
+        /// <summary>T/Y/U 강화 슬롯에 맞는 힌트 꼬리문구(다국어)</summary>
         private enum UpgradeHotkeySlot
         {
             Production,
@@ -76,9 +76,9 @@ namespace Game.BattleAces
             Income
         }
 
-        // 梨뺥꽣3: ?????덉뿉??1~2?④퀎??臾대궃?? 3?④퀎???먯꽭 ?곕씪 ?ъ꽦(?댁쟾蹂대떎 ?쎄컙 ??는룻슚怨쇄넁)
-        // 1?곗뼱 鍮꾩슜 媛꾧꺽?쇰줈 珥덈컲 2~3遺??덉뿉 T(?앹궛)쨌Y(?좎껜)쨌U(?섏엯) 以?臾댁뾿??癒쇱? ?댁? 媛덈━寃???
-        // ????1~2?곗뼱 紐⑺몴??留욎텣 ?쎄컙 ?꾪솕(諛섎났 ?뚮젅???섏씠??
+        // 챕터3: 적 덱에는 1~2단계가 흔함. 3단계는 점수에 따라 성장(이전보다 시간 들여 효율)
+        // 1티어 저렴한 가격으로 초반 2~3분 안에 T(생산)·Y(장갑)·U(수입) 중 무엇이든 먼저 살 여지
+        // 또는 1~2티어 목표에 맞춘 시간 곡선(반복 플레이 밸런스)
         private static readonly int[] ProductionUpgradeCosts = { 52, 77, 112 };
         private static readonly int[] HullUpgradeCosts = { 40, 71, 102 };
         private static readonly int[] IncomeUpgradeCosts = { 60, 86, 116 };
@@ -87,7 +87,7 @@ namespace Game.BattleAces
         public UnitHealth Health => health;
         public int QueueCount => productionQueue.Count + (isProducing ? 1 : 0);
 
-        /// <summary>?꾩옱 議곗꽑 以묒씤 ?좊떅???쒖쇅???湲곗뿴 湲몄씠(HUD??</summary>
+        /// <summary>현재 대기 중인 유닛만, 생산 중인 것은 제외한 큐 길이(HUD용)</summary>
         public int QueuedProductionCount => productionQueue.Count;
 
         public bool TryGetNextProductionUpgradeCost(out int cost)
@@ -127,7 +127,7 @@ namespace Game.BattleAces
         }
 
         /// <summary>
-        /// HUD?????꾩옱 ?앹궛 以묒씤 ?좊떅쨌?⑥? ?쒓컙, ?먮뒗 ?湲곗뿴 留???議곗꽑 ?쒖옉 ?? 誘몃━蹂닿린.
+        /// HUD용: 현재 생산 중인 유닛·남은 시간, 또는 대기열 맨 앞(대기 시작 전) 미리보기.
         /// </summary>
         public bool TryGetNextProductionPreview(out UnitArchetype archetype, out float secondsRemaining)
         {
@@ -160,10 +160,10 @@ namespace Game.BattleAces
         public int HullUpgradeTier => hullUpgradeTier;
         public int IncomeUpgradeTier => incomeUpgradeTier;
 
-        /// <summary>?꾩옱 ?앹궛 ?좊━(?붾뱶 醫뚰몴)</summary>
+        /// <summary>현재 생산 랠리(덱 월드 좌표)</summary>
         public Vector3 RallyWorldPosition => rallyWorldPosition;
 
-        /// <summary>?뚮젅?댁뼱 ?꾩슜 ??吏硫??고겢由?Alt)?쇰줈 吏묎껐 吏???ㅼ젙</summary>
+        /// <summary>플레이어 전용. 지면 우클릭(Alt)으로 랠리 위치 설정</summary>
         public void SetRallyWorldPosition(Vector3 worldOnGround)
         {
             if (team != UnitTeam.Player)
@@ -180,7 +180,7 @@ namespace Game.BattleAces
             }
         }
 
-        /// <summary>??珥덇린?????⑹뀡???곕씪 ?몄텧</summary>
+        /// <summary>초기화 시 팩션에 따라 생산 시간 배율 설정</summary>
         public void SetFactionProductionDurationMultiplier(float multiplier)
         {
             factionProductionDurationMultiplier = Mathf.Max(0.12f, multiplier);
@@ -207,7 +207,7 @@ namespace Game.BattleAces
             };
         }
 
-        /// <summary>?ъ뿉 ?덈뒗 ?댁븘 ?덈뒗 Battle Aces 肄붿뼱 寃????RTS 移대찓??Home/Space ??</summary>
+        /// <summary>씬에 살아 있는 아군/적군 Battle Aces 코어 검색. RTS 카메라 Home/Space 등</summary>
         public static bool TryFindAliveCore(UnitTeam team, out BattleAcesCore core)
         {
             core = null;
@@ -270,7 +270,7 @@ namespace Game.BattleAces
             }
         }
 
-        /// <summary>吏묎껐 ?꾩튂 ?쒓컖 ?쒖떆(?뚮젅?댁뼱留?</summary>
+        /// <summary>랠리 위치를 짧게 표시(플레이어만)</summary>
         private void EnsurePlayerRallyPing()
         {
             if (team != UnitTeam.Player || rallyWorldPing != null)
@@ -288,7 +288,7 @@ namespace Game.BattleAces
 
             if (rallyWorldPing.TryGetComponent(out Renderer rend))
             {
-                // ?꾪듃 諛⑺뼢: ?섏떇 ?곗뼹 ?ъ씤?몃쭔 梨꾨룄 ?덇쾶
+                // 아트 방향: 본작 티얼 포인트만으로도 잘 보이게
                 rend.material.color = BattleAcesArtDirection.PointTeal;
             }
         }
@@ -305,7 +305,7 @@ namespace Game.BattleAces
                 bool briefingBlocks =
                     BattleMissionFlow.Instance != null && BattleMissionFlow.Instance.IsBriefingBlocking;
 
-                // 釉뚮━?뫢룹듅???뺤젙 ?꾩뿉???굿룹뾽洹몃젅?대뱶 ?낅젰 臾댁떆(?먯썝 ?뚮え쨌嫄곗젅??諛⑹?)
+                // 브리핑 확정 전에는 플레이어 업그레이드·생산 입력 무시(자원·강화 거절과 동일)
                 if (!briefingBlocks &&
                     (!BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController matchCtrl) ||
                      !matchCtrl.IsFinished))
@@ -402,7 +402,7 @@ namespace Game.BattleAces
 
         private void TryHotkeyUpgrade(TryUpgradeOutDelegate tryPurchase, UpgradeHotkeySlot hotkeySlot)
         {
-            // ?앹궛 ?ㅼ? ?숈씪: ?쒕룄????긽 ?섍퀬, 嫄곗젅 ?쇰뱶諛깅쭔 荑⑤떎??荑⑤떎??以묒뿉??援щℓ ?깃났? 利됱떆 諛섏쓳)
+            // 생산과 동일: 성공 시 조용히, 실패·거절만 쿨다운 내 한 번(구매 성공 시 즉시 반응)
             if (tryPurchase(out UpgradePurchaseFailReason fail))
             {
                 return;
@@ -431,9 +431,9 @@ namespace Game.BattleAces
             bool ko = GameUserSettings.Language == GameLanguage.Korean;
             return slot switch
             {
-                UpgradeHotkeySlot.Production => ko ? "?앹궛 T" : "production T",
-                UpgradeHotkeySlot.Hull => ko ? "?κ컩 Y" : "armor Y",
-                UpgradeHotkeySlot.Income => ko ? "?섏엯 U" : "income U",
+                UpgradeHotkeySlot.Production => ko ? "생산 T" : "production T",
+                UpgradeHotkeySlot.Hull => ko ? "장갑 Y" : "armor Y",
+                UpgradeHotkeySlot.Income => ko ? "수입 U" : "income U",
                 _ => string.Empty
             };
         }
@@ -445,25 +445,25 @@ namespace Game.BattleAces
             return reason switch
             {
                 UpgradePurchaseFailReason.BriefingBlocking => ko
-                    ? $"媛뺥솕 遺덇?: 釉뚮━??以?({tail})"
+                    ? $"강화 불가: 브리핑 중 ({tail})"
                     : $"Upgrade blocked: briefing ({tail})",
                 UpgradePurchaseFailReason.MatchFinished => ko
-                    ? $"媛뺥솕 遺덇?: ?꾪닾 醫낅즺 ({tail})"
+                    ? $"강화 불가: 전투 종료 ({tail})"
                     : $"Upgrade blocked: battle over ({tail})",
                 UpgradePurchaseFailReason.InsufficientCredits => ko
-                    ? $"媛뺥솕 遺덇?: ?먯썝 遺議?({tail})"
+                    ? $"강화 불가: 자원 부족 ({tail})"
                     : $"Upgrade blocked: not enough credits ({tail})",
                 UpgradePurchaseFailReason.MaxTier => ko
-                    ? $"媛뺥솕 遺덇?: {tail} 留뚮졊"
+                    ? $"강화 불가: {tail} 최대"
                     : $"Upgrade blocked: {tail} at max",
                 UpgradePurchaseFailReason.InvalidState => ko
-                    ? $"媛뺥솕 遺덇?: 肄붿뼱 ?곹깭 ?뺤씤 ({tail})"
+                    ? $"강화 불가: 코어 상태 확인 ({tail})"
                     : $"Upgrade blocked: core state ({tail})",
                 _ => null
             };
         }
 
-        /// <summary>?뚮젅?댁뼱 媛뺥솕 怨듯넻 寃뚯씠?????앹궛 ?먯? ?숈씪 議곌굔</summary>
+        /// <summary>플레이어 강화 공통 게이트. 생산 큐와 동일 조건</summary>
         private static bool TryGetPlayerUpgradeBlockedReason(out UpgradePurchaseFailReason blockReason)
         {
             blockReason = UpgradePurchaseFailReason.None;
@@ -482,7 +482,7 @@ namespace Game.BattleAces
             return false;
         }
 
-        /// <summary>?앹궛 ?쒓컙 ?⑥텞 (?뚮젅?댁뼱 ?꾩슜)</summary>
+        /// <summary>생산 시간 단축 (플레이어 전용)</summary>
         public bool TryPurchaseProductionUpgrade()
         {
             return TryPurchaseProductionUpgrade(out _);
@@ -521,7 +521,7 @@ namespace Game.BattleAces
             return true;
         }
 
-        /// <summary>肄붿뼱 理쒕? 泥대젰 利앷? (?뚮젅?댁뼱 ?꾩슜)</summary>
+        /// <summary>코어 최대 체력 증가 (플레이어 전용)</summary>
         public bool TryPurchaseHullUpgrade()
         {
             return TryPurchaseHullUpgrade(out _);
@@ -567,7 +567,7 @@ namespace Game.BattleAces
             return true;
         }
 
-        /// <summary>?먮룞 ?먯썝 利앷? (?뚮젅?댁뼱 ?꾩슜)</summary>
+        /// <summary>자동 자원 증가 (플레이어 전용)</summary>
         public bool TryPurchaseIncomeUpgrade()
         {
             return TryPurchaseIncomeUpgrade(out _);
@@ -607,13 +607,13 @@ namespace Game.BattleAces
             return true;
         }
 
-        /// <summary>?щ’ 0~7 ???뚮젅?댁뼱???ㅻ낫?? ?곸? EnemyBrain?먯꽌 ?몄텧</summary>
+        /// <summary>슬롯 0~7. 플레이어 입력·EnemyBrain에서 호출</summary>
         public bool TryEnqueueDeckSlot(int slotIndex)
         {
             return TryEnqueueDeckSlot(slotIndex, out _);
         }
 
-        /// <summary>?ㅽ뙣 ??<paramref name="failReason"/> 濡?援щ텇 ???뚮젅?댁뼱 HUD ?덈궡??/summary>
+        /// <summary>실패 시 <paramref name="failReason"/>로 구분. 플레이어 HUD 안내용</summary>
         public bool TryEnqueueDeckSlot(int slotIndex, out DeckEnqueueFailReason failReason)
         {
             failReason = DeckEnqueueFailReason.None;
@@ -687,29 +687,29 @@ namespace Game.BattleAces
             return true;
         }
 
-        /// <summary>?앹궛 嫄곗젅 HUD ??以???null ?대㈃ ?쒖떆 ?앸왂(?몄뼱 ?ㅼ젙 諛섏쁺)</summary>
+        /// <summary>생산 거절 HUD 힌트. null이면 표시 생략(언어 설정 반영)</summary>
         private static string GetDeckEnqueueFailHint(DeckEnqueueFailReason reason)
         {
             bool ko = GameUserSettings.Language == GameLanguage.Korean;
             return reason switch
             {
                 DeckEnqueueFailReason.BriefingBlocking => ko
-                    ? "?앹궛 遺덇?: 釉뚮━??以?(?묒쟾 ?쒖옉 ??"
+                    ? "생산 불가: 브리핑 중(작전 시작 후)"
                     : "Build blocked: briefing (start the operation first)",
                 DeckEnqueueFailReason.MatchFinished => ko
-                    ? "?앹궛 遺덇?: ?꾪닾 醫낅즺"
+                    ? "생산 불가: 전투 종료"
                     : "Build blocked: battle ended",
                 DeckEnqueueFailReason.QueueFull => ko
-                    ? "?? ??: ??? ?? ?"
+                    ? "생산 불가: 대기열 가득 참"
                     : "Build blocked: queue full",
                 DeckEnqueueFailReason.FieldCap => ko
-                    ? "?앹궛 遺덇?: ?꾩옣 ?좊떅 ?곹븳"
+                    ? "생산 불가: 전장 유닛 상한"
                     : "Build blocked: unit cap on field",
                 DeckEnqueueFailReason.NoDefinition => ko
-                    ? "?앹궛 遺덇?: ???щ’ ?놁쓬"
+                    ? "생산 불가: 빈 덱 슬롯"
                     : "Build blocked: empty deck slot",
                 DeckEnqueueFailReason.InsufficientCredits => ko
-                    ? "?? ??: ?? ??"
+                    ? "생산 불가: 자원 부족"
                     : "Build blocked: not enough credits",
                 _ => null
             };
@@ -728,7 +728,7 @@ namespace Game.BattleAces
             float duration = def != null ? Mathf.Max(1.2f, def.ProductionDuration * 0.85f) : 3f;
             if (team == UnitTeam.Player)
             {
-                // ?낃렇?덉씠???곗뼱??12% ?앹궛 ?쒓컙 媛먯냼 (3?곗뼱 ??理쒕? ??36%)
+                // 생산 업그레이드 티어마다 12% 생산 시간 감소 (3티어 시 최대 약 36%)
                 float mul = Mathf.Max(0.52f, 1f - 0.12f * productionUpgradeTier);
                 duration *= mul;
             }
@@ -763,7 +763,7 @@ namespace Game.BattleAces
                     }
                     else
                     {
-                        // ?곸? 諛붾줈 ??肄붿뼱濡??щ━吏 ?딄퀬 吏묎껐 吏?먯쑝濡?紐⑥씤 ?? EnemyBrain ??臾쇨껐 怨듦꺽 紐낅졊
+                        // 적은 코어 랠리로 이동 후 결정 위치로 이동. EnemyBrain이 이후 교전 명령
                         unit.MoveTo(rallyWorldPosition);
                         ProceduralAudioUtility.PlayEnemyProductionComplete();
                     }
@@ -774,7 +774,7 @@ namespace Game.BattleAces
             productionTimeRemaining = 0f;
         }
 
-        /// <summary>?앹궛 ?꾨즺 ?쒓컙 ??吏㏃? 留??뺤옣(?꾨줈?쒖????ㅺ낵 吏?</summary>
+        /// <summary>생산 완료 짧은 링 확장(프로시저럴 피드백용)</summary>
         private static void SpawnPlayerProductionReadyRing(Vector3 groundPosition)
         {
             GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);

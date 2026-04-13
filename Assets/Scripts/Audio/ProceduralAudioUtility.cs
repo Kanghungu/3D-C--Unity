@@ -489,6 +489,28 @@ namespace Game.Audio
             PlayClip(BuildTone(740f, 0.032f, 0.026f), 0.17f, ProceduralAudioPriority.High);
         }
 
+        /// <summary>일반 이동 명령 — 공격 이동보다 부드럽고 낮은 청록 톤</summary>
+        public static void PlayCombatMoveOrder()
+        {
+            PlayClip(BuildTone(320f, 0.034f, 0.028f), 0.16f, ProceduralAudioPriority.High);
+            PlayClip(BuildTone(520f, 0.028f, 0.022f), 0.12f, ProceduralAudioPriority.High);
+        }
+
+        /// <summary>근접 휘두르기 / 발사 직전 — 히트음과 레이어 분리(호출부 쿨다운 권장)</summary>
+        public static void PlayWeaponAttackWindup(bool isRanged, float intensity01 = 1f)
+        {
+            intensity01 = Mathf.Clamp01(intensity01);
+            if (isRanged)
+            {
+                PlayClip(BuildTone(Mathf.Lerp(680f, 820f, intensity01), 0.022f, 0.018f), Mathf.Lerp(0.09f, 0.14f, intensity01), ProceduralAudioPriority.Normal);
+            }
+            else
+            {
+                PlayClip(BuildTone(Mathf.Lerp(240f, 320f, intensity01), 0.028f, 0.022f), Mathf.Lerp(0.08f, 0.12f, intensity01), ProceduralAudioPriority.Normal);
+                PlayClip(BuildNoiseBlip(0.04f, 0.22f), Mathf.Lerp(0.05f, 0.08f, intensity01), ProceduralAudioPriority.Normal);
+            }
+        }
+
         /// <summary>목표 임박·갱신 알림</summary>
         public static void PlayObjectivePulse()
         {
@@ -569,8 +591,12 @@ namespace Game.Audio
             PlayClip(clip, volumeLinear, ProceduralAudioPriority.ResultStingFallback);
         }
 
-        /// <summary>유닛 피격 — 병종별 주파수 살짝 분리(스팸 방지는 호출 측에서)</summary>
-        public static void PlayUnitHitLight(float intensity01, UnitArchetype archetype = UnitArchetype.Spearman)
+        /// <summary>유닛 피격 — 병종·팀·원거리 여부로 레이어 분리(스팸 방지는 호출 측에서)</summary>
+        public static void PlayUnitHitLight(
+            float intensity01,
+            UnitArchetype archetype = UnitArchetype.Spearman,
+            UnitTeam victimTeam = UnitTeam.Enemy,
+            bool fromProjectile = false)
         {
             intensity01 = Mathf.Clamp01(intensity01);
             float baseF = Mathf.Lerp(360f, 540f, intensity01);
@@ -588,11 +614,28 @@ namespace Game.Audio
                 _ => 0f
             };
 
+            if (fromProjectile)
+            {
+                baseF += 28f;
+            }
+
             float f = Mathf.Clamp(baseF + archHz, 220f, 720f);
             float vol = Mathf.Lerp(0.1f, 0.22f, intensity01);
             PlayClip(BuildTone(f, 0.035f, 0.028f), vol);
             float fHigh = Mathf.Clamp(f * 1.62f, 380f, 980f);
             PlayClip(BuildTone(fHigh, 0.022f, 0.018f), vol * 0.42f);
+
+            // 아군 피격 — 얇은 경고 레이어(과하지 않게 낮은 볼륨)
+            if (victimTeam == UnitTeam.Player)
+            {
+                float warnF = Mathf.Clamp(620f + archHz * 0.35f, 520f, 820f);
+                PlayClip(BuildTone(warnF, 0.028f, 0.022f), vol * 0.34f, ProceduralAudioPriority.High);
+            }
+
+            if (fromProjectile)
+            {
+                PlayClip(BuildNoiseBlip(0.028f, 0.18f), vol * 0.22f);
+            }
         }
 
         /// <summary>유닛 사망 — 팀별 저·고역 + 짧은 노이즈</summary>
@@ -604,6 +647,19 @@ namespace Game.Audio
             PlayClip(BuildTone(fLow, 0.055f, 0.042f), ally ? 0.3f : 0.28f);
             PlayClip(BuildTone(fMid, 0.04f, 0.03f), ally ? 0.22f : 0.2f);
             PlayClip(BuildNoiseBlip(0.06f, 0.38f), ally ? 0.2f : 0.16f);
+        }
+
+        /// <summary>적 유닛 사망 시 짧은 고역 악센트 — 타격·처치 판독용</summary>
+        public static void PlayEnemyUnitDeathAccent()
+        {
+            PlayClip(BuildTone(980f, 0.018f, 0.015f), 0.09f, ProceduralAudioPriority.Normal);
+        }
+
+        /// <summary>짧은 시간 다수 처치 시 한 번 더 얇은 스윕(스팸 방지는 호출 측 쿨다운)</summary>
+        public static void PlayEnemyClusterDeathSweep()
+        {
+            PlayClip(BuildTone(720f, 0.032f, 0.024f), 0.11f, ProceduralAudioPriority.Normal);
+            PlayClip(BuildTone(520f, 0.04f, 0.03f), 0.08f, ProceduralAudioPriority.Normal);
         }
 
         /// <summary>일반 구조물 피격(이단 거점 등) — 코어보다 가볍게</summary>

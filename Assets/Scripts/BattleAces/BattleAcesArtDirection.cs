@@ -6,6 +6,8 @@ namespace Game.BattleAces
     /// Battle Aces·프로토 SF RTS 공통 **아트 방향 한 줄**과 팔레트 고정값.
     /// 에셋·라이트·런타임 연출은 여기서 벗어나지 않는 것이 이상적(데모는 <see cref="BattleAcesDemoStagePresentation"/>).
     /// 레퍼 폴더·검수 체크리스트는 <see cref="BattleAcesArtQualityScope"/>.
+    /// **전술 판독성**은 클래식 PC RTS(유닛·체력·교전이 한눈에) 수준을 목표로 두되,
+    /// 색·무드는 본작 티얼 단일 악센트 규율을 유지한다(타작 저작물 팔레트 복제 아님).
     /// </summary>
     public static class BattleAcesArtDirection
     {

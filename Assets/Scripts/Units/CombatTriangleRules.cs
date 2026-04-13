@@ -7,6 +7,41 @@ namespace Game.Units
     /// </summary>
     public static class CombatTriangleRules
     {
+        public enum IncomingDamageBand
+        {
+            Reduced,
+            Normal,
+            Increased
+        }
+
+        /// <summary>방어자 기준 — 들어오는 피해에 곱해지는 총계(기본 1)</summary>
+        public static float GetIncomingDamageScalar(UnitArchetype attacker, UnitArchetype defender, bool isProjectile)
+        {
+            float m = GetMatchupMultiplier(attacker, defender);
+            if (isProjectile)
+            {
+                m *= GetProjectileDefenseMultiplier(attacker, defender);
+            }
+
+            return m;
+        }
+
+        public static IncomingDamageBand GetIncomingDamageBand(UnitArchetype attacker, UnitArchetype defender, bool isProjectile)
+        {
+            float s = GetIncomingDamageScalar(attacker, defender, isProjectile);
+            if (s < 0.92f)
+            {
+                return IncomingDamageBand.Reduced;
+            }
+
+            if (s > 1.08f)
+            {
+                return IncomingDamageBand.Increased;
+            }
+
+            return IncomingDamageBand.Normal;
+        }
+
         public static float ResolveDamage(UnitArchetype attacker, CombatTarget target, float baseDamage, bool isProjectile)
         {
             if (target == null)
@@ -22,12 +57,7 @@ namespace Game.Units
             }
 
             UnitArchetype defender = defenderUnit.Archetype;
-            float damage = baseDamage * GetMatchupMultiplier(attacker, defender);
-
-            if (isProjectile)
-            {
-                damage *= GetProjectileDefenseMultiplier(attacker, defender);
-            }
+            float damage = baseDamage * GetIncomingDamageScalar(attacker, defender, isProjectile);
 
             return Mathf.Max(0f, damage);
         }

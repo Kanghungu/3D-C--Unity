@@ -1,3 +1,4 @@
+using Game.BattleAces;
 using Game.Prototype;
 using UnityEngine;
 
@@ -26,6 +27,8 @@ namespace Game.Units
         private Renderer trailBodyRenderer;
         private Transform trailTip;
         private Renderer trailTipRenderer;
+        private Transform ribbonTrail;
+        private Renderer ribbonTrailRenderer;
 
         public void Initialize(CombatTarget assignedTarget, UnitTeam assignedOwnerTeam, float assignedDamage, float projectileSpeed, float assignedArcHeight, float assignedSplashRadius, float assignedImpactEffectScale, Color assignedImpactColor)
         {
@@ -101,16 +104,30 @@ namespace Game.Units
 
                     float splashMultiplier = Mathf.Lerp(1f, 0.35f, Mathf.Clamp01(distance / splashRadius));
                     float resolvedDamage = CombatTriangleRules.ResolveDamage(attackerArchetype, candidate, damage * splashMultiplier, true);
-                    candidate.Health.ApplyDamage(resolvedDamage);
+                    candidate.Health.ApplyDamage(resolvedDamage, startPosition, fromProjectile: true);
                 }
             }
             else if (target != null && target.IsAlive && target.Team != ownerTeam)
             {
                 float resolvedDamage = CombatTriangleRules.ResolveDamage(attackerArchetype, target, damage, true);
-                target.Health.ApplyDamage(resolvedDamage);
+                target.Health.ApplyDamage(resolvedDamage, startPosition, fromProjectile: true);
             }
 
-            UnitCombat.SpawnImpactEffect(impactPoint, impactEffectScale, impactColor);
+            bool battleAcesActive = BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController ba) && !ba.IsFinished;
+            float splashMul = splashRadius > 0.01f ? 1.18f : 1f;
+            UnitCombat.SpawnImpactEffect(
+                impactPoint,
+                impactEffectScale,
+                impactColor,
+                battleAcesActive ? 1.15f * splashMul : 1f,
+                battleAcesActive ? 1.12f : 1f,
+                directMelee: false);
+            if (battleAcesActive)
+            {
+                float ringBoost = splashRadius > 0.01f ? 1.32f : 1f;
+                BattleAcesCombatJuice.NotifyImpactAccentRing(impactPoint, ownerTeam, ringBoost);
+            }
+
             Destroy(gameObject);
         }
 
@@ -147,6 +164,21 @@ namespace Game.Units
                 trailTip = tip.transform;
                 trailTipRenderer = tip.GetComponent<Renderer>();
             }
+
+            if (ribbonTrail == null)
+            {
+                GameObject ribbon = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                ribbon.name = "Trail Ribbon";
+                ribbon.transform.SetParent(transform);
+                ribbon.transform.localRotation = Quaternion.identity;
+                ribbon.GetComponent<Collider>().enabled = false;
+                ribbonTrail = ribbon.transform;
+                ribbonTrailRenderer = ribbon.GetComponent<Renderer>();
+                if (ribbonTrailRenderer != null)
+                {
+                    ribbonTrailRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+            }
         }
 
         private void UpdateProjectileVisuals(Vector3 previousPosition, Vector3 currentPosition, float normalized)
@@ -163,7 +195,9 @@ namespace Game.Units
             }
 
             float pulse = 0.88f + Mathf.PingPong(Time.time * 8f, 0.18f);
-            float trailLength = Mathf.Lerp(0.22f, 0.82f, Mathf.Clamp01(direction.magnitude * 6f + splashRadius * 0.18f));
+            bool battleAcesJuice = BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController baVis) && !baVis.IsFinished;
+            float trailBoost = battleAcesJuice ? 1.48f : 1f;
+            float trailLength = Mathf.Lerp(0.22f, 0.82f, Mathf.Clamp01(direction.magnitude * 6f + splashRadius * 0.18f)) * trailBoost;
             float trailWidth = Mathf.Clamp(0.08f + splashRadius * 0.05f + impactEffectScale * 0.02f, 0.08f, 0.22f);
             float lift = 0.02f + Mathf.Sin(normalized * Mathf.PI) * 0.03f;
 
@@ -194,6 +228,21 @@ namespace Game.Units
             if (trailTipRenderer != null)
             {
                 trailTipRenderer.material.color = Color.Lerp(impactColor, Color.white, 0.1f) * 0.72f;
+            }
+
+            if (ribbonTrail != null)
+            {
+                ribbonTrail.gameObject.SetActive(battleAcesJuice);
+                if (battleAcesJuice)
+                {
+                    ribbonTrail.localPosition = new Vector3(0f, lift * 0.88f, -trailLength * 0.58f);
+                    ribbonTrail.localScale = new Vector3(trailWidth * 0.38f, trailWidth * 0.18f, trailLength * 1.05f);
+                    if (ribbonTrailRenderer != null)
+                    {
+                        Color rc = new Color(impactColor.r, impactColor.g, impactColor.b, 0.42f);
+                        ribbonTrailRenderer.material.color = rc * (0.75f + pulse * 0.25f);
+                    }
+                }
             }
         }
     }

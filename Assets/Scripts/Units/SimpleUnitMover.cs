@@ -17,13 +17,25 @@ namespace Game.Units
         private bool hasDestination;
         private Vector3 destination;
         private float movementEffectTimer;
+
+        /// <summary>비행 유닛 수평 속도 스무딩용</summary>
+        private float flyHorizontalSpeedCurrent;
+
         private UnitAbilityState abilityState;
         private AdvancedUnitRoleController roleController;
         private SelectableUnit selectableUnit;
         private NavMeshAgent navMeshAgent;
 
+        /// <summary>애니 선딜 등 — 1 미만이면 이동 속도만 일시적으로 줄임</summary>
+        private float externalSpeedMultiplier = 1f;
+
         public bool IsMoving => hasDestination;
         public float MoveSpeed => moveSpeed;
+
+        public void SetExternalSpeedMultiplier(float multiplier)
+        {
+            externalSpeedMultiplier = Mathf.Clamp(multiplier, 0.12f, 1f);
+        }
 
         private void Awake()
         {
@@ -63,7 +75,7 @@ namespace Game.Units
             // 버프/디버프에 따른 속도 반영
             float speedMult = abilityState != null ? abilityState.GetMoveSpeedMultiplier() : 1f;
             float passiveSpeedMult = roleController != null ? roleController.GetPassiveMoveSpeedMultiplier() : 1f;
-            navMeshAgent.speed = moveSpeed * speedMult * passiveSpeedMult;
+            navMeshAgent.speed = moveSpeed * speedMult * passiveSpeedMult * externalSpeedMultiplier;
 
             // 도착 판정
             if (!navMeshAgent.pathPending && navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance)
@@ -102,18 +114,30 @@ namespace Game.Units
             if (toDest.sqrMagnitude <= stoppingDistance * stoppingDistance)
             {
                 hasDestination = false;
+                flyHorizontalSpeedCurrent = 0f;
                 return;
             }
 
             float speedMult = abilityState != null ? abilityState.GetMoveSpeedMultiplier() : 1f;
             float passiveSpeedMult = roleController != null ? roleController.GetPassiveMoveSpeedMultiplier() : 1f;
-            float effectiveSpeed = moveSpeed * speedMult * passiveSpeedMult;
+            float effectiveSpeed = moveSpeed * speedMult * passiveSpeedMult * externalSpeedMultiplier;
+            float flyAccel = 20f;
+            if (selectableUnit != null && selectableUnit.Definition != null)
+            {
+                float fa = selectableUnit.Definition.MoveProfile.flyHorizontalAcceleration;
+                if (fa > 0.5f)
+                {
+                    flyAccel = fa;
+                }
+            }
+
+            flyHorizontalSpeedCurrent = Mathf.MoveTowards(flyHorizontalSpeedCurrent, effectiveSpeed, flyAccel * Time.deltaTime);
             Vector3 dir = toDest.normalized;
 
             Quaternion targetRot = Quaternion.LookRotation(dir, Vector3.up);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
 
-            Vector3 next = current + dir * (effectiveSpeed * Time.deltaTime);
+            Vector3 next = current + dir * (flyHorizontalSpeedCurrent * Time.deltaTime);
             next.y = Mathf.Lerp(current.y, hoverY, Time.deltaTime * 5f);
             transform.position = next;
 
@@ -135,6 +159,25 @@ namespace Game.Units
             {
                 navMeshAgent.speed           = moveSpeed;
                 navMeshAgent.stoppingDistance = stoppingDistance;
+            }
+        }
+
+        /// <summary>UnitDefinition MoveProfile 로 NavMeshAgent 튜닝</summary>
+        public void ApplyMoveProfileNav(MoveProfileData profile)
+        {
+            if (navMeshAgent == null || !profile.applyToNavAgent)
+            {
+                return;
+            }
+
+            if (profile.navAcceleration > 0.5f)
+            {
+                navMeshAgent.acceleration = profile.navAcceleration;
+            }
+
+            if (profile.navAngularSpeedDeg > 1f)
+            {
+                navMeshAgent.angularSpeed = profile.navAngularSpeedDeg;
             }
         }
 
@@ -160,6 +203,7 @@ namespace Game.Units
         {
             hasDestination      = false;
             movementEffectTimer = 0f;
+            flyHorizontalSpeedCurrent = 0f;
 
             if (navMeshAgent != null && navMeshAgent.isOnNavMesh)
             {

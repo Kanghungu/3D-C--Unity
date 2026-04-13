@@ -25,7 +25,7 @@ namespace Game.Units
                 PrimitiveType.Cube,
                 "Engagement Beam",
                 new Vector3(0f, 0f, 0.4f),
-                new Vector3(0.05f, 0.05f, 0.8f),
+                new Vector3(0.068f, 0.068f, 0.8f),
                 new Color(1f, 0.42f, 0.24f));
             engagementBeamRenderer = engagementBeam.GetComponent<Renderer>();
 
@@ -34,7 +34,7 @@ namespace Game.Units
                 PrimitiveType.Sphere,
                 "Engagement Tip",
                 new Vector3(0f, 0f, 0.82f),
-                new Vector3(0.12f, 0.12f, 0.12f),
+                new Vector3(0.14f, 0.14f, 0.14f),
                 new Color(1f, 0.42f, 0.24f));
             engagementTipRenderer = engagementTip.GetComponent<Renderer>();
         }
@@ -73,7 +73,7 @@ namespace Game.Units
             if (engagementBeam != null)
             {
                 engagementBeam.localPosition = new Vector3(0f, 0f, distance * 0.5f);
-                engagementBeam.localScale = new Vector3(0.045f, 0.045f, distance);
+                engagementBeam.localScale = new Vector3(0.06f, 0.06f, distance);
             }
 
             if (engagementBeamRenderer != null)
@@ -84,7 +84,7 @@ namespace Game.Units
             if (engagementTip != null)
             {
                 engagementTip.localPosition = new Vector3(0f, 0f, distance);
-                engagementTip.localScale = Vector3.one * (0.1f + Mathf.PingPong(Time.time * 2.8f, 0.03f));
+                engagementTip.localScale = Vector3.one * (0.12f + Mathf.PingPong(Time.time * 2.8f, 0.035f));
             }
 
             if (engagementTipRenderer != null)

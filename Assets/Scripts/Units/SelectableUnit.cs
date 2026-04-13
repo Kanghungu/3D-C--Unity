@@ -607,7 +607,8 @@ namespace Game.Units
 
             if (selectionRing != null && selectionRing.activeSelf)
             {
-                float ringPulse = 1f + Mathf.PingPong(Time.time * 2.8f, 0.12f);
+                float attackBoost = combat != null ? combat.RecentAttackPulse * 0.22f : 0f;
+                float ringPulse = 1f + Mathf.PingPong(Time.time * 2.8f, 0.12f) + attackBoost;
                 selectionRing.transform.localScale = new Vector3(
                     SelectionRingDiameter * ringPulse,
                     SelectionRingHeight,

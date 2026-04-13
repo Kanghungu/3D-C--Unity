@@ -17,10 +17,10 @@ namespace Game.BattleAces
 
         private static Texture2D cachedDiagonalGradient;
 
-        /// <summary>洹몃씪?곗씠???뚭퀬由ъ쬁 諛붾뚮㈃ 罹먯떆 臾댄슚???먮뵒???ъ뺨?뚯씪쨌?꾨찓??由щ줈?????먮룞)</summary>
+        /// <summary>대각선 그라데이션 텍스처 캐시. 빌드 버전이 바뀌면 무효화(에디터·재컴파일 시 자동)</summary>
         private static int cachedDiagonalGradientBuildVersion = -1;
 
-        private const int DiagonalGradientBuildVersion = 3;
+        private const int DiagonalGradientBuildVersion = 4;
 
         private static Vector3? cachedClassicDuelPlaneScaleForAtmosphere;
 
@@ -360,7 +360,11 @@ namespace Game.BattleAces
                         (Mathf.PerlinNoise(u * 19.3f + 1.71f, v * 19.3f + 2.29f) - 0.5f) * 0.052f;
                     float band = Mathf.Sin(v * Mathf.PI * 28f) * 0.018f;
                     float micro = (Mathf.PerlinNoise(u * 61f, v * 61f) - 0.5f) * 0.022f;
-                    float tone = grain + band + micro;
+                    // 거시 사구 능선 음영 — 줌 아웃에서도 평면이 아닌 고도감
+                    float macroRidge1 = Mathf.Sin((u * 2.1f + v * 1.7f) * Mathf.PI * 2.3f) * 0.056f;
+                    float macroRidge2 = Mathf.Cos((u * 1.35f - v * 2.45f) * Mathf.PI * 1.95f) * 0.048f;
+                    float macroRidge3 = Mathf.Sin(u * Mathf.PI * 3.15f + v * Mathf.PI * 2.55f) * 0.034f;
+                    float tone = grain + band + micro + macroRidge1 + macroRidge2 + macroRidge3;
                     color.r = Mathf.Clamp01(color.r + tone);
                     color.g = Mathf.Clamp01(color.g + tone);
                     color.b = Mathf.Clamp01(color.b + tone);
@@ -384,28 +388,54 @@ namespace Game.BattleAces
         {
             Color earth = BattleAcesArtDirection.TerrainBerm;
 
+            // 큐브 중심 Y = scale.y * 0.5f 근처로 두어 지면(y≈0)에 안착
             AddBerm(
                 parent,
                 "DemoRoll_A",
-                M(new Vector3(26f, 0.32f, -38f), mirrorX),
+                M(new Vector3(28f, 0.74f, -40f), mirrorX),
                 Quaternion.Euler(0f, mirrorX ? -12f : 12f, 0f),
-                new Vector3(22f, 0.52f, 12f),
+                new Vector3(26f, 1.48f, 13f),
                 earth);
 
             AddBerm(
                 parent,
                 "DemoRoll_B",
-                M(new Vector3(-28f, 0.3f, 36f), mirrorX),
+                M(new Vector3(-30f, 0.66f, 38f), mirrorX),
                 Quaternion.Euler(0f, mirrorX ? 8f : -8f, 0f),
-                new Vector3(20f, 0.48f, 14f),
+                new Vector3(24f, 1.32f, 15f),
                 earth);
 
             AddBerm(
                 parent,
                 "DemoRidge_C",
-                M(new Vector3(0f, 0.28f, 44f), mirrorX),
+                M(new Vector3(0f, 0.58f, 46f), mirrorX),
                 Quaternion.identity,
-                new Vector3(40f, 0.45f, 7f),
+                new Vector3(46f, 1.16f, 9f),
+                earth);
+
+            // 추가 사구·능선 — 주름 방향을 달리해 사막 능선 느낌
+            AddBerm(
+                parent,
+                "DemoRoll_D",
+                M(new Vector3(-22f, 0.34f, -50f), mirrorX),
+                Quaternion.Euler(0f, mirrorX ? 52f : -52f, 0f),
+                new Vector3(18f, 0.68f, 7.5f),
+                earth);
+
+            AddBerm(
+                parent,
+                "DemoRoll_E",
+                M(new Vector3(24f, 0.38f, 50f), mirrorX),
+                Quaternion.Euler(0f, mirrorX ? -30f : 30f, 0f),
+                new Vector3(15f, 0.76f, 8f),
+                earth);
+
+            AddBerm(
+                parent,
+                "DemoRoll_F",
+                M(new Vector3(-44f, 0.45f, 6f), mirrorX),
+                Quaternion.Euler(0f, mirrorX ? 78f : -78f, 0f),
+                new Vector3(11f, 0.9f, 26f),
                 earth);
         }
 

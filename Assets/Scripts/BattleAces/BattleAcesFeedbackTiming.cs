@@ -12,6 +12,12 @@ namespace Game.BattleAces
         /// <summary>유닛 피격 히트음 스팸 방지</summary>
         public const float UnitHitSoundCooldownUnscaled = 0.1f;
 
+        /// <summary>현재 선택된 유닛 피격 — 히트음을 조금 더 자주 허용해 타격감 유지</summary>
+        public const float UnitHitSoundCooldownSelectedUnscaled = 0.062f;
+
+        /// <summary>아군(비선택) 피격 히트음 — 전체 스팸보다는 조금 촘촘히</summary>
+        public const float UnitHitSoundCooldownPlayerAllyUnscaled = 0.078f;
+
         /// <summary>지휘 코어 피격 HUD 한 줄·(기존) 화면 플래시와 겹치지 않게 타격음 쪽 쿨다운</summary>
         public const float PlayerCoreHitFeedbackCooldownUnscaled = 0.4f;
 

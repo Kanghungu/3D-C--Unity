@@ -123,6 +123,11 @@ namespace Game.BattleAces
             BattleArenaLayoutKind layoutKind = BattleArenaLayoutBootstrap.ResolveLayoutKind(mission);
             BattleArenaLayoutBootstrap.SpawnLayoutObstacles(structuresRoot, layoutKind, mirrorX);
             BattleAcesDemoStagePresentation.Apply(ground, arenaScale, structuresRoot, layoutKind, mirrorX);
+            if (layoutKind != BattleArenaLayoutKind.ClassicDuel)
+            {
+                BattleAcesArenaTerrainReadability.SpawnLightDunes(structuresRoot, arenaScale, layoutKind, mirrorX);
+            }
+
             if (ground != null)
             {
                 BakeNavMeshAroundGround(ground.transform.position, arenaScale);
@@ -305,6 +310,7 @@ namespace Game.BattleAces
             systems.AddComponent<BattleAcesCombatAmbientLoop>();
             systems.AddComponent<BattleAcesMixerParameterSync>();
             systems.AddComponent<BattleAcesScreenFlashHud>();
+            systems.AddComponent<BattleAcesWorldDamageNumbers>();
             systems.AddComponent<BattleAcesInputToggles>();
             BattleAcesSelectionInfoHud selectionInfo = systems.AddComponent<BattleAcesSelectionInfoHud>();
             selectionInfo.Bind(playerCore, economy, database);

@@ -29,6 +29,11 @@ namespace Game.Units
         [SerializeField] private Color playerColor = new(0.7f, 0.8f, 1f);
         [SerializeField] private Color enemyColor = new(0.9f, 0.35f, 0.35f);
 
+        [Header("RTS 무게감 (이동·애니)")]
+        [SerializeField] private MoveProfileData moveProfile = default;
+        [SerializeField] private AnimCombatProfileData animCombatProfile = default;
+        [SerializeField] private RuntimeAnimatorController optionalAnimatorController;
+
         public UnitArchetype Archetype => archetype;
         public string DisplayName => ResolveDisplayName(archetype, displayName);
         public PrimitiveType PrimitiveType => primitiveType;
@@ -51,6 +56,64 @@ namespace Game.Units
         public float HoverHeight => hoverHeight;
         public Color PlayerColor => playerColor;
         public Color EnemyColor => enemyColor;
+
+        /// <summary>인스펙터에서 한 번도 안 건드렸을 때 기본 무브 프로필</summary>
+        public MoveProfileData MoveProfile =>
+            IsMoveProfileUninitialized(moveProfile)
+                ? MoveProfileData.CreateDefault()
+                : moveProfile;
+
+        /// <summary>애니 전투 프로필 — 기본은 레거시(타이머 타격)</summary>
+        public AnimCombatProfileData AnimCombatProfile => animCombatProfile;
+
+        public RuntimeAnimatorController OptionalAnimatorController => optionalAnimatorController;
+
+        private void OnValidate()
+        {
+            if (IsMoveProfileUninitialized(moveProfile))
+            {
+                moveProfile = MoveProfileData.CreateDefault();
+            }
+
+            AnimCombatProfileData defaults = AnimCombatProfileData.CreateDefault();
+            if (string.IsNullOrEmpty(animCombatProfile.speedFloatParam) &&
+                string.IsNullOrEmpty(animCombatProfile.attackTriggerParam) &&
+                string.IsNullOrEmpty(animCombatProfile.dieTriggerParam) &&
+                string.IsNullOrEmpty(animCombatProfile.inCombatBoolParam) &&
+                animCombatProfile.strikeFallbackTimeoutUnscaled <= 0.01f &&
+                animCombatProfile.deathDestroyDelayUnscaled <= 0.01f &&
+                !animCombatProfile.useAnimDrivenStrike)
+            {
+                animCombatProfile = defaults;
+                return;
+            }
+
+            if (string.IsNullOrEmpty(animCombatProfile.speedFloatParam))
+            {
+                animCombatProfile.speedFloatParam = defaults.speedFloatParam;
+            }
+
+            if (string.IsNullOrEmpty(animCombatProfile.attackTriggerParam))
+            {
+                animCombatProfile.attackTriggerParam = defaults.attackTriggerParam;
+            }
+
+            if (string.IsNullOrEmpty(animCombatProfile.dieTriggerParam))
+            {
+                animCombatProfile.dieTriggerParam = defaults.dieTriggerParam;
+            }
+
+            if (string.IsNullOrEmpty(animCombatProfile.inCombatBoolParam))
+            {
+                animCombatProfile.inCombatBoolParam = defaults.inCombatBoolParam;
+            }
+
+            if (animCombatProfile.useAnimDrivenStrike &&
+                animCombatProfile.strikeFallbackTimeoutUnscaled <= 0.01f)
+            {
+                animCombatProfile.strikeFallbackTimeoutUnscaled = defaults.strikeFallbackTimeoutUnscaled;
+            }
+        }
 
         public static string ResolveDisplayName(UnitArchetype archetype, string englishName = null)
         {
@@ -122,6 +185,24 @@ namespace Game.Units
             hoverHeight = assignedHoverHeight;
             playerColor = assignedPlayerColor;
             enemyColor = assignedEnemyColor;
+        }
+
+        /// <summary>런타임 생성 정의(예: PrototypeGameDatabase)에서 애니 전투 프로필 덮어쓰기</summary>
+        public void SetAnimCombatProfileRuntime(AnimCombatProfileData data)
+        {
+            animCombatProfile = data;
+        }
+
+        private static bool IsMoveProfileUninitialized(MoveProfileData profile)
+        {
+            return !profile.applyToNavAgent &&
+                   profile.navAcceleration <= 0.01f &&
+                   profile.navAngularSpeedDeg <= 0.01f &&
+                   profile.windupMoveSpeedMultiplier <= 0.01f &&
+                   !profile.enableCrowdSeparation &&
+                   profile.separationRadius <= 0.01f &&
+                   profile.separationPushPerSecond <= 0.01f &&
+                   profile.flyHorizontalAcceleration <= 0.01f;
         }
     }
 }

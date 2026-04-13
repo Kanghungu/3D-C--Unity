@@ -9,8 +9,18 @@ namespace Game.BattleAces
     /// </summary>
     public sealed class BattleAcesCombatAudio : MonoBehaviour
     {
+        private const float EnemyClusterWindowUnscaled = 0.55f;
+
+        private const int EnemyClusterCountTrigger = 3;
+
+        private static int enemyDeathsInWindow;
+
+        private static float enemyDeathWindowResetUnscaled = -999f;
+
         private void OnEnable()
         {
+            enemyDeathsInWindow = 0;
+            enemyDeathWindowResetUnscaled = -999f;
             UnitHealth.OnUnitDied += HandleUnitDied;
         }
 
@@ -22,6 +32,24 @@ namespace Game.BattleAces
         private static void HandleUnitDied(UnitTeam team, UnitArchetype archetype)
         {
             ProceduralAudioUtility.PlayUnitDeath(team);
+            if (team == UnitTeam.Enemy)
+            {
+                ProceduralAudioUtility.PlayEnemyUnitDeathAccent();
+                float now = Time.unscaledTime;
+                if (now > enemyDeathWindowResetUnscaled)
+                {
+                    enemyDeathsInWindow = 0;
+                }
+
+                enemyDeathsInWindow++;
+                enemyDeathWindowResetUnscaled = now + EnemyClusterWindowUnscaled;
+                if (enemyDeathsInWindow >= EnemyClusterCountTrigger)
+                {
+                    ProceduralAudioUtility.PlayEnemyClusterDeathSweep();
+                    enemyDeathsInWindow = 0;
+                    enemyDeathWindowResetUnscaled = now + 0.85f;
+                }
+            }
         }
     }
 }

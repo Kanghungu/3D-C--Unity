@@ -189,6 +189,32 @@ namespace Game.Selection
             }
         }
 
+        /// <summary>사망 연기 중에도 선택 목록에서 즉시 제거</summary>
+        public void DeselectUnit(SelectableUnit unit)
+        {
+            if (unit == null)
+            {
+                return;
+            }
+
+            for (int index = selectedUnits.Count - 1; index >= 0; index--)
+            {
+                if (selectedUnits[index] != unit)
+                {
+                    continue;
+                }
+
+                unit.SetSelected(false);
+                selectedUnits.RemoveAt(index);
+                if (selectedUnits.Count == 0)
+                {
+                    lastClickTime = 0f;
+                }
+
+                return;
+            }
+        }
+
         public string GetControlGroupSummary()
         {
             return PrototypeSelectionUtility.BuildControlGroupSummary(controlGroups);
