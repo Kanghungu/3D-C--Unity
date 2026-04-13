@@ -233,7 +233,7 @@ namespace Game.CameraSystem
             float camY = Mathf.Abs(transform.position.y);
             float heightShakeMul = Mathf.Lerp(0.95f, 2.45f, Mathf.InverseLerp(5.5f, 95f, camY));
             float sharp = combatShakeSharpnessMul;
-            float w = combatShakeStrength * combatShakeMaxWorldOffset * heightShakeMul * Mathf.Lerp(0.92f, 1.18f, Mathf.Clamp01(sharp - 1f)));
+            float w = combatShakeStrength * combatShakeMaxWorldOffset * heightShakeMul * Mathf.Lerp(0.92f, 1.18f, Mathf.Clamp01(sharp - 1f));
             float freq = combatShakeFrequencyBase * sharp;
             float n1 = Mathf.PerlinNoise(Time.unscaledTime * freq, 1.718f) - 0.5f;
             float n2 = Mathf.PerlinNoise(2.31f, Time.unscaledTime * freq) - 0.5f;

@@ -159,8 +159,7 @@ namespace Game.BattleAces
         {
             Font font = GetUiFont();
 
-            GameObject root = new GameObject("BA_ResultUgui");
-            root.transform.SetParent(transform, false);
+            GameObject root = CreateUiObject("BA_ResultUgui", transform);
 
             rootCanvas = root.AddComponent<Canvas>();
             rootCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -176,9 +175,8 @@ namespace Game.BattleAces
 
             root.AddComponent<GraphicRaycaster>();
 
-            GameObject dimGo = new GameObject("Dim");
-            dimGo.transform.SetParent(root.transform, false);
-            RectTransform dimRt = dimGo.AddComponent<RectTransform>();
+            GameObject dimGo = CreateUiObject("Dim", root.transform);
+            RectTransform dimRt = dimGo.GetComponent<RectTransform>();
             dimRt.anchorMin = Vector2.zero;
             dimRt.anchorMax = Vector2.one;
             dimRt.offsetMin = Vector2.zero;
@@ -187,9 +185,8 @@ namespace Game.BattleAces
             dimImg.color = ImGuiGameUi.DimFullscreen;
             dimImg.raycastTarget = true;
 
-            GameObject cardGo = new GameObject("Card");
-            cardGo.transform.SetParent(root.transform, false);
-            cardRt = cardGo.AddComponent<RectTransform>();
+            GameObject cardGo = CreateUiObject("Card", root.transform);
+            cardRt = cardGo.GetComponent<RectTransform>();
             cardRt.anchorMin = new Vector2(0.5f, 0.5f);
             cardRt.anchorMax = new Vector2(0.5f, 0.5f);
             cardRt.pivot = new Vector2(0.5f, 0.5f);
@@ -201,9 +198,8 @@ namespace Game.BattleAces
             outline.effectColor = ImGuiGameUi.BorderCool;
             outline.effectDistance = new Vector2(2f, -2f);
 
-            GameObject innerGo = new GameObject("Inner");
-            innerGo.transform.SetParent(cardGo.transform, false);
-            RectTransform innerRt = innerGo.AddComponent<RectTransform>();
+            GameObject innerGo = CreateUiObject("Inner", cardGo.transform);
+            RectTransform innerRt = innerGo.GetComponent<RectTransform>();
             innerRt.anchorMin = Vector2.zero;
             innerRt.anchorMax = Vector2.one;
             innerRt.offsetMin = new Vector2(8f, 8f);
@@ -235,8 +231,7 @@ namespace Game.BattleAces
             LayoutElement statsLe = textStats.gameObject.AddComponent<LayoutElement>();
             statsLe.preferredHeight = 36f;
 
-            bonusRow = new GameObject("BonusRow");
-            bonusRow.transform.SetParent(innerGo.transform, false);
+            bonusRow = CreateUiObject("BonusRow", innerGo.transform);
             LayoutElement bonusRowLe = bonusRow.AddComponent<LayoutElement>();
             bonusRowLe.preferredHeight = 40f;
             HorizontalLayoutGroup bonusH = bonusRow.AddComponent<HorizontalLayoutGroup>();
@@ -265,8 +260,7 @@ namespace Game.BattleAces
 
             AddRule(innerGo.transform);
 
-            GameObject btnRow = new GameObject("ButtonRow");
-            btnRow.transform.SetParent(innerGo.transform, false);
+            GameObject btnRow = CreateUiObject("ButtonRow", innerGo.transform);
             HorizontalLayoutGroup btnH = btnRow.AddComponent<HorizontalLayoutGroup>();
             btnH.spacing = 12;
             btnH.childForceExpandWidth = true;
@@ -284,8 +278,7 @@ namespace Game.BattleAces
 
         private static void AddRule(Transform parent)
         {
-            GameObject rule = new GameObject("Rule");
-            rule.transform.SetParent(parent, false);
+            GameObject rule = CreateUiObject("Rule", parent);
             LayoutElement le = rule.AddComponent<LayoutElement>();
             le.preferredHeight = 1f;
             Image img = rule.AddComponent<Image>();
@@ -295,8 +288,7 @@ namespace Game.BattleAces
 
         private static GameObject CreateOptionalRow(Transform parent, string name, Font font, int size, Color color, out Text textField)
         {
-            GameObject row = new GameObject(name);
-            row.transform.SetParent(parent, false);
+            GameObject row = CreateUiObject(name, parent);
             LayoutElement rowLe = row.AddComponent<LayoutElement>();
             rowLe.preferredHeight = 40f;
             textField = CreateLabel(row.transform, "Text", font, size, color, TextAnchor.UpperLeft);
@@ -308,8 +300,7 @@ namespace Game.BattleAces
 
         private static void CreateBodyScroll(Transform parent, Font font, out Text bodyText)
         {
-            GameObject scrollGo = new GameObject("BodyScroll");
-            scrollGo.transform.SetParent(parent, false);
+            GameObject scrollGo = CreateUiObject("BodyScroll", parent);
             RectTransform scrollRt = scrollGo.GetComponent<RectTransform>();
             scrollRt.anchorMin = new Vector2(0f, 0f);
             scrollRt.anchorMax = new Vector2(1f, 1f);
@@ -327,18 +318,16 @@ namespace Game.BattleAces
             scroll.movementType = ScrollRect.MovementType.Clamped;
             scroll.scrollSensitivity = 24f;
 
-            GameObject viewport = new GameObject("Viewport");
-            viewport.transform.SetParent(scrollGo.transform, false);
-            RectTransform vpRt = viewport.AddComponent<RectTransform>();
+            GameObject viewport = CreateUiObject("Viewport", scrollGo.transform);
+            RectTransform vpRt = viewport.GetComponent<RectTransform>();
             vpRt.anchorMin = Vector2.zero;
             vpRt.anchorMax = Vector2.one;
             vpRt.offsetMin = Vector2.zero;
             vpRt.offsetMax = Vector2.zero;
             viewport.AddComponent<RectMask2D>();
 
-            GameObject content = new GameObject("Content");
-            content.transform.SetParent(viewport.transform, false);
-            RectTransform contentRt = content.AddComponent<RectTransform>();
+            GameObject content = CreateUiObject("Content", viewport.transform);
+            RectTransform contentRt = content.GetComponent<RectTransform>();
             contentRt.anchorMin = new Vector2(0f, 1f);
             contentRt.anchorMax = new Vector2(1f, 1f);
             contentRt.pivot = new Vector2(0.5f, 1f);
@@ -373,8 +362,7 @@ namespace Game.BattleAces
 
         private static void CreateMenuButton(Transform parent, string name, Font font, UnityEngine.Events.UnityAction onClick, out Text label)
         {
-            GameObject btnGo = new GameObject(name + "Button");
-            btnGo.transform.SetParent(parent, false);
+            GameObject btnGo = CreateUiObject(name + "Button", parent);
             LayoutElement le = btnGo.AddComponent<LayoutElement>();
             le.preferredHeight = 48f;
             le.flexibleWidth = 1f;
@@ -393,8 +381,7 @@ namespace Game.BattleAces
             btn.colors = colors;
             btn.onClick.AddListener(onClick);
 
-            GameObject textGo = new GameObject("Label");
-            textGo.transform.SetParent(btnGo.transform, false);
+            GameObject textGo = CreateUiObject("Label", btnGo.transform);
             label = textGo.AddComponent<Text>();
             label.font = font;
             label.fontSize = 16;
@@ -413,8 +400,7 @@ namespace Game.BattleAces
 
         private static Text CreateLabel(Transform parent, string name, Font font, int size, Color color, TextAnchor align)
         {
-            GameObject go = new GameObject(name);
-            go.transform.SetParent(parent, false);
+            GameObject go = CreateUiObject(name, parent);
             Text t = go.AddComponent<Text>();
             t.font = font;
             t.fontSize = size;
@@ -429,6 +415,13 @@ namespace Game.BattleAces
             rt.pivot = new Vector2(0.5f, 1f);
             rt.sizeDelta = Vector2.zero;
             return t;
+        }
+
+        private static GameObject CreateUiObject(string name, Transform parent)
+        {
+            GameObject go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            return go;
         }
 
         private static Font GetUiFont()

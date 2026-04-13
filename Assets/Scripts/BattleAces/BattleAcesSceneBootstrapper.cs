@@ -125,7 +125,7 @@ namespace Game.BattleAces
             BattleAcesDemoStagePresentation.Apply(ground, arenaScale, structuresRoot, layoutKind, mirrorX);
             if (layoutKind != BattleArenaLayoutKind.ClassicDuel)
             {
-                BattleAcesArenaTerrainReadability.SpawnLightDunes(structuresRoot, arenaScale, layoutKind, mirrorX);
+                TrySpawnArenaLightDunes(structuresRoot, arenaScale, layoutKind, mirrorX);
             }
 
             if (ground != null)
@@ -310,7 +310,7 @@ namespace Game.BattleAces
             systems.AddComponent<BattleAcesCombatAmbientLoop>();
             systems.AddComponent<BattleAcesMixerParameterSync>();
             systems.AddComponent<BattleAcesScreenFlashHud>();
-            systems.AddComponent<BattleAcesWorldDamageNumbers>();
+            TryAddBattleAcesWorldDamageNumbers(systems);
             systems.AddComponent<BattleAcesInputToggles>();
             BattleAcesSelectionInfoHud selectionInfo = systems.AddComponent<BattleAcesSelectionInfoHud>();
             selectionInfo.Bind(playerCore, economy, database);
@@ -928,6 +928,35 @@ namespace Game.BattleAces
             }
 
             // 대기·안개·지면 그라데이션은 BattleAcesDemoStagePresentation.Apply 에서 통일 적용
+        }
+
+        private static void TrySpawnArenaLightDunes(Transform structuresParent, Vector3 arenaScale, BattleArenaLayoutKind kind, bool mirrorX)
+        {
+            System.Type terrainReadabilityType = System.Type.GetType("Game.BattleAces.BattleAcesArenaTerrainReadability, Assembly-CSharp");
+            if (terrainReadabilityType == null)
+            {
+                return;
+            }
+
+            terrainReadabilityType.GetMethod("SpawnLightDunes")?.Invoke(
+                null,
+                new object[] { structuresParent, arenaScale, kind, mirrorX });
+        }
+
+        private static void TryAddBattleAcesWorldDamageNumbers(GameObject target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            System.Type damageNumbersType = System.Type.GetType("Game.BattleAces.BattleAcesWorldDamageNumbers, Assembly-CSharp");
+            if (damageNumbersType == null || target.GetComponent(damageNumbersType) != null)
+            {
+                return;
+            }
+
+            target.AddComponent(damageNumbersType);
         }
 
         private static void BakeNavMeshAroundGround(Vector3 groundCenter, Vector3 planeScale)

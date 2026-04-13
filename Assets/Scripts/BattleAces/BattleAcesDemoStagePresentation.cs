@@ -60,10 +60,6 @@ namespace Game.BattleAces
 
             SpawnLowTerrainRolls(root, mirrorX);
             SpawnSilhouetteObstacles(root, mirrorX);
-            SpawnProcessionalLanes(root, mirrorX);
-            SpawnBattleAxisGuideSpines(root, mirrorX);
-            SpawnSanctumFrames(root, mirrorX);
-            SpawnPerimeterShrines(root, mirrorX);
             SpawnCentralDais(root);
         }
 
@@ -386,6 +382,134 @@ namespace Game.BattleAces
 
         private static void SpawnLowTerrainRolls(Transform parent, bool mirrorX)
         {
+            Color earth = Color.Lerp(BattleAcesArtDirection.TerrainBerm, BattleAcesArtDirection.GunmetalMid, 0.16f);
+            Color ash = Color.Lerp(BattleAcesArtDirection.AshStone, BattleAcesArtDirection.TerrainBerm, 0.55f);
+
+            // 길쭉한 막대 대신 코너/측면을 받쳐주는 저상 매스로 정리한다.
+            AddPrimitiveProp(
+                parent,
+                PrimitiveType.Cylinder,
+                "DemoMass_PlayerRear",
+                M(new Vector3(-42f, 0.16f, -42f), mirrorX),
+                Quaternion.identity,
+                new Vector3(8.8f, 0.16f, 8.8f),
+                earth,
+                false,
+                false,
+                0.34f);
+            AddPrimitiveProp(
+                parent,
+                PrimitiveType.Cylinder,
+                "DemoMass_EnemyRear",
+                M(new Vector3(42f, 0.16f, 42f), mirrorX),
+                Quaternion.identity,
+                new Vector3(8.8f, 0.16f, 8.8f),
+                earth,
+                false,
+                false,
+                0.34f);
+            AddPrimitiveProp(
+                parent,
+                PrimitiveType.Cylinder,
+                "DemoMass_PlayerFlank",
+                M(new Vector3(-30f, 0.12f, 22f), mirrorX),
+                Quaternion.identity,
+                new Vector3(5.4f, 0.12f, 5.4f),
+                ash,
+                false,
+                false,
+                0.28f);
+            AddPrimitiveProp(
+                parent,
+                PrimitiveType.Cylinder,
+                "DemoMass_EnemyFlank",
+                M(new Vector3(30f, 0.12f, -22f), mirrorX),
+                Quaternion.identity,
+                new Vector3(5.4f, 0.12f, 5.4f),
+                ash,
+                false,
+                false,
+                0.28f);
+            AddPrimitiveProp(
+                parent,
+                PrimitiveType.Cube,
+                "DemoMass_MidWest",
+                M(new Vector3(-18f, 0.14f, -2f), mirrorX),
+                Quaternion.Euler(0f, mirrorX ? -22f : 22f, 0f),
+                new Vector3(10f, 0.28f, 7.2f),
+                earth,
+                false,
+                false,
+                0.24f);
+            AddPrimitiveProp(
+                parent,
+                PrimitiveType.Cube,
+                "DemoMass_MidEast",
+                M(new Vector3(18f, 0.14f, 2f), mirrorX),
+                Quaternion.Euler(0f, mirrorX ? -22f : 22f, 0f),
+                new Vector3(10f, 0.28f, 7.2f),
+                earth,
+                false,
+                false,
+                0.24f);
+        }
+
+        private static void SpawnSilhouetteObstacles(Transform parent, bool mirrorX)
+        {
+            Color monolith = BattleAcesArtDirection.ObstacleMonolith;
+            Color playerAccent = Color.Lerp(monolith, BattleAcesArtDirection.PointTeal, 0.18f);
+            Color enemyAccent = Color.Lerp(monolith, BattleAcesArtDirection.EnemyEmber, 0.12f);
+            Color plinth = Color.Lerp(BattleAcesArtDirection.ObstacleSlab, BattleAcesArtDirection.GunmetalLift, 0.32f);
+
+            AddPrimitiveProp(
+                parent,
+                PrimitiveType.Cylinder,
+                "DemoLandmark_Player_Base",
+                M(new Vector3(-18f, 0.16f, 18f), mirrorX),
+                Quaternion.identity,
+                new Vector3(2.8f, 0.16f, 2.8f),
+                plinth,
+                false,
+                false,
+                0.42f);
+            AddProp(
+                parent,
+                "DemoLandmark_Player_Obelisk",
+                M(new Vector3(-18f, 1.84f, 18f), mirrorX),
+                Quaternion.Euler(0f, 18f, 0f),
+                new Vector3(2.2f, 3.7f, 2.2f),
+                playerAccent,
+                false,
+                false,
+                1.36f);
+            AddBeacon(parent, "DemoLandmark_Player_Beacon", M(new Vector3(-14f, 0f, 14f), mirrorX), BattleAcesArtDirection.PointTeal);
+
+            AddPrimitiveProp(
+                parent,
+                PrimitiveType.Cylinder,
+                "DemoLandmark_Enemy_Base",
+                M(new Vector3(18f, 0.16f, -18f), mirrorX),
+                Quaternion.identity,
+                new Vector3(2.8f, 0.16f, 2.8f),
+                plinth,
+                false,
+                false,
+                0.42f);
+            AddProp(
+                parent,
+                "DemoLandmark_Enemy_Obelisk",
+                M(new Vector3(18f, 1.84f, -18f), mirrorX),
+                Quaternion.Euler(0f, -18f, 0f),
+                new Vector3(2.2f, 3.7f, 2.2f),
+                enemyAccent,
+                false,
+                false,
+                1.18f);
+            AddBeacon(parent, "DemoLandmark_Enemy_Beacon", M(new Vector3(14f, 0f, -14f), mirrorX), BattleAcesArtDirection.EnemyEmber);
+        }
+
+        private static void SpawnLowTerrainRollsLegacy(Transform parent, bool mirrorX)
+        {
             Color earth = BattleAcesArtDirection.TerrainBerm;
 
             // 큐브 중심 Y = scale.y * 0.5f 근처로 두어 지면(y≈0)에 안착
@@ -439,7 +563,7 @@ namespace Game.BattleAces
                 earth);
         }
 
-        private static void SpawnSilhouetteObstacles(Transform parent, bool mirrorX)
+        private static void SpawnSilhouetteObstaclesLegacy(Transform parent, bool mirrorX)
         {
             Color monolith = BattleAcesArtDirection.ObstacleMonolith;
             Color slab = BattleAcesArtDirection.ObstacleSlab;
@@ -536,7 +660,8 @@ namespace Game.BattleAces
 
             AddPrimitiveProp(parent, PrimitiveType.Cylinder, "CenterDais_Base", new Vector3(0f, 0.2f, 0f), Quaternion.identity, new Vector3(8f, 0.26f, 8f), baseStone, false, false, 0.5f);
             AddPrimitiveProp(parent, PrimitiveType.Cylinder, "CenterDais_Ring", new Vector3(0f, 0.28f, 0f), Quaternion.identity, new Vector3(5.8f, 0.05f, 5.8f), accent, false, false, 0.95f);
-            AddPrimitiveProp(parent, PrimitiveType.Cylinder, "CenterDais_Spire", new Vector3(0f, 1.1f, 0f), Quaternion.identity, new Vector3(0.65f, 2f, 0.65f), accent, false, false, 0.88f);
+            AddPrimitiveProp(parent, PrimitiveType.Cylinder, "CenterDais_BeaconStem", new Vector3(0f, 0.46f, 0f), Quaternion.identity, new Vector3(0.34f, 0.58f, 0.34f), accent, false, false, 0.82f);
+            AddPrimitiveProp(parent, PrimitiveType.Sphere, "CenterDais_BeaconOrb", new Vector3(0f, 1.02f, 0f), Quaternion.identity, new Vector3(0.54f, 0.54f, 0.54f), accent, false, false, 1.08f);
         }
 
         private static void SpawnCoreFrame(Transform parent, string prefix, Vector3 center, Color accent)

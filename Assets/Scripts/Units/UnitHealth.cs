@@ -315,7 +315,8 @@ namespace Game.Units
                 return;
             }
 
-            if (BattleAcesWorldDamageNumbers.Instance == null)
+            Type damageNumberType = Type.GetType("Game.BattleAces.BattleAcesWorldDamageNumbers, Assembly-CSharp");
+            if (damageNumberType == null)
             {
                 return;
             }
@@ -325,8 +326,16 @@ namespace Game.Units
                 return;
             }
 
+            object instance = damageNumberType.GetProperty("Instance")?.GetValue(null, null);
+            if (instance == null)
+            {
+                return;
+            }
+
             bool victimIsEnemy = combatTarget.Team == UnitTeam.Enemy;
-            BattleAcesWorldDamageNumbers.Instance.EnqueueWorldDamage(transform.position, damageAmount, victimIsEnemy);
+            damageNumberType.GetMethod("EnqueueWorldDamage")?.Invoke(
+                instance,
+                new object[] { transform.position, damageAmount, victimIsEnemy });
         }
 
         /// <summary>Full-screen flash for player-owned units (not command core).</summary>
