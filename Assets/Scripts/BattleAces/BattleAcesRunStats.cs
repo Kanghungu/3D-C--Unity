@@ -16,11 +16,7 @@ namespace Game.BattleAces
 
         private int enemyUnitsKilled;
         private int playerUnitsLost;
-
-        /// <summary>Unscaled time when the playable battle actually begins.</summary>
         private float battleClockStartUnscaled = -1f;
-
-        /// <summary>Frozen play time captured when the match ends.</summary>
         private float frozenPlaySecondsUnscaled = -1f;
 
         private BattleAcesMatchController subscribedMatch;
@@ -32,11 +28,10 @@ namespace Game.BattleAces
 
         private void Start()
         {
-            // MatchController may already exist by the time this component starts.
-            if (BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController m))
+            if (BattleAcesMatchController.TryGetInstance(out BattleAcesMatchController match))
             {
-                subscribedMatch = m;
-                m.MatchEnded += OnBattleMatchEnded;
+                subscribedMatch = match;
+                match.MatchEnded += OnBattleMatchEnded;
             }
         }
 
@@ -64,14 +59,13 @@ namespace Game.BattleAces
             UnitHealth.OnUnitDied -= OnUnitDied;
         }
 
-        private void OnBattleMatchEnded(BattleAcesMatchController.MatchState st)
+        private void OnBattleMatchEnded(BattleAcesMatchController.MatchState state)
         {
             frozenPlaySecondsUnscaled = battleClockStartUnscaled >= 0f
                 ? Mathf.Max(0f, Time.unscaledTime - battleClockStartUnscaled)
                 : 0f;
         }
 
-        /// <summary>Called when gameplay control begins after briefing or intro flow.</summary>
         public void MarkBattleClockStart()
         {
             if (battleClockStartUnscaled < 0f)
@@ -80,13 +74,11 @@ namespace Game.BattleAces
             }
         }
 
-        /// <summary>Returns the frozen end-of-match play length, or 0 when unavailable.</summary>
         public float GetFrozenPlaySecondsUnscaled()
         {
             return frozenPlaySecondsUnscaled >= 0f ? frozenPlaySecondsUnscaled : 0f;
         }
 
-        /// <summary>Formats a result-card time string as mm:ss.</summary>
         public static string FormatPlayTimeMmSs(float secondsUnscaled)
         {
             if (secondsUnscaled < 0f)
@@ -100,14 +92,13 @@ namespace Game.BattleAces
             return mm.ToString(CultureInfo.InvariantCulture) + ":" + ss.ToString("00", CultureInfo.InvariantCulture);
         }
 
-        /// <summary>Builds a short Korean summary used by result cards and dev notes.</summary>
         public string BuildFullResultSummaryLine(float playSecondsUnscaled, int endCredits)
         {
-            string t = FormatPlayTimeMmSs(playSecondsUnscaled);
-            string head = $"플레이 {t} · 종료 자원 {endCredits}";
-            if (TryGetMostProducedArchetype(out UnitArchetype arch, out int n) && n > 0)
+            string timeLabel = FormatPlayTimeMmSs(playSecondsUnscaled);
+            string head = $"플레이 {timeLabel} · 종료 자원 {endCredits}";
+            if (TryGetMostProducedArchetype(out UnitArchetype archetype, out int count) && count > 0)
             {
-                return $"{head} · 생산 최다 {FormatArchetypeShortKo(arch)} x{n} · 적 격파 {enemyUnitsKilled} · 아군 손실 {playerUnitsLost}";
+                return $"{head} · 생산 최다 {FormatArchetypeShortKo(archetype)} x{count} · 적 격파 {enemyUnitsKilled} · 아군 손실 {playerUnitsLost}";
             }
 
             return $"{head} · 적 격파 {enemyUnitsKilled} · 아군 손실 {playerUnitsLost}";
@@ -120,7 +111,7 @@ namespace Game.BattleAces
                 UnitArchetype.Spearman => "창",
                 UnitArchetype.ShieldInfantry => "방패",
                 UnitArchetype.Rifleman => "소총",
-                UnitArchetype.Artillery => "포",
+                UnitArchetype.Artillery => "포병",
                 UnitArchetype.Fighter => "전투기",
                 UnitArchetype.SpecialWarrior => "특전",
                 UnitArchetype.RoyalGuard => "근위",
@@ -143,36 +134,34 @@ namespace Game.BattleAces
             }
         }
 
-        /// <summary>Called when the player core finishes producing a unit.</summary>
         public void RegisterPlayerUnitProduced(UnitArchetype archetype)
         {
-            playerProductionCount.TryGetValue(archetype, out int n);
-            playerProductionCount[archetype] = n + 1;
+            playerProductionCount.TryGetValue(archetype, out int count);
+            playerProductionCount[archetype] = count + 1;
         }
 
         public int CountDistinctPlayerProductionArchetypes()
         {
-            int c = 0;
-            foreach (KeyValuePair<UnitArchetype, int> kv in playerProductionCount)
+            int count = 0;
+            foreach (KeyValuePair<UnitArchetype, int> entry in playerProductionCount)
             {
-                if (kv.Value > 0)
+                if (entry.Value > 0)
                 {
-                    c++;
+                    count++;
                 }
             }
 
-            return c;
+            return count;
         }
 
-        /// <summary>Total number of units produced by the player during the match.</summary>
         public int GetTotalPlayerUnitsProduced()
         {
             int sum = 0;
-            foreach (KeyValuePair<UnitArchetype, int> kv in playerProductionCount)
+            foreach (KeyValuePair<UnitArchetype, int> entry in playerProductionCount)
             {
-                if (kv.Value > 0)
+                if (entry.Value > 0)
                 {
-                    sum += kv.Value;
+                    sum += entry.Value;
                 }
             }
 
@@ -183,12 +172,12 @@ namespace Game.BattleAces
         {
             archetype = UnitArchetype.Spearman;
             count = 0;
-            foreach (KeyValuePair<UnitArchetype, int> kv in playerProductionCount)
+            foreach (KeyValuePair<UnitArchetype, int> entry in playerProductionCount)
             {
-                if (kv.Value > count)
+                if (entry.Value > count)
                 {
-                    count = kv.Value;
-                    archetype = kv.Key;
+                    count = entry.Value;
+                    archetype = entry.Key;
                 }
             }
 

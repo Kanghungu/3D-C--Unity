@@ -9,8 +9,6 @@ namespace Game.Prototype
     /// </summary>
     public static class PrototypeEntityVisualFactory
     {
-        private const string SpearmanModelResourcePath = "PrototypeUnits/test";
-
         /// <summary>BattleAcesArtDirection.PointTeal 과 동기 — Prototype 은 BattleAces 어셈블리 미참조</summary>
         private static readonly Color SyncedAllyPointTeal = new Color(0.18f, 0.88f, 0.98f);
 
@@ -73,33 +71,44 @@ namespace Game.Prototype
             switch (definition.Archetype)
             {
                 case UnitArchetype.Spearman:
-                    if (TryBuildImportedSpearman(root, team, armor, cloth, glow))
+                    if (TryBuildPrefabUnitVisual(root, definition, team))
                     {
                         break;
                     }
 
-                    BuildHumanoid(root, armor, cloth, skin, 1.05f, false);
-                    CreateChildPrimitive(root, PrimitiveType.Cube, "Pike Shaft", new Vector3(0.22f, 1.06f, 0.28f), new Vector3(0.06f, 1.12f, 0.06f), weapon);
-                    CreateChildPrimitive(root, PrimitiveType.Cube, "Pike Head", new Vector3(0.22f, 1.62f, 0.28f), new Vector3(0.12f, 0.18f, 0.12f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
-                    CreateChildPrimitive(root, PrimitiveType.Cube, "Pike Counterweight", new Vector3(0.22f, 0.54f, 0.28f), new Vector3(0.12f, 0.14f, 0.12f), cloth, ReadablePrimitiveMaterialUtility.EmissionAccent);
-                    CreateChildPrimitive(root, PrimitiveType.Sphere, "Pike Lantern", new Vector3(-0.18f, 0.98f, 0.24f), new Vector3(0.14f, 0.14f, 0.14f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
-                    CreateChildPrimitive(root, PrimitiveType.Cube, "PauldronBadgeL", new Vector3(-0.26f, 1.12f, 0.06f), new Vector3(0.1f, 0.08f, 0.12f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
-                    CreateChildPrimitive(root, PrimitiveType.Cube, "PauldronBadgeR", new Vector3(0.26f, 1.12f, 0.06f), new Vector3(0.1f, 0.08f, 0.12f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    // 가독성: 머리–어깨–창 실루엣 살짝 강화(팔레트 축 유지)
+                    BuildHumanoid(root, armor, cloth, skin, 1.07f, false);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "Pike Shaft", new Vector3(0.24f, 1.08f, 0.28f), new Vector3(0.07f, 1.18f, 0.07f), weapon);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "Pike Head", new Vector3(0.24f, 1.68f, 0.28f), new Vector3(0.14f, 0.2f, 0.14f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "Pike Counterweight", new Vector3(0.24f, 0.52f, 0.28f), new Vector3(0.12f, 0.15f, 0.12f), cloth, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    CreateChildPrimitive(root, PrimitiveType.Sphere, "Pike Lantern", new Vector3(-0.2f, 1f, 0.24f), new Vector3(0.15f, 0.15f, 0.15f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "PauldronBadgeL", new Vector3(-0.28f, 1.14f, 0.06f), new Vector3(0.11f, 0.09f, 0.13f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "PauldronBadgeR", new Vector3(0.28f, 1.14f, 0.06f), new Vector3(0.11f, 0.09f, 0.13f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
                     break;
                 case UnitArchetype.ShieldInfantry:
+                    if (TryBuildPrefabUnitVisual(root, definition, team))
+                    {
+                        break;
+                    }
+
                     BuildHumanoid(root, armor, cloth, skin, 1.12f, true);
-                    CreateChildPrimitive(root, PrimitiveType.Cube, "Shield", new Vector3(-0.28f, 0.82f, 0.48f), new Vector3(0.44f, 0.62f, 0.14f), weapon);
-                    CreateChildPrimitive(root, PrimitiveType.Cube, "Short Blade", new Vector3(0.26f, 0.88f, 0.46f), new Vector3(0.06f, 0.14f, 0.34f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
-                    CreateChildPrimitive(root, PrimitiveType.Cube, "ShieldBoss", new Vector3(-0.28f, 0.82f, 0.58f), new Vector3(0.12f, 0.12f, 0.04f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
-                    CreateChildPrimitive(root, PrimitiveType.Cube, "ShieldRim", new Vector3(-0.28f, 0.82f, 0.62f), new Vector3(0.46f, 0.64f, 0.035f), weapon, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "Shield", new Vector3(-0.3f, 0.84f, 0.5f), new Vector3(0.48f, 0.66f, 0.15f), weapon);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "Short Blade", new Vector3(0.28f, 0.9f, 0.48f), new Vector3(0.07f, 0.15f, 0.36f), glow, ReadablePrimitiveMaterialUtility.EmissionStrongGlow);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "ShieldBoss", new Vector3(-0.3f, 0.84f, 0.6f), new Vector3(0.13f, 0.13f, 0.045f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "ShieldRim", new Vector3(-0.3f, 0.84f, 0.64f), new Vector3(0.5f, 0.68f, 0.038f), weapon, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
                     break;
                 case UnitArchetype.Rifleman:
+                    if (TryBuildPrefabUnitVisual(root, definition, team))
+                    {
+                        break;
+                    }
+
                     BuildHumanoid(root, armor, cloth, skin, 0.98f, false);
-                    CreateChildPrimitive(root, PrimitiveType.Cube, "Long Rifle", new Vector3(0f, 0.96f, 0.46f), new Vector3(0.08f, 0.08f, 0.88f), weapon);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "Long Rifle", new Vector3(0f, 0.98f, 0.48f), new Vector3(0.09f, 0.09f, 0.94f), weapon);
                     CreateChildPrimitive(root, PrimitiveType.Cube, "Back Pack", new Vector3(0f, 0.9f, -0.22f), new Vector3(0.24f, 0.34f, 0.18f), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
-                    CreateChildPrimitive(root, PrimitiveType.Cube, "Scope", new Vector3(0f, 1.08f, 0.42f), new Vector3(0.08f, 0.04f, 0.18f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
-                    CreateChildPrimitive(root, PrimitiveType.Cube, "MuzzleBrake", new Vector3(0f, 0.96f, 0.9f), new Vector3(0.12f, 0.06f, 0.06f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
-                    CreateChildPrimitive(root, PrimitiveType.Cube, "Foregrip", new Vector3(0f, 0.88f, 0.62f), new Vector3(0.06f, 0.1f, 0.14f), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "Scope", new Vector3(0f, 1.1f, 0.44f), new Vector3(0.09f, 0.045f, 0.2f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "MuzzleBrake", new Vector3(0f, 0.98f, 0.96f), new Vector3(0.14f, 0.07f, 0.07f), glow, ReadablePrimitiveMaterialUtility.EmissionAccent);
+                    CreateChildPrimitive(root, PrimitiveType.Cube, "Foregrip", new Vector3(0f, 0.88f, 0.64f), new Vector3(0.06f, 0.1f, 0.14f), cloth, ReadablePrimitiveMaterialUtility.EmissionSubtleBody);
                     break;
                 case UnitArchetype.SpecialWarrior:
                     BuildSpecialWarriorSilhouette(root, armor, cloth, skin, glow, weapon);
@@ -154,30 +163,33 @@ namespace Game.Prototype
             BuildUnitFactionSignature(root, definition.Archetype, team, cloth, glow);
         }
 
-        private static bool TryBuildImportedSpearman(Transform root, UnitTeam team, Color armor, Color cloth, Color accent)
+        /// <summary>Resources 프리팹 비주얼 — 없으면 false(프리미티브 실루엣으로 폴백)</summary>
+        private static bool TryBuildPrefabUnitVisual(Transform root, UnitDefinition definition, UnitTeam team)
         {
-            // Temporary fallback: the imported FBX currently comes in with an unusable
-            // runtime scale/pivot, so keep Spearman on the primitive silhouette.
-            bool useImportedSpearman = false;
-            if (!useImportedSpearman)
+            if (!PrototypeUnitVisualResourceCatalog.TryLoadUnitVisualPrefab(definition, out GameObject prefab, out string pathUsed) ||
+                prefab == null)
             {
                 return false;
             }
 
-            GameObject source = Resources.Load<GameObject>(SpearmanModelResourcePath);
-            if (source == null)
+            GameObject visual = Object.Instantiate(prefab, root);
+            visual.name = "UnitMeshVisual";
+
+            Transform visualTransform = visual.transform;
+            visualTransform.localPosition = Vector3.zero;
+            visualTransform.localRotation = Quaternion.identity;
+            visualTransform.localScale = Vector3.one;
+
+            // 레거시 창병 FBX(PrototypeUnits/test) 피벗만 별도 보정 — Units/Spearman 등 신규 프리팹은 (0,0,0) 기준
+            bool legacySpearmanPivot = definition.Archetype == UnitArchetype.Spearman &&
+                                       !string.IsNullOrEmpty(pathUsed) &&
+                                       pathUsed.IndexOf("PrototypeUnits/test", System.StringComparison.Ordinal) >= 0;
+            if (legacySpearmanPivot)
             {
-                Debug.LogWarning($"[VisualFactory] FBX 로드 실패: Resources/{SpearmanModelResourcePath} — 프리미티브 폴백 사용");
-                return false;
+                visualTransform.localPosition = new Vector3(0f, -0.46f, 0f);
+                visualTransform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                visualTransform.localScale = Vector3.one * 0.78f;
             }
-
-            Debug.Log($"[VisualFactory] FBX 로드 성공: {source.name}, 렌더러 수={source.GetComponentsInChildren<Renderer>(true).Length}");
-
-            GameObject visual = Object.Instantiate(source, root);
-            visual.name = "SpearmanVisual";
-            visual.transform.localPosition = new Vector3(0f, -0.46f, 0f);
-            visual.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
-            visual.transform.localScale = Vector3.one * 0.78f;
 
             foreach (Collider collider in visual.GetComponentsInChildren<Collider>(true))
             {
@@ -185,28 +197,44 @@ namespace Game.Prototype
             }
 
             Renderer[] renderers = visual.GetComponentsInChildren<Renderer>(true);
-            for (int index = 0; index < renderers.Length; index++)
-            {
-                Renderer renderer = renderers[index];
-                Material materialInstance = renderer.material;
+            PrototypeUnitVisualTintUtility.ApplyTeamTint(renderers, team);
 
-                if (index == 0)
-                {
-                    materialInstance.color = armor;
-                }
-                else if (index % 3 == 0)
-                {
-                    materialInstance.color = accent;
-                }
-                else
-                {
-                    materialInstance.color = cloth;
-                }
+            if (definition.Archetype == UnitArchetype.Spearman)
+            {
+                TryAddSpearmanRuntimeLodCull(visual);
             }
 
-            Transform visualTransform = visual.transform;
             visualTransform.SetSiblingIndex(0);
             return true;
+        }
+
+        /// <summary>창병 메시에만 런타임 LOD 2단(원거리 컬) 시범 — 프리팹에 이미 LODGroup 있으면 건드리지 않음</summary>
+        private static void TryAddSpearmanRuntimeLodCull(GameObject visualRoot)
+        {
+            if (visualRoot == null)
+            {
+                return;
+            }
+
+            if (visualRoot.GetComponentInChildren<LODGroup>(true) != null)
+            {
+                return;
+            }
+
+            Renderer[] renderers = visualRoot.GetComponentsInChildren<Renderer>(true);
+            if (renderers == null || renderers.Length == 0)
+            {
+                return;
+            }
+
+            LODGroup lodGroup = visualRoot.AddComponent<LODGroup>();
+            LOD[] lods =
+            {
+                new LOD(0.2f, renderers),
+                new LOD(0.035f, new Renderer[0]),
+            };
+            lodGroup.SetLODs(lods);
+            lodGroup.RecalculateBounds();
         }
 
         public static void BuildControlNodeSilhouette(Transform root)

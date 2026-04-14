@@ -63,6 +63,13 @@
 
 추가 아웃라인/펄스는 넣지 않음(성능·가독성 밸런스).
 
+### 6.5 RTS 프로토 실루엣 — 스케일·두께는 가독성 (레퍼 1:1 아님)
+
+- **한 줄 원칙**: 유닛의 스케일·프리미티브 두께는 **외부 레퍼와 동일 비율을 맞추는 용도가 아니라**, 전장 줌에서 **실루엣·팀·무기 종류**가 읽히도록 하는 **가독성·연출** 목적이다.
+- **루트 스케일**(`UnitDefinition`·Nav·콜라이더)은 게임 규칙과 묶이므로, “보기 좋게”는 우선 **실루엣 자식(프리미티브·선택 메시)** 의 비율·명도로 조정한다.
+- **검증**: [`WEEKLY_CAPTURE.md`](ReferenceScreenshots/WEEKLY_CAPTURE.md) 해상도 쌍(1920·720)으로 한 판 비교 — 팔레트(`BATTLE_ACES_ART_DIRECTION.md`)를 깨지 않는 범위에서만 명도·실루엣을 조정한다.
+- **구현 위치**: `PrototypeEntityVisualFactory.BuildUnitSilhouette` 및 (선택) `Resources/PrototypeUnits` 메시 폴백.
+
 ---
 
 ## 7. 720p·색약 회귀 체크리스트 (Battle Aces)

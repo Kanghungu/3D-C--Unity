@@ -29,10 +29,13 @@ namespace Game.Units
         [SerializeField] private Color playerColor = new(0.7f, 0.8f, 1f);
         [SerializeField] private Color enemyColor = new(0.9f, 0.35f, 0.35f);
 
-        [Header("RTS 무게감 (이동·애니)")]
+        [Header("RTS Weight")]
         [SerializeField] private MoveProfileData moveProfile = default;
         [SerializeField] private AnimCombatProfileData animCombatProfile = default;
         [SerializeField] private RuntimeAnimatorController optionalAnimatorController;
+
+        [Tooltip("Resources path without extension. Leave empty to use the catalog defaults.")]
+        [SerializeField] private string optionalUnitVisualResourcePath = string.Empty;
 
         public UnitArchetype Archetype => archetype;
         public string DisplayName => ResolveDisplayName(archetype, displayName);
@@ -57,16 +60,16 @@ namespace Game.Units
         public Color PlayerColor => playerColor;
         public Color EnemyColor => enemyColor;
 
-        /// <summary>인스펙터에서 한 번도 안 건드렸을 때 기본 무브 프로필</summary>
         public MoveProfileData MoveProfile =>
             IsMoveProfileUninitialized(moveProfile)
                 ? MoveProfileData.CreateDefault()
                 : moveProfile;
 
-        /// <summary>애니 전투 프로필 — 기본은 레거시(타이머 타격)</summary>
         public AnimCombatProfileData AnimCombatProfile => animCombatProfile;
 
         public RuntimeAnimatorController OptionalAnimatorController => optionalAnimatorController;
+
+        public string OptionalUnitVisualResourcePath => optionalUnitVisualResourcePath ?? string.Empty;
 
         private void OnValidate()
         {
@@ -187,10 +190,19 @@ namespace Game.Units
             enemyColor = assignedEnemyColor;
         }
 
-        /// <summary>런타임 생성 정의(예: PrototypeGameDatabase)에서 애니 전투 프로필 덮어쓰기</summary>
         public void SetAnimCombatProfileRuntime(AnimCombatProfileData data)
         {
             animCombatProfile = data;
+        }
+
+        public void SetOptionalAnimatorControllerRuntime(RuntimeAnimatorController controller)
+        {
+            optionalAnimatorController = controller;
+        }
+
+        public void SetOptionalUnitVisualResourcePathRuntime(string resourcePath)
+        {
+            optionalUnitVisualResourcePath = resourcePath ?? string.Empty;
         }
 
         private static bool IsMoveProfileUninitialized(MoveProfileData profile)

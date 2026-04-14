@@ -94,7 +94,20 @@ namespace Game.Prototype
 
             combatTarget.Initialize(team, health);
             selectableUnit.Initialize(team, definition, mover, combat);
-            PrototypeEntityVisualFactory.BuildUnitSilhouette(unit.transform, definition, team);
+
+            // 애니메이터가 있으면 실루엣을 자식 루트 아래에 두어 공격 클립이 로컬 스케일만 펄스해도 본체 스케일(정의값)은 유지된다.
+            Transform silhouetteParent = unit.transform;
+            if (definition.OptionalAnimatorController != null)
+            {
+                GameObject animScaleRoot = new(BattleAcesDemoUnitAnimatorRuntime.AnimScaleRootChildName);
+                animScaleRoot.transform.SetParent(unit.transform, false);
+                animScaleRoot.transform.localPosition = Vector3.zero;
+                animScaleRoot.transform.localRotation = Quaternion.identity;
+                animScaleRoot.transform.localScale = Vector3.one;
+                silhouetteParent = animScaleRoot.transform;
+            }
+
+            PrototypeEntityVisualFactory.BuildUnitSilhouette(silhouetteParent, definition, team);
             combat.Initialize(combatTarget, health);
 
             unit.AddComponent<BattleAcesUnitCombatReadout>();
